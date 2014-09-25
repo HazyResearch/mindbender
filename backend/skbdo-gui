@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# skbdo-gui -- Start a GUI for SKBDO
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2014-09-25
+set -eu
+
+NODE_PATH="$SKBDO_HOME"/gui/node_modules \
+exec \
+coffee "$SKBDO_HOME"/gui/server.coffee "$@"

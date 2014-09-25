@@ -1,1 +1,3 @@
-server.coffee                           app/
+server.coffee                           gui/
+node_modules                            gui/
+skbdo-gui                               bin/skbdo.d/

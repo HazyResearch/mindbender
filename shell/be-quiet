@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# be-quiet -- Check if logging is suppressed by $SKBDO_LOGLVL
+# 
+# > be-quiet [+-ADJUSTMENT]
+# Use positive ADJUSTMENT if the caller is thought to be handling a subtask.
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2012-11-01
+(( SKBDO_LOGLVL += 1 - $SHLVL - ${1:-0} ))
+[[ $SKBDO_LOGLVL -lt 0 ]]

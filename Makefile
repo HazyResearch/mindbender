@@ -2,9 +2,13 @@
 
 ## use BuildKit (https://github.com/netj/buildkit)
 PROJECTNAME = skbdo
-
-# prepare build dependencies under .depends/
+# preparing build dependencies under .depends/
 DEPENDSDIR = .depends
+# packaging as a executable binary
+PACKAGEEXECUTES = bin/skbdo
+
+# keeping runtime dependencies
+RUNTIMEDEPENDSDIR = depends
 
 include buildkit/modules.mk
 buildkit/modules.mk:

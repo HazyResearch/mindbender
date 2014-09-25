@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# skbdo shell
+# Usage: skbdo [-OPTION] COMMAND [ARG]...
+# 
+# Global OPTION is one of:
+#   -v      increase verbosity
+#   -q      suppress all messages
+#   -t      force logging to non-ttys
+#           (default is to log messages to stderr only when it's a tty)
+#
+# Generated: 2014-09-25
+set -eu
+
+if [ -z "${SKBDO_HOME:-}" ]; then
+    export SKBDO_COMMAND=${POJANG_ORIGINAL_COMMAND:-$0}
+    unset POJANG_ORIGINAL_COMMAND
+    if [ x"$SKBDO_COMMAND" = x"$(type -p "skbdo" 2>/dev/null)" ]; then
+        # no need to expand command when it's on PATH
+        SKBDO_COMMAND=skbdo
+    else
+        # resolve relative path (but no need to follow symlinks)
+        SKBDO_COMMAND="$(cd "$(dirname "$SKBDO_COMMAND")"; pwd)/$(basename "$SKBDO_COMMAND")"
+    fi
+    export USAGE_TOOL_COMMAND=skbdo  USAGE_TOOL_PATH=$SKBDO_COMMAND
+    Self=$(readlink -f "$0" 2>/dev/null || {
+        # XXX readlink -f is only available in GNU coreutils
+        cd $(dirname -- "$0")
+        n=$(basename -- "$0")
+        if [ -L "$n" ]; then
+            L=$(readlink "$n")
+            if [ x"$L" != x"${L#/}" ]; then
+                echo "$L"; exit
+            else
+                cd "$(dirname -- "$L")"
+                n=$(basename -- "$L")
+            fi
+        fi
+        echo "$(pwd -P)/$n"
+    })
+    Here=$(dirname "$Self")
+
+    # Keep a backup of some environment variables
+    for v in PATH NODE_PATH
+    do  vbak=SKBDO_ORIG_$v
+          declare -p $v    &>/dev/null || continue
+        ! declare -p $vbak &>/dev/null || continue
+        export "$vbak=${!v}"
+    done
+
+    # Setup environment
+    unset CDPATH
+    export SKBDO_HOME=${Here%/bin}
+    #  dependencies
+    PATH="$SKBDO_HOME/depends/bundled/.all/bin:$PATH"
+    PATH="$SKBDO_HOME/depends/runtime/.all/bin:$PATH"
+    #  node_modules
+    export NODE_PATH="$SKBDO_HOME/node_modules${NODE_PATH:+:$NODE_PATH}"
+    PATH="$SKBDO_HOME/node_modules/.bin:$PATH"
+    #  shell runtime scripts
+    PATH="$SKBDO_HOME/bin/skbdo.d:$PATH"
+    export PATH
+
+    # for msg logging
+    export SHLVL=0 SKBDO_LOGLVL=${SKBDO_LOGLVL:-1}
+    # export SKBDO_LOG_TO_NONTTY=
+fi
+
+# make sure everything we need is available
+"$SKBDO_HOME"/depends/check-runtime-depends-once
+
+
+# Process options
+while getopts "vtq" opt; do
+    case $opt in
+        v)
+            let ++SKBDO_LOGLVL
+            ;;
+        q)
+            SKBDO_LOGLVL=0
+            ;;
+        t)
+            export SKBDO_LOG_TO_NONTTY=true
+            ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+
+# Process input arguments
+[ $# -gt 0 ] || usage "$0" "No COMMAND given"
+Cmd=$1; shift
+
+
+# Check if it's a valid command
+exe=skbdo-"$Cmd"
+if type "$exe" &>/dev/null; then
+    set -- "$exe" "$@"
+else
+    usage "$0" "$Cmd: invalid COMMAND"
+fi
+
+
+# Run given command under this environment
+exec "$@"
