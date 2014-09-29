@@ -1,4 +1,17 @@
 #!/usr/bin/env bash
-set -eu
+shopt -s extglob
+set -eux
 
 npm install
+
+cd app
+coffee -m -c .
+uglifyjs \
+    bower_components/angular/angular.js \
+    bower_components/angular-route/angular-route.js \
+    app.js \
+    **/!(*_test).js \
+    components/**/!(*_test).js \
+    --output mindbender.js \
+    --mangle --compress \
+

@@ -1,5 +1,3 @@
 coffee
 lessc
-r.js
-grunt
 uglifyjs
