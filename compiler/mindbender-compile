@@ -1,22 +1,29 @@
 #!/usr/bin/env bash
-# mindbender-compile -- Parse given .mb file and output JSON
-# Usage: mindbender compile MB_FILE
+# mindbender-compile -- Compiles given MindBender specification
+# Usage: mindbender compile MB_FILE [OUTPUT_DIR]
 #
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2014-09-26
 set -eu
 
 [[ $# -gt 0 ]] || usage "$0" "MB_FILE must be specified"
-configFile=$1; shift
+ConfigFile=$1; shift
+OutputDir=${1:-${ConfigFile%.mb}.deepdive}
 
-[[ -e "$configFile" ]] || error "$configFile: Not found"
-[[ -r "$configFile" ]] || error "$configFile: Not accessible"
+[[ -e "$ConfigFile" ]] || error "$ConfigFile: Not found"
+[[ -r "$ConfigFile" ]] || error "$ConfigFile: Not accessible"
 
 # Parse MindBender HOCON into JSON falling back to the skeleton
-hocon2json "$configFile" "$MINDBENDER_HOME/etc/skeleton.mb"
+hocon2json "$ConfigFile" "$MINDBENDER_HOME/etc/skeleton.mb"
 
 # TODO validate with Avro or JSON schema?
 # See: http://avro.apache.org/docs/current/gettingstartedpython.html
 # See: http://json-schema.org
 
 # TODO codegen ddl, meta, schemas, tooling
+mkdir -p "$OutputDir"
+cd "$OutputDir"
+mkdir -p ddl ext schemas tooling
+touch application.conf
+
+echo "Generated $OutputDir"
