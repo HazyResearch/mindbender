@@ -1,0 +1,39 @@
+#!/usr/bin/env scala
+// A simple Scala script for parsing HOCON into fully resolved JSON
+// Usage: hocon2json HOCON_FILE [DEFAULT_FILE]
+//
+// See: https://github.com/typesafehub/config/blob/master/HOCON.md#readme
+// Author: Jaeho Shin <netj@cs.stanford.edu>
+// Created: 2014-09-29
+
+import java.io.File
+import com.typesafe.config._
+
+if (args.length < 1) {
+    System.err.println("Usage: hocon2json HOCON_FILE [DEFAULT_FILE]")
+    System.err.println("Input HOCON_FILE must be specified")
+    System.exit(1)
+}
+
+val defaults =
+    if (args.length > 1) ConfigFactory.parseFile(new File(args(1)))
+                    else ConfigFactory.empty()
+try {
+    val config = ConfigFactory.parseFile(new File(args(0)))
+        .withFallback(defaults)
+        .resolve(ConfigResolveOptions.defaults()
+            .setUseSystemEnvironment(true)
+            .setAllowUnresolved(false)
+        )
+    config.checkValid(defaults) // TODO filter paths?
+    println(config.root().render(ConfigRenderOptions.concise()
+        .setFormatted(true))
+    )
+    System.exit(0)
+} catch {
+    case e: Throwable =>
+        System.err.println(e.getMessage())
+}
+System.exit(2)
+
+// vim:ft=scala

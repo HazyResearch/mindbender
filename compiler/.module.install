@@ -1,1 +1,3 @@
-mindbender-parse                        bin/mindbender.d/
+mindbender-compile                      bin/mindbender.d/
+hocon2json                              bin/mindbender.d/
+skeleton.mb                             etc/
