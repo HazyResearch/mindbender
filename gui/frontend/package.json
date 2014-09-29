@@ -1,8 +1,8 @@
 {
-  "name": "skbdo-frontend",
+  "name": "mindbender-gui-frontend",
   "private": true,
   "version": "0.0.0",
-  "description": "SKBDO frontend mainly for DeepDive error analyses",
+  "description": "MindBender GUI frontend mainly for DeepDive error analyses",
   "repository": "https://github.com/netj/skbdo",
   "license": "MIT",
   "devDependencies": {

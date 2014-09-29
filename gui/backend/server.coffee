@@ -1,6 +1,6 @@
 #!/usr/bin/env coffee
 ###
-# ScubaDeep backend
+# MindBender GUI backend
 ###
 
 ## dependencies
@@ -21,14 +21,14 @@ _ = require "underscore"
 async = require "async"
 
 # parse command-line args and environment
-SCUBADEEP_PORT = parseInt process.env.PORT ? 8000
+MINDBENDER_PORT = parseInt process.env.PORT ? 8000
 
 ## express.js server
 app = module.exports = express()
 server = http.createServer app
 io = socketIO.listen server
 
-app.set "port", SCUBADEEP_PORT
+app.set "port", MINDBENDER_PORT
 app.set "views", "#{__dirname}/views"
 app.set "view engine", "jade"
 
@@ -42,10 +42,10 @@ if "development" == app.get "env"
     app.use errorHandler()
 
 server.listen (app.get "port"), ->
-    util.log "SKBDO started at http://#{os.hostname()}:#{SCUBADEEP_PORT}/"
+    util.log "MindBender GUI started at http://#{os.hostname()}:#{MINDBENDER_PORT}/"
 
 
-## ScubaDeep backend services
+## MindBender backend services
 app.get "/api/foo", (req, res) ->
     res.json "Not implemented"
 
