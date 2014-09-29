@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# skbdo shell
-# Usage: skbdo [-OPTION] COMMAND [ARG]...
+# mindbender shell
+# Usage: mindbender [-OPTION] COMMAND [ARG]...
 # 
 # Global OPTION is one of:
 #   -v      increase verbosity
@@ -8,20 +8,20 @@
 #   -t      force logging to non-ttys
 #           (default is to log messages to stderr only when it's a tty)
 #
-# Generated: 2014-09-25
+# Generated: 2014-09-29
 set -eu
 
-if [ -z "${SKBDO_HOME:-}" ]; then
-    export SKBDO_COMMAND=${POJANG_ORIGINAL_COMMAND:-$0}
+if [ -z "${MINDBENDER_HOME:-}" ]; then
+    export MINDBENDER_COMMAND=${POJANG_ORIGINAL_COMMAND:-$0}
     unset POJANG_ORIGINAL_COMMAND
-    if [ x"$SKBDO_COMMAND" = x"$(type -p "skbdo" 2>/dev/null)" ]; then
+    if [ x"$MINDBENDER_COMMAND" = x"$(type -p "mindbender" 2>/dev/null)" ]; then
         # no need to expand command when it's on PATH
-        SKBDO_COMMAND=skbdo
+        MINDBENDER_COMMAND=mindbender
     else
         # resolve relative path (but no need to follow symlinks)
-        SKBDO_COMMAND="$(cd "$(dirname "$SKBDO_COMMAND")"; pwd)/$(basename "$SKBDO_COMMAND")"
+        MINDBENDER_COMMAND="$(cd "$(dirname "$MINDBENDER_COMMAND")"; pwd)/$(basename "$MINDBENDER_COMMAND")"
     fi
-    export USAGE_TOOL_COMMAND=skbdo  USAGE_TOOL_PATH=$SKBDO_COMMAND
+    export USAGE_TOOL_COMMAND=mindbender  USAGE_TOOL_PATH=$MINDBENDER_COMMAND
     Self=$(readlink -f "$0" 2>/dev/null || {
         # XXX readlink -f is only available in GNU coreutils
         cd $(dirname -- "$0")
@@ -41,7 +41,7 @@ if [ -z "${SKBDO_HOME:-}" ]; then
 
     # Keep a backup of some environment variables
     for v in PATH NODE_PATH
-    do  vbak=SKBDO_ORIG_$v
+    do  vbak=MINDBENDER_ORIG_$v
           declare -p $v    &>/dev/null || continue
         ! declare -p $vbak &>/dev/null || continue
         export "$vbak=${!v}"
@@ -49,37 +49,37 @@ if [ -z "${SKBDO_HOME:-}" ]; then
 
     # Setup environment
     unset CDPATH
-    export SKBDO_HOME=${Here%/bin}
+    export MINDBENDER_HOME=${Here%/bin}
     #  dependencies
-    PATH="$SKBDO_HOME/depends/bundled/.all/bin:$PATH"
-    PATH="$SKBDO_HOME/depends/runtime/.all/bin:$PATH"
+    PATH="$MINDBENDER_HOME/depends/bundled/.all/bin:$PATH"
+    PATH="$MINDBENDER_HOME/depends/runtime/.all/bin:$PATH"
     #  node_modules
-    export NODE_PATH="$SKBDO_HOME/node_modules${NODE_PATH:+:$NODE_PATH}"
-    PATH="$SKBDO_HOME/node_modules/.bin:$PATH"
+    export NODE_PATH="$MINDBENDER_HOME/node_modules${NODE_PATH:+:$NODE_PATH}"
+    PATH="$MINDBENDER_HOME/node_modules/.bin:$PATH"
     #  shell runtime scripts
-    PATH="$SKBDO_HOME/bin/skbdo.d:$PATH"
+    PATH="$MINDBENDER_HOME/bin/mindbender.d:$PATH"
     export PATH
 
     # for msg logging
-    export SHLVL=0 SKBDO_LOGLVL=${SKBDO_LOGLVL:-1}
-    # export SKBDO_LOG_TO_NONTTY=
+    export SHLVL=0 MINDBENDER_LOGLVL=${MINDBENDER_LOGLVL:-1}
+    # export MINDBENDER_LOG_TO_NONTTY=
 fi
 
 # make sure everything we need is available
-"$SKBDO_HOME"/depends/check-runtime-depends-once
+"$MINDBENDER_HOME"/depends/check-runtime-depends-once
 
 
 # Process options
 while getopts "vtq" opt; do
     case $opt in
         v)
-            let ++SKBDO_LOGLVL
+            let ++MINDBENDER_LOGLVL
             ;;
         q)
-            SKBDO_LOGLVL=0
+            MINDBENDER_LOGLVL=0
             ;;
         t)
-            export SKBDO_LOG_TO_NONTTY=true
+            export MINDBENDER_LOG_TO_NONTTY=true
             ;;
     esac
 done
@@ -92,7 +92,7 @@ Cmd=$1; shift
 
 
 # Check if it's a valid command
-exe=skbdo-"$Cmd"
+exe=mindbender-"$Cmd"
 if type "$exe" &>/dev/null; then
     set -- "$exe" "$@"
 else

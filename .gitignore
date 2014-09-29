@@ -6,9 +6,9 @@
 .build
 /@prefix@
 /*.app
-/skbdo-*.tar.gz
-/skbdo-*.sh
-/skbdo-*.dmg
+/mindbender-*.tar.gz
+/mindbender-*.sh
+/mindbender-*.dmg
 
 /.depends/*
 !/.depends/*.depends

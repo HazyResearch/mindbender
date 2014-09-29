@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# mindbender-gui -- Start a GUI for MindBender
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2014-09-25
+set -eu
+
+NODE_PATH="$MINDBENDER_HOME"/gui/node_modules \
+exec \
+coffee "$MINDBENDER_HOME"/gui/server.coffee "$@"

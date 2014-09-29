@@ -1,11 +1,11 @@
-### Makefile for skbdo -- Stanford Knowledge Base Development Organizer
+### Makefile for MindBender -- Stanford Knowledge Base Development Environment
 
 ## use BuildKit (https://github.com/netj/buildkit)
-PROJECTNAME = skbdo
+PROJECTNAME = mindbender
 # preparing build dependencies under .depends/
 DEPENDSDIR = .depends
 # packaging as a executable binary
-PACKAGEEXECUTES = bin/skbdo
+PACKAGEEXECUTES = bin/mindbender
 
 # keeping runtime dependencies
 RUNTIMEDEPENDSDIR = depends

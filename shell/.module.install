@@ -1,7 +1,7 @@
-skbdo                  bin/
-skbdo-hack             bin/skbdo.d/
-error                           bin/skbdo.d/
-usage                           bin/skbdo.d/
-msg                             bin/skbdo.d/
-be-quiet                        bin/skbdo.d/
-verbosity-isnt                  bin/skbdo.d/
+mindbender                  bin/
+mindbender-hack             bin/mindbender.d/
+error                           bin/mindbender.d/
+usage                           bin/mindbender.d/
+msg                             bin/mindbender.d/
+be-quiet                        bin/mindbender.d/
+verbosity-isnt                  bin/mindbender.d/
