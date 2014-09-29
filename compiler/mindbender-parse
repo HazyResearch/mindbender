@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# mindbender-parse -- Parse given .mb file and output JSON
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2014-09-26
+set -eu
+
+scala -e '
+import java.io.File
+import com.typesafe.config._
+
+//val defaults = ConfigFactory.parseFile(new File("/paths/to/default/application.mb"))
+val defaults = ConfigFactory.empty()
+try {
+    val config = ConfigFactory.parseFile(new File("/Users/netj/Projects/2014/mindbender/test/genomics-application.mb"))
+        .withFallback(defaults)
+        .resolve(ConfigResolveOptions.defaults()
+            .setUseSystemEnvironment(true)
+            .setAllowUnresolved(false)
+        )
+    println(config.root().render(ConfigRenderOptions.concise()
+        .setFormatted(true))
+    )
+} catch {
+    case e: ConfigException.UnresolvedSubstitution =>
+        System.err.println(e.getMessage())
+        System.exit(2)
+}
+'
