@@ -6,6 +6,7 @@
   "repository": "https://github.com/netj/mindbender.git",
   "license": "MIT",
   "devDependencies": {
+    "ng-annotate": "0.10.1",
     "karma": "~0.10",
     "protractor": "^1.1.1",
     "http-server": "^0.6.1",

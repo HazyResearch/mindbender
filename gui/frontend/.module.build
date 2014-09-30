@@ -2,16 +2,36 @@
 shopt -s extglob
 set -eux
 
-npm install
+appName=mindbender
+shouldUglify=false
+
+# Install all dependencies if necessary
+if [[ node_modules -ot package.json || node_modules -ot bower.json ]]; then
+    npm install
+    touch node_modules
+fi
+PATH="$PWD/node_modules/.bin:$PATH"
 
 cd app
+# Compile all .coffee files with source map
 coffee -m -c .
-uglifyjs \
+# concatenate all .js files
+# TODO concat source map
+# See: https://github.com/lydell/source-map-concat
+cat >${appName}.concat.js \
     bower_components/angular/angular.js \
     bower_components/angular-route/angular-route.js \
     app.js \
     **/!(*_test).js \
     components/**/!(*_test).js \
-    --output mindbender.js \
-    --mangle --compress \
-
+# Annotate angular dependencies
+ng-annotate -o ${appName}.annotate.js -a ${appName}.concat.js
+# Uglify to produce the final output
+if $shouldUglify; then
+    uglifyjs ${appName}.annotate.js \
+        --output ${appName}.js \
+        --mangle --compress \
+        #
+else
+    ln -f ${appName}.annotate.js ${appName}.js
+fi
