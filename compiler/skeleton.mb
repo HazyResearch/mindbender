@@ -1,7 +1,4 @@
 mindbender {
-  nodes {
-  }
-
-  programs {
+  artifacts {
   }
 }

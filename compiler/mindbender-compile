@@ -13,16 +13,20 @@ OutputDir=${1:-${ConfigFile%.mb}.deepdive}
 [[ -e "$ConfigFile" ]] || error "$ConfigFile: Not found"
 [[ -r "$ConfigFile" ]] || error "$ConfigFile: Not accessible"
 
-# Parse MindBender HOCON into JSON falling back to the skeleton
-hocon2json "$ConfigFile" "$MINDBENDER_HOME/etc/skeleton.mb"
+# Initialize output dir
+mkdir -p "$OutputDir"
+jsonFile=application.mb.json
 
+# Parse MindBender HOCON into JSON falling back to the skeleton
+hocon2json "$ConfigFile" "$MINDBENDER_HOME/etc/skeleton.mb" >"$OutputDir/$jsonFile"
+
+cd "$OutputDir"
 # TODO validate with Avro or JSON schema?
 # See: http://avro.apache.org/docs/current/gettingstartedpython.html
 # See: http://json-schema.org
+mindbender-validate "$jsonFile"
 
 # TODO codegen ddl, meta, schemas, tooling
-mkdir -p "$OutputDir"
-cd "$OutputDir"
 mkdir -p ddl ext schemas tooling
 touch application.conf
 

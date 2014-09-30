@@ -1,0 +1,11 @@
+{
+  "name": "mindbender-compiler",
+  "private": true,
+  "version": "0.0.0",
+  "description": "MindBender Compiler",
+  "repository": "https://github.com/netj/mindbender.git",
+  "license": "MIT",
+  "dependencies": {
+    "underscore": "1.7.0"
+  }
+}

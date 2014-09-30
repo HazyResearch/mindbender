@@ -18,3 +18,4 @@
 !/.depends/*.sh
 !/.depends/*.txt
 
+node_modules

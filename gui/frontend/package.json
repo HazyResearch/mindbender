@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "description": "MindBender GUI frontend mainly for DeepDive error analyses",
-  "repository": "https://github.com/netj/skbdo",
+  "repository": "https://github.com/netj/mindbender.git",
   "license": "MIT",
   "devDependencies": {
     "karma": "~0.10",

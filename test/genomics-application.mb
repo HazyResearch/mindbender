@@ -1,120 +1,107 @@
 mindbender {
-  metainfo: {
+  metainfo {
     author: "Mike Cafarella via Matteo"
     version: "0.001"
   }
 
-  nodes: {
-    rawdocuments: {
-      input: {
-        type: "dataload"
+  artifacts {
+    rawdocuments {
+      producer {
+        type: "StandardSingleLineTextParser"
         path: "/crawl/docs.txt"
-        parser: "StandardSingleLineTextParser"
         # there is no UDF for this node.
-        # output schema is implied by the parser: (id, doc)
       }
+      # output schema is implied by the parser: (id, doc)
     }
 
-    sentences: {
-      input: {
-        type: "node"
-        src: ["rawdocuments"]
-      }
-      output: {
-        localencoding: "json_extractor"
+    sentences {
+      inputs: ["rawdocuments"]
+      producer {
+        type: "json_extractor"
         udf: "${APP_HOME}/code/perform_nlp_parse.py"
-        schema: {
-          doc_id: {description:"doc id", type: "int", lineage: "rawdocuments.id"}
-          sent_id: {description:"sent id", type: "int"}
-          wordidxs: {description:"wodixids", type:"array", items: {type:"string"}}
-          words: {description:"words", type:"array", items: {type:"string"}}
-          poses: {description:"poses", type:"array", items: {type:"string"}}
-          ners: {description:"ners", type:"array", items: {type:"string"}}
-          lemmas: {description:"lemmas", type:"array", items: {type:"string"}}
-          dep_paths: {description:"dep-paths", type:"array", items: {type:"string"}}
-          dep_parents: {description:"dep-parents", type:"array", items: {type:"int"}}
-          bounding_boxes: {description:"bound_boxes", type:"array", items: {type:"string"}}
-        }
+      }
+      schema {
+        doc_id {description:"doc id", type: "int", lineage: "rawdocuments.id"}
+        sent_id {description:"sent id", type: "int"}
+        wordidxs {description:"wodixids", type:"array", items {type:"string"}}
+        words {description:"words", type:"array", items {type:"string"}}
+        poses {description:"poses", type:"array", items {type:"string"}}
+        ners {description:"ners", type:"array", items {type:"string"}}
+        lemmas {description:"lemmas", type:"array", items {type:"string"}}
+        dep_paths {description:"dep-paths", type:"array", items {type:"string"}}
+        dep_parents {description:"dep-parents", type:"array", items {type:"int"}}
+        bounding_boxes {description:"bound_boxes", type:"array", items {type:"string"}}
       }
     }
   
-    genes_mentions_local: {
-      input: {
-        type: "node"
-        src: ["sentences"]
-      }
-      output: {
-        localencoding: "json_extractor"
+    genes_mentions_local {
+      inputs: ["sentences"]
+      producer {
+        type: "json_extractor"
         udf: "${APP_HOME}/code/genes_mentions_local.py"
-        schema: {
-          # What schema description format should we use?  JSON or SQL DDL?
-          eltid: {description:"id", type: "bigint"}
-          doc_id: {description:"doc id", type: "text", lineage: "sentences.doc_id"}
-          sent_id: {description:"sent id", type: "int", lineage: "sentences.sent_id"}
-          mention_id: {description:"mention id", type: "text"}
-          start_word_id: {description:"start word id", type: "int"}
-          end_word_id: {description:"end word id", type: "int"}
-          type: {description:"type", type: "text"}
-          is_correct: {description:"is_correct", type: "boolean", variable:"true"}
-          repr: {description:"repr", type: "text"}
-          features: {description:"features", type:"array", items: {type:"string"}}
-          object: {description:"object", type: "text"}
-        }
+      }
+      schema {
+        # What schema description format should we use?  JSON or SQL DDL?
+        eltid {description:"id", type: "bigint"}
+        doc_id {description:"doc id", type: "text", lineage: "sentences.doc_id"}
+        sent_id {description:"sent id", type: "int", lineage: "sentences.sent_id"}
+        mention_id {description:"mention id", type: "text"}
+        start_word_id {description:"start word id", type: "int"}
+        end_word_id {description:"end word id", type: "int"}
+        type {description:"type", type: "text"}
+        is_correct {description:"is_correct", type: "boolean", variable:"true"}
+        repr {description:"repr", type: "text"}
+        features {description:"features", type:"array", items {type:"string"}}
+        object {description:"object", type: "text"}
       }
     }
   
-    hpoterms_mentions_local: {
-      input: {
-        type: "node"
-        src: ["sentences"]
-      }
-      output: {
-        localencoding: "json_extractor"
+    hpoterms_mentions_local {
+      inputs: ["sentences"]
+      producer {
+        type: "json_extractor"
         udf: "${APP_HOME}/code/hpoterms_mentions_local.py"
-        schema: {
-          # What schema description format should we use?  JSON or SQL DDL?
-          eltid: {description:"id", type: "bigint"}
-          doc_id: {description:"doc id", type: "text", lineage: "sentences.doc_id"}
-          sent_id: {description:"sent id", type: "int", lineage: "sentences.sent_id"}
-          mention_id: {description:"mention id", type: "text"}
-          start_word_id: {description:"start word id", type: "int"}
-          end_word_id: {description:"end word id", type: "int"}
-          type: {description:"type", type: "text"}
-          is_correct: {description:"is_correct", type: "boolean", variable:"true"}
-          repr: {description:"repr", type: "text"}
-          features: {description:"features", type:"array", items: {type:"string"}}
-          object: {description:"object", type: "text"}
-        }
+      }
+      schema {
+        # What schema description format should we use?  JSON or SQL DDL?
+        eltid {description:"id", type: "bigint"}
+        doc_id {description:"doc id", type: "text", lineage: "sentences.doc_id"}
+        sent_id {description:"sent id", type: "int", lineage: "sentences.sent_id"}
+        mention_id {description:"mention id", type: "text"}
+        start_word_id {description:"start word id", type: "int"}
+        end_word_id {description:"end word id", type: "int"}
+        type {description:"type", type: "text"}
+        is_correct {description:"is_correct", type: "boolean", variable:"true"}
+        repr {description:"repr", type: "text"}
+        features {description:"features", type:"array", items {type:"string"}}
+        object {description:"object", type: "text"}
       }
     }
 
-    gene_hpoterms_relations: {
-      input: {
-        type: "node"
-        # When multiple source nodes exist, by default we perform
-        # an equijoin on LINEAGE values that point to the same source.
-          # This information also helps us build queries at debug time.
-          # The user can override the default behavior with the
-        # 'loadquery' command, which makes it act like application.conf
-        src: ["genes_mentions_local", "hpoterms_mentions_local"]
-        variabletuplefilter: "NOT FALSE"
+    gene_hpoterms_relations {
+      # When multiple source nodes exist, by default we perform
+      # an equijoin on LINEAGE values that point to the same source.
+      # This information also helps us build queries at debug time.
+      # The user can override the default behavior with the
+      # 'loadquery' command, which makes it act like application.conf
+      inputs: ["genes_mentions_local", "hpoterms_mentions_local"]
+      variabletuplefilter: "NOT FALSE"
+      producer {
+        type: "json_extractor"
+        udf: ${APP_HOME}"/code/gene_hpoterm_relations.py"
       }
-      output: {
-        localencoding: "json_extractor"
-        udf: "${APP_HOME}/code/gene_hpoterm_relations.py"
-        schema: {
-          eltid: {description: "id", type: "bigint"}
-          type: {description: "type", type: "text"}
-          mention_1: {description: "mention_1", type:"text", lineage:"genes_mentions_local.mention_id"}
-          mention_2: {description: "mention_2", type:"text", lineage:"hpoterms_mentions_local.mention_id"}
-          is_correct: {description: "is correct", type:"boolean", variable:"true"}
-          features: {description: "feature set", type:"array", items:{type:"text"}}
-        }
+      schema {
+        eltid {description: "id", type: "bigint"}
+        type {description: "type", type: "text"}
+        mention_1 {description: "mention_1", type:"text", lineage:"genes_mentions_local.mention_id"}
+        mention_2 {description: "mention_2", type:"text", lineage:"hpoterms_mentions_local.mention_id"}
+        is_correct {description: "is correct", type:"boolean", variable:"true"}
+        features {description: "feature set", type:"array", items:{type:"text"}}
       }
     }
   }
 
-  inference.factors: {
+  inference.factors {
     genes_mentions_is_correct {
 		  input_query: """
 					SELECT 
