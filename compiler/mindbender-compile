@@ -15,19 +15,28 @@ OutputDir=${1:-${ConfigFile%.mb}.deepdive}
 
 # Initialize output dir
 mkdir -p "$OutputDir"
-jsonFile=application.mb.json
+jsonFile=application.mb.orig.json
+jsonFileNormalized=application.mb.json
 
 # Parse MindBender HOCON into JSON falling back to the skeleton
 hocon2json "$ConfigFile" "$MINDBENDER_HOME/etc/skeleton.mb" >"$OutputDir/$jsonFile"
 
+# Keep a copy of the original MindBender specification
+cp -pf "$ConfigFile" "$OutputDir/application.mb"
+
 cd "$OutputDir"
+# Normalize most syntactic sugars first
+normalize-mindbender "$jsonFile" >"$jsonFileNormalized"
+
+# Check if the specification is valid
 # TODO validate with Avro or JSON schema?
 # See: http://avro.apache.org/docs/current/gettingstartedpython.html
 # See: http://json-schema.org
-mindbender-validate "$jsonFile"
+validate-mindbender "$jsonFileNormalized"
 
-# TODO codegen ddl, meta, schemas, tooling
 mkdir -p ddl ext schemas tooling
-touch application.conf
+# Generate DeepDive application.conf
+generate-deepdive-application "$jsonFileNormalized" >application.conf
+# TODO codegen ddl, meta, schemas, tooling
 
 echo "Generated $OutputDir"

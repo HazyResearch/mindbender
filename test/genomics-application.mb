@@ -12,6 +12,10 @@ mindbender {
         # there is no UDF for this node.
       }
       # output schema is implied by the parser: (id, doc)
+      schema {
+        doc_id         { description:"doc id"      , type: "int" }
+        text           { description:"doc text"    , type: "text" }
+      }
     }
 
     sentences {
@@ -21,16 +25,16 @@ mindbender {
         udf: "${APP_HOME}/code/perform_nlp_parse.py"
       }
       schema {
-        doc_id {description:"doc id", type: "int", lineage: "rawdocuments.id"}
-        sent_id {description:"sent id", type: "int"}
-        wordidxs {description:"wodixids", type:"array", items {type:"string"}}
-        words {description:"words", type:"array", items {type:"string"}}
-        poses {description:"poses", type:"array", items {type:"string"}}
-        ners {description:"ners", type:"array", items {type:"string"}}
-        lemmas {description:"lemmas", type:"array", items {type:"string"}}
-        dep_paths {description:"dep-paths", type:"array", items {type:"string"}}
-        dep_parents {description:"dep-parents", type:"array", items {type:"int"}}
-        bounding_boxes {description:"bound_boxes", type:"array", items {type:"string"}}
+        doc_id         : rawdocuments.doc_id
+        sent_id        { description:"sent id"     , type: "int"  } 
+        wordidxs       { description:"wodixids"    , type:"array" , items { type:"string" }  } 
+        words          { description:"words"       , type:"array" , items { type:"string" }  } 
+        poses          { description:"poses"       , type:"array" , items { type:"string" }  } 
+        ners           { description:"ners"        , type:"array" , items { type:"string" }  } 
+        lemmas         { description:"lemmas"      , type:"array" , items { type:"string" }  } 
+        dep_paths      { description:"dep-paths"   , type:"array" , items { type:"string" }  } 
+        dep_parents    { description:"dep-parents" , type:"array" , items { type:"int"    }  } 
+        bounding_boxes { description:"bound_boxes" , type:"array" , items { type:"string" }  } 
       }
     }
   
@@ -42,17 +46,17 @@ mindbender {
       }
       schema {
         # What schema description format should we use?  JSON or SQL DDL?
-        eltid {description:"id", type: "bigint"}
-        doc_id {description:"doc id", type: "text", lineage: "sentences.doc_id"}
-        sent_id {description:"sent id", type: "int", lineage: "sentences.sent_id"}
-        mention_id {description:"mention id", type: "text"}
-        start_word_id {description:"start word id", type: "int"}
-        end_word_id {description:"end word id", type: "int"}
-        type {description:"type", type: "text"}
-        is_correct {description:"is_correct", type: "boolean", variable:"true"}
-        repr {description:"repr", type: "text"}
-        features {description:"features", type:"array", items {type:"string"}}
-        object {description:"object", type: "text"}
+        eltid         { description:"id", type: "bigint"                                 } 
+        doc_id        : sentences.doc_id
+        sent_id       : sentences.sent_id
+        mention_id    { description:"mention id", type: "text"                           } 
+        start_word_id { description:"start word id", type: "int"                         } 
+        end_word_id   { description:"end word id", type: "int"                           } 
+        type          { description:"type", type: "text"                                 } 
+        is_correct    { description:"is_correct", type: "boolean", variable:"true"       } 
+        repr          { description:"repr", type: "text"                                 } 
+        features      { description:"features", type:"array", items { type:"string" }  } 
+        object        { description:"object", type: "text"                               } 
       }
     }
   
@@ -64,86 +68,96 @@ mindbender {
       }
       schema {
         # What schema description format should we use?  JSON or SQL DDL?
-        eltid {description:"id", type: "bigint"}
-        doc_id {description:"doc id", type: "text", lineage: "sentences.doc_id"}
-        sent_id {description:"sent id", type: "int", lineage: "sentences.sent_id"}
-        mention_id {description:"mention id", type: "text"}
-        start_word_id {description:"start word id", type: "int"}
-        end_word_id {description:"end word id", type: "int"}
-        type {description:"type", type: "text"}
-        is_correct {description:"is_correct", type: "boolean", variable:"true"}
-        repr {description:"repr", type: "text"}
-        features {description:"features", type:"array", items {type:"string"}}
-        object {description:"object", type: "text"}
+        eltid         { description:"id", type: "bigint"                                 } 
+        doc_id        : sentences.doc_id
+        sent_id       : sentences.sent_id
+        mention_id    { description:"mention id", type: "text"                           } 
+        start_word_id { description:"start word id", type: "int"                         } 
+        end_word_id   { description:"end word id", type: "int"                           } 
+        type          { description:"type", type: "text"                                 } 
+        is_correct    { description:"is_correct", type: "boolean", variable:"true"       } 
+        repr          { description:"repr", type: "text"                                 } 
+        features      { description:"features", type:"array", items { type:"string" }  } 
+        object        { description:"object", type: "text"                               } 
       }
     }
 
-    gene_hpoterms_relations {
+    gene_hpoterm_relations {
       # When multiple source nodes exist, by default we perform
       # an equijoin on LINEAGE values that point to the same source.
       # This information also helps us build queries at debug time.
       # The user can override the default behavior with the
       # 'loadquery' command, which makes it act like application.conf
       inputs: ["genes_mentions_local", "hpoterms_mentions_local"]
-      variabletuplefilter: "NOT FALSE"
+      variabletuplefilter: "NOT FALSE" # TODO(netj) what does this mean?
       producer {
         type: "json_extractor"
         udf: ${APP_HOME}"/code/gene_hpoterm_relations.py"
       }
       schema {
-        eltid {description: "id", type: "bigint"}
-        type {description: "type", type: "text"}
-        mention_1 {description: "mention_1", type:"text", lineage:"genes_mentions_local.mention_id"}
-        mention_2 {description: "mention_2", type:"text", lineage:"hpoterms_mentions_local.mention_id"}
-        is_correct {description: "is correct", type:"boolean", variable:"true"}
-        features {description: "feature set", type:"array", items:{type:"text"}}
+        eltid      { description: "id", type: "bigint"                                                   } 
+        type       { description: "type", type: "text"                                                   } 
+        mention_1  : genes_mentions_local.mention_id
+        mention_2  : hpoterms_mentions_local.mention_id
+        is_correct { description: "is correct", type:"boolean", variable:"true"                          } 
+        features   { description: "feature set", type:"array", items: { type:"text" }  } 
       }
     }
-  }
 
-  inference.factors {
     genes_mentions_is_correct {
-		  input_query: """
-					SELECT 
-						id as "genes_mentions.id",
-						is_correct as "genes_mentions.is_correct",
-						unnest(features) as "genes_mentions.feature"
-					FROM genes_mentions
-					"""
-		  # XXX (Matteo) Not clear to me why the following isn't IsTrue().
-  		# This is taken from pharm
-		  function: Imply(genes_mentions.is_correct)
-		  weight: "?(genes_mentions.feature)"
-	  }
+      inputs: [ "genes_mentions_local" ]
+      producer {
+        type: factor
+	input_query: """
+			      SELECT 
+				      id as "genes_mentions.id",
+				      is_correct as "genes_mentions.is_correct",
+				      unnest(features) as "genes_mentions.feature"
+			      FROM genes_mentions_local
+			      """
+	# XXX (Matteo) Not clear to me why the following isn't IsTrue().
+# This is taken from pharm
+	function: Imply(genes_mentions.is_correct)
+	weight: "?(genes_mentions.feature)"
+      }
+    }
 
-	  # Check the HPO terms mentions
-	  hpoterms_mentions_is_correct {
-		  input_query: """
-					SELECT 
-						id as "hpoterms_mentions.id",
-						is_correct as "hpoterms_mentions.is_correct",
-						unnest(features) as "hpoterms_mentions.feature"
-					FROM hpoterms_mentions
-					"""
-		  # XXX (Matteo) Not clear to me why the following isn't IsTrue().
-		  # This is taken from pharm
-		  function: Imply(hpoterms_mentions.is_correct)
-		  weight: "?(hpoterms_mentions.feature)"
-	  }
+    # Check the HPO terms mentions
+    hpoterms_mentions_is_correct {
+      inputs: [ "hpoterms_mentions_local" ]
+      producer {
+        type: factor
+	input_query: """
+			      SELECT 
+				      id as "hpoterms_mentions.id",
+				      is_correct as "hpoterms_mentions.is_correct",
+				      unnest(features) as "hpoterms_mentions.feature"
+			      FROM hpoterms_mentions_local
+			      """
+	# XXX (Matteo) Not clear to me why the following isn't IsTrue().
+# This is taken from pharm
+	function: Imply(hpoterms_mentions.is_correct)
+	weight: "?(hpoterms_mentions.feature)"
+      }
+    }
 
-	  # Check the gene <-> HPO term relations mentions
-	  gene_hpoterm_relations_is_correct {
-		  input_query: """
-					SELECT 
-						id as "gene_hpoterm_relations.id",
-						is_correct as "gene_hpoterm_relations.is_correct"
-						unnest(features) as "gene_hpoterm_relations.feature"
-					FROM gene_hpoterm_relations
-					"""
-		  # XXX (Matteo) Not clear to me why the following isn't IsTrue().
-      # This is taken from pharm
-		  function: Imply(gene_hpoterm_relations.is_correct)
-		  weight: "?(gene_hpoterm_relations.feature)"
-	  }
+    # Check the gene <-> HPO term relations mentions
+    gene_hpoterm_relations_is_correct {
+      inputs: [ "gene_hpoterm_relations" ]
+      producer {
+        type: factor
+	input_query: """
+			      SELECT 
+				      id as "gene_hpoterm_relations.id",
+				      is_correct as "gene_hpoterm_relations.is_correct"
+				      unnest(features) as "gene_hpoterm_relations.feature"
+			      FROM gene_hpoterm_relations
+			      """
+	# XXX (Matteo) Not clear to me why the following isn't IsTrue().
+# This is taken from pharm
+	function: Imply(gene_hpoterm_relations.is_correct)
+	weight: "?(gene_hpoterm_relations.feature)"
+      }
+    }
   }
 }

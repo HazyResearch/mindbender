@@ -1,0 +1,92 @@
+#!/usr/bin/env coffee
+# generate-deepdive-application -- Generate DeepDive application.conf from given MindBender specification
+# Usage: generate-deepdive-application MB_FILE_IN_JSON
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2014-09-30
+
+fs = require "fs"
+_ = require "underscore"
+
+[configFile] = process.argv[2..]
+
+try
+    # parse the JSON MindBender spec
+    mbConfig = (JSON.parse (fs.readFileSync configFile))
+    mb = mbConfig.mindbender
+
+    deepdiveApplicationConfig =
+        deepdive:
+            db:
+                default:
+                    driver   : "org.postgresql.Driver"
+                    url      : "jdbc:postgresql://${PGHOST}:${PGPORT}/${DBNAME}"
+                    user     : "${PGUSER}"
+                    password : "${PGPASSWORD}"
+                    dbname   : "${DBNAME}"
+                    host     : "${PGHOST}"
+                    port     : "${PGPORT}"
+            schema:
+                variables: {}
+            extraction:
+                extractors: {}
+            inference:
+                factors: {}
+            pipeline:
+                pipelines:
+                    end2end: []
+                run: "end2end"
+            calibration:
+                holdout_fraction: 0.25
+        mindbender: mb  # include the source Mindbender program
+    dd = deepdiveApplicationConfig.deepdive
+
+    # TODO populate different database configs based on some input flags
+
+    # populate extractors
+    dd.extraction =
+        extractors: {}
+    for name,artifact of mb.artifacts
+        switch artifact.producer.type
+            when "json_extractor", "plpy_extractor" # TODO add more types supported by DeepDive
+                extractorName = "ext_#{name}"
+                extractor =
+                dd.extraction.extractors[extractorName] =
+                    output_relation : name
+                    udf             : artifact.producer.udf
+                    style           : artifact.producer.type
+                if artifact.inputs?.length > 0
+                    extractor.dependencies = ("ext_#{inputName}" for inputName in artifact.inputs)
+                # TODO Derive implied extractor.input SQL from artifact.inputs or an explicit CQ?
+                # add the extractor to the end2end pipeline (DeepDive resolves dependency)
+                dd.pipeline.pipelines[dd.pipeline.run].push extractorName
+            else
+                # ignored
+
+    # populate schema variables
+    for name,artifact of mb.artifacts when artifact.schema?
+        for attrName,attrSchema of artifact.schema when attrSchema.variable? and attrSchema.variable isnt "false"
+            (dd.schema.variables[name] ?= {})[attrName] = attrSchema.type
+    # populate inference factors
+    for name,artifact of mb.artifacts when artifact.producer.type is "factor"
+        factorName = "f_#{name}"
+        dd.inference.factors[factorName] =
+            # TODO Derive SQL from CQ for factors
+            input_query : artifact.producer.input_query
+            function    : artifact.producer.function
+            weight      : artifact.producer.weight
+        # add the factor to the end2end pipeline
+        dd.pipeline.pipelines[dd.pipeline.run].push factorName
+
+    # TODO populate more pipelines
+
+    # emit the generated DeepDive application.conf
+    console.log (JSON.stringify deepdiveApplicationConfig, null, 2)
+
+    # exit with zero status if everything went well
+    process.exit 0
+catch err
+    console.error err.message
+
+# exit with non-zero status by default
+process.exit 2

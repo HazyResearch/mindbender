@@ -1,0 +1,52 @@
+#!/usr/bin/env coffee
+# validate-mindbender -- Validate MindBender specification
+# Usage: validate-mindbender MB_FILE_IN_JSON
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2014-09-29
+
+fs = require "fs"
+_ = require "underscore"
+
+[configFile] = process.argv[2..]
+
+try
+    # parse the JSON MindBender spec
+    mbConfig = JSON.parse (fs.readFileSync configFile)
+    mb = mbConfig.mindbender
+
+    # prepare some helper functions
+    check = (description, assertions...) ->
+        for a in assertions when not a
+            throw new Error description
+    warning = (description, assertions...) ->
+        for a in assertions when not a
+            console.error description
+            return a
+
+    # check artifacts
+    check "At least one artifact must be defined", (_.size mb.artifacts) > 0
+    for name,artifact of mb.artifacts
+        # some basic checks
+        check "Artifact '#{name}' must have a schema"  , artifact.schema? or artifact.producer.type is "factor"
+        check "Artifact '#{name}' must have a producer", artifact.producer?
+        # check referential integrity in inputs
+        if artifact.inputs?.length > 0
+            for refArtifactName in artifact.inputs
+                check "Artifact '#{refArtifactName}' (specified as inputs to '#{name}') must exist", mb.artifacts[refArtifactName]?
+        # check referential integrity in schema.*.lineage
+        for attrName,attrSchema of artifact.schema when attrSchema.lineage?
+            [refArtifactName, refArtifactAttrName] = attrSchema.lineage.split ".", 2
+            check "Invalid lineage for '#{name}.#{attrName}': No such artifact '#{refArtifactName}'"                          , mb.artifacts[refArtifactName]?
+            check "Invalid lineage for '#{name}.#{attrName}': No such attribute '#{attrSchema.lineage}'"                      , mb.artifacts[refArtifactName].schema?[refArtifactAttrName]?
+            warning "Lineage for '#{name}.#{attrName}' refers to an artifact '#{refArtifactName}' not specified in its inputs", refArtifactName in (artifact.inputs ? [])
+
+    # TODO more checks
+
+    # exit with zero status if all checks pass
+    process.exit 0
+catch err
+    console.error err.message
+
+# exit with non-zero status by default
+process.exit 2
