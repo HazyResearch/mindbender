@@ -20,8 +20,13 @@ child_process = require "child_process"
 _ = require "underscore"
 async = require "async"
 
+tsv = require "tsv"
+
 # parse command-line args and environment
 MINDBENDER_PORT = parseInt process.env.PORT ? 8000
+
+# FIXME generalize
+[baseDataFile, annotationFile] = process.argv[2..]
 
 ## express.js server
 app = module.exports = express()
@@ -48,4 +53,15 @@ server.listen (app.get "port"), ->
 ## MindBender backend services
 app.get "/api/foo", (req, res) ->
     res.json "Not implemented"
+
+# FIXME generalize, turn it into async code
+try
+    baseData = tsv.parse String (fs.readFileSync baseDataFile)
+    annotationData = (try tsv.parse String (fs.readFileSync annotationFile)) ? []
+    app.get "/api/tagr/basedata", (req, res) ->
+        res.json baseData
+    app.get "/api/tagr/annotation", (req, res) ->
+        res.json annotationData
+catch err
+    console.error err
 

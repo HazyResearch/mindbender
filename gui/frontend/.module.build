@@ -1,37 +1,47 @@
 #!/usr/bin/env bash
 shopt -s extglob
-set -eux
+set -eu
+. build-webapp.sh
+set -x
 
 appName=mindbender
 shouldUglify=false
 
 # Install all dependencies if necessary
-if [[ node_modules -ot package.json || node_modules -ot bower.json ]]; then
+if [[ node_modules -ot package.json ||
+        node_modules -ot bower.json ||
+        app/bower_components -ot bower.json ]]; then
     npm install
     touch node_modules
 fi
 PATH="$PWD/node_modules/.bin:$PATH"
 
-cd app
-# Compile all .coffee files with source map
-coffee -m -c .
+# Compile all CoffeeScript files with source map, LESS to CSS, symlink HTMLs
+cd src
+compile from=.coffee to=.js   with=compile-coffee src=../app/src/%s out=../app/%s **/*.coffee
+compile from=.less   to=.css  with=compile-less   src=../app/src/%s out=../app/%s **/*.less
+compile from=.html   to=.html with=:              src=../app/%s     out=../app/%s **/*.html
+cd ..
+
 # concatenate all .js files
+rm -f app/${appName}{.*,}.js
+shopt -s nullglob
+files=(
+app/bower_components/angular/angular.js
+app/bower_components/angular-route/angular-route.js
+app/{!(bower_components)/**/,}!(*_test).js
+)
 # TODO concat source map
 # See: https://github.com/lydell/source-map-concat
-cat >${appName}.concat.js \
-    bower_components/angular/angular.js \
-    bower_components/angular-route/angular-route.js \
-    app.js \
-    **/!(*_test).js \
-    components/**/!(*_test).js \
+cat >app/${appName}.concat.js "${files[@]}"
 # Annotate angular dependencies
-ng-annotate -o ${appName}.annotate.js -a ${appName}.concat.js
+ng-annotate -o app/${appName}.annotate.js -a app/${appName}.concat.js
 # Uglify to produce the final output
 if $shouldUglify; then
-    uglifyjs ${appName}.annotate.js \
-        --output ${appName}.js \
+    uglifyjs app/${appName}.annotate.js \
+        --output app/${appName}.js \
         --mangle --compress \
         #
 else
-    ln -f ${appName}.annotate.js ${appName}.js
+    ln -f app/${appName}.annotate.js app/${appName}.js
 fi
