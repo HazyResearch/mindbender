@@ -6,9 +6,25 @@
 # Created: 2014-09-26
 set -eu
 
-[[ $# -gt 0 ]] || usage "$0" "MB_FILE must be specified"
-ConfigFile=$1; shift
-OutputDir=${1:-${ConfigFile%.mb}.deepdive}
+if [[ $# -gt 0 ]]; then
+    ConfigFile=$1; shift
+elif [[ -e application.mb ]]; then
+    ConfigFile=application.mb
+else
+    usage "$0" "MB_FILE must be specified"
+fi
+OutputDir=${1:-}
+if [[ -z "$OutputDir" ]]; then
+    case $(basename "$ConfigFile") in
+        application.mb)
+            # TODO Use dated snapshot dirs, with a stable symlink pointing to the latest
+            OutputDir=$(dirname "$ConfigFile")
+            ;;
+        *)
+            OutputDir=${ConfigFile%.mb}.deepdive
+    esac
+fi
+SourceDir=$(cd "$(dirname "$ConfigFile")" && pwd -P)
 
 [[ -e "$ConfigFile" ]] || error "$ConfigFile: Not found"
 [[ -r "$ConfigFile" ]] || error "$ConfigFile: Not accessible"
@@ -18,13 +34,25 @@ mkdir -p "$OutputDir"
 jsonFile=application.mb.orig.json
 jsonFileNormalized=application.mb.json
 
+# TODO copy over all files under $SourceDir/ to $OutputDir/? (unless they are same)
+
+# Set up and load environment for parsing the Mindbender program
+(
+export APP_HOME=${APP_HOME:-$OutputDir}
+. "$MINDBENDER_HOME/etc/skeleton-env.sh"
+! [[ -r "$OutputDir"/env.sh ]] || . "$OutputDir"/env.sh
+
 # Parse MindBender HOCON into JSON falling back to the skeleton
 hocon2json "$ConfigFile" "$MINDBENDER_HOME/etc/skeleton.mb" >"$OutputDir/$jsonFile"
+# TODO use different skeleton.mb depending on backend db
+)
 
 # Keep a copy of the original MindBender specification
+[[ "$ConfigFile" -ef "$OutputDir/application.mb" ]] ||
 cp -pf "$ConfigFile" "$OutputDir/application.mb"
 
 cd "$OutputDir"
+
 # Normalize most syntactic sugars first
 normalize-mindbender "$jsonFile" >"$jsonFileNormalized"
 

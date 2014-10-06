@@ -10,6 +10,8 @@ _ = require "underscore"
 
 [configFile] = process.argv[2..]
 
+DEEPDIVE_APP_CONF_SKELETON =
+
 try
     # parse the JSON MindBender spec
     mbConfig = (JSON.parse (fs.readFileSync configFile))
@@ -17,15 +19,6 @@ try
 
     deepdiveApplicationConfig =
         deepdive:
-            db:
-                default:
-                    driver   : "org.postgresql.Driver"
-                    url      : "jdbc:postgresql://${PGHOST}:${PGPORT}/${DBNAME}"
-                    user     : "${PGUSER}"
-                    password : "${PGPASSWORD}"
-                    dbname   : "${DBNAME}"
-                    host     : "${PGHOST}"
-                    port     : "${PGPORT}"
             schema:
                 variables: {}
             extraction:
@@ -38,9 +31,12 @@ try
                 run: "end2end"
             calibration:
                 holdout_fraction: 0.25
-        mindbender: mb  # include the source Mindbender program
+            db: {}
+        mindbender: mb
     dd = deepdiveApplicationConfig.deepdive
 
+    # Import backend database config from input mindbender program
+    _.extend dd.db, mbConfig.deepdive.db
     # TODO populate different database configs based on some input flags
 
     # populate extractors
@@ -57,7 +53,9 @@ try
                     style           : artifact.producer.type
                 if artifact.inputs?.length > 0
                     extractor.dependencies = ("ext_#{inputName}" for inputName in artifact.inputs)
-                # TODO Derive implied extractor.input SQL from artifact.inputs or an explicit CQ?
+                # preserve input spec for this extractor if explicitly specified
+                extractor.input = artifact.producer.input
+                # TODO Otherwise, derive implied extractor.input SQL from artifact.inputs or an explicit CQ?
                 # add the extractor to the end2end pipeline (DeepDive resolves dependency)
                 dd.pipeline.pipelines[dd.pipeline.run].push extractorName
             else
