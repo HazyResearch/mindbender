@@ -1,4 +1,5 @@
 angular.module 'mindbenderApp.tagr', [
+    'ui.bootstrap'
 ]
 
 .config ($routeProvider) ->
@@ -10,3 +11,6 @@ angular.module 'mindbenderApp.tagr', [
     $http.get '/api/tagr/basedata'
         .success (baseData) ->
             $scope.baseData = baseData
+    $http.get '/api/tagr/annotation'
+        .success (annotation) ->
+            $scope.annotation = annotation

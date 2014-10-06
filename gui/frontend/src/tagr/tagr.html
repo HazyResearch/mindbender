@@ -1,5 +1,93 @@
-<ul class="list-unstyled">
-    <li ng-repeat="entry in baseData">
-        <span class="label">{{entry.text}}</span>
-    </li>
-</ul>
+<header class="page-header row">
+    <h1>Tag Items</h1>
+</header>
+
+<section class="row">
+
+<div class="panel panel-default"
+    ng-repeat="entry in baseData">
+    <div class="panel-body">
+        <dl class="dl-horizontal">
+            <dt ng-repeat-start="(key, value) in entry">{{key}}</dt>
+            <dd ng-repeat-end>{{value | json}}</dd>
+        </dl>
+    </div>
+    <div class="panel-footer">
+        <div class="btn-group">
+            <label class="btn btn-success btn-xs" btn-checkbox ng-model="annotation[$index].correct"    ><i class="glyphicon glyphicon-ok"></i></label>
+            <label class="btn btn-warning btn-xs" btn-checkbox ng-model="annotation[$index].undecidable"><i class="glyphicon glyphicon-question-sign"></i></label>
+            <label class="btn btn-danger  btn-xs" btn-checkbox ng-model="annotation[$index].incorrect"  ><i class="glyphicon glyphicon-remove"></i></label>
+        </div>
+
+        <button class="btn btn-default btn-xs"><i class="glyphicon glyphicon-plus"></i></button>
+    </div>
+</div>
+
+<!--
+# TODOs
+
+* Data model for tags
+    * Fixed/enum (Binary, Multinomial) and Free-text/value tags
+        * or Non-parameterized (binary) vs. Parameterized tags (the rest)
+    * Repeatability of each tag: singleton? zero or more? up to N?
+    * Side note: Different UI elements necessary for each category of tags
+        * binary tags: checkbox/toggle button
+        * multinomial tags: dropdown select or toggle button, with a way to manage the their value sets
+        * Free-text/value tags: text or number input entry
+
+* Minimal end-to-end features for workflows
+    * Precision debugging workflow
+        * correct/incorrect/undecidable buttons for each item
+        * note input field, which will be superseded by free-text tags
+    * Recall labeling workflow
+        * add array of texts to each item
+        * note input field, which will be superseded by free-text tags
+    * Persistent state maintained in the extra annotation file (output)
+
+* Arbitrary tags support
+    * to each item
+    * defining a new tag
+    * entering a new value for a tag
+    * selecting a previously entered tag
+    * autocompletion of tag names as well as tag values
+    * removing tag
+    * filtering/clustering items by tag while tagging
+        * e.g., "only show items that have no correct or incorrect tag"
+        * "group items by a tag"
+        * "show a histogram of selected tags"
+        * "show a histogram of values of a tag"
+
+* Custom renderers/controls
+    * item controls
+        * highlighting substrings in one column based on other columns
+            * e.g., extracted entity candidates with the sentence
+        * sentence with NLP tags as text that responds to interaction
+    * tag controls
+        * a way to specify a set of predefined tags
+        * ok, question-sign, remove buttons for precision labeling
+
+* Other goodies
+    * Rich export feature
+        * TSV generation
+            * JSON for array fields
+        * SQL generation (CREATE TABLE, INSERT INTO) with choice of schema
+            * nested, array of tag values: (id, tag1[], tag2[], ...)
+            * unnested flattened table:    (id, tag1, tag2, ...)
+
+    * Keyboard shortcut support
+        * navigation: prev/next item
+        * easy tag toggling/addition/removal
+
+    * Support array-typed items
+        * Sentence with NLP tags (POS, NER, ...) is often represented as a tuple of arrays with same length
+        * Other array columns in the input often contain aux info corresponding to each
+
+    * Selecting a piece of text to use as a tag, or as a tag's value
+        * mainly for recall ground truth labeling, to free user from copy/pasting all text
+
+* See also
+    * [GUIDELINES FOR DESIGNING USER INTERFACE SOFTWARE (ESD-TR-86-278)](http://hcibib.org/sam/1.html)
+
+-->
+
+</section>
