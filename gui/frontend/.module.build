@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
+appName=mindbender
+
 shopt -s extglob
 set -eu
 . build-webapp.sh
-
-appName=mindbender
-shouldUglify=false
+shouldUglify=${shouldUglify:-false}
 
 # Install all dependencies if necessary
 if [[ node_modules -ot package.json ||
         node_modules -ot bower.json ||
         app/bower_components -ot bower.json ]]; then
     npm install
-    touch node_modules
+    touch node_modules app/bower_components
 fi
-PATH="$PWD/node_modules/.bin:$PATH"
+export PATH="$PWD/node_modules/.bin:$PATH"
+export NODE_PATH="$PWD/node_modules${NODE_PATH:+:$NODE_PATH}"
 
 # Compile all CoffeeScript files with source map, LESS to CSS, symlink HTMLs
 cd src
@@ -23,25 +24,47 @@ compile from=.html   to=.html with=:              src=../app/%s     out=../app/%
 cd ..
 
 # concatenate all .js files
-rm -f app/${appName}{.*,}.js
+cd app
+rm -f ${appName}{.*,}.js
+ln -sfn ../node_modules
 shopt -s nullglob
 files=(
-app/bower_components/angular/angular.js
-app/bower_components/angular-route/angular-route.js
-app/bower_components/angular-bootstrap/ui-bootstrap.js
-app/{!(bower_components)/**/,}!(*_test).js
+bower_components/angular/angular.js
+bower_components/angular-route/angular-route.js
+bower_components/angular-bootstrap/ui-bootstrap.js
+{!(bower_components|node_modules)/**/,}!(*_test).js
 )
-# TODO concat source map
-# See: https://github.com/lydell/source-map-concat
-cat >app/${appName}.concat.js "${files[@]}"
+# with all source map also concatenated
+# See: https://github.com/kozy4324/grunt-concat-sourcemap#readme
+coffee /dev/stdin ${appName}.concat.js "${files[@]}" <<END
+[output, sources...] = process.argv[2..]
+console.error "#{output} concatenates files below with source map:"
+console.error "  #{src}" for src in sources
+files = {}; files[output] = sources
+
+process.argv = [process.argv[0..1]..., "concat_sourcemap"]
+grunt = require "grunt"
+grunt.initConfig 
+    concat_sourcemap:
+        target:
+            files: files
+grunt.loadNpmTasks("grunt-concat-sourcemap");
+grunt.cli
+    base: process.env.PWD
+    gruntfile: "/dev/null"
+END
+
 # Annotate angular dependencies
-ng-annotate -o app/${appName}.annotate.js -a app/${appName}.concat.js
+echo >&2 "${appName}.annotate.js ng-annotates ${appName}.concat.js"
+ng-annotate -o ${appName}.annotate.js -a ${appName}.concat.js
+
 # Uglify to produce the final output
 if $shouldUglify; then
-    uglifyjs app/${appName}.annotate.js \
-        --output app/${appName}.js \
+    echo >&2 "${appName}.js uglifies ${appName}.annotate.js"
+    uglifyjs ${appName}.annotate.js --output ${appName}.js \
+        --in-source-map ${appName}.concat.js.map --source-map ${appName}.js.map \
         --mangle --compress \
         #
 else
-    ln -f app/${appName}.annotate.js app/${appName}.js
+    ln -vf ${appName}.annotate.js ${appName}.js
 fi
