@@ -14,13 +14,15 @@ socketIO = require "socket.io"
 
 util = require "util"
 fs = require "fs"
+path = require "path"
 os = require "os"
 child_process = require "child_process"
 
 _ = require "underscore"
 async = require "async"
 
-tsv = require "tsv"
+{TSV,CSV} = require "tsv"
+csv = require "csv"
 
 # parse command-line args and environment
 MINDBENDER_PORT = parseInt process.env.PORT ? 8000
@@ -54,14 +56,36 @@ server.listen (app.get "port"), ->
 app.get "/api/foo", (req, res) ->
     res.json "Not implemented"
 
-# FIXME generalize, turn it into async code
-try
-    baseData = tsv.parse String (fs.readFileSync baseDataFile)
-    annotationData = (try tsv.parse String (fs.readFileSync annotationFile)) ? []
+# load and serve data for tagging
+loadDataFile = (fName, next) ->
+    switch path.extname fName
+        when ".tsv"
+            next null, (TSV.parse String (fs.readFileSync fName))
+        else # when ".csv"
+            parser = csv.parse(columns:true)
+            output = []
+            parser.on "readable", ->
+                while record = parser.read()
+                    output.push record
+            parser.on "error", next
+            parser.on "finish", ->
+                next null, output
+            (fs.createReadStream fName)
+                .pipe parser
+async.parallel {
+    baseData: (next) ->
+        loadDataFile baseDataFile, next
+    annotationData: (next) ->
+        fs.exists annotationFile, (exists) ->
+            if exists
+                loadDataFile annotationFile, next
+            else
+                next null, []
+}, (err, results) ->
+    return console.error err if err?
+    {baseData, annotationData} = results
     app.get "/api/tagr/basedata", (req, res) ->
         res.json baseData
     app.get "/api/tagr/annotation", (req, res) ->
         res.json annotationData
-catch err
-    console.error err
 
