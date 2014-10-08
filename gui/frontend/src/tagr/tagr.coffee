@@ -81,3 +81,23 @@ angular.module 'mindbenderApp.tagr', [
 .directive 'mbRenderTags', ->
     directiveForIncludingPresetTemplate 'tags'
 
+# a handy filter for parsing Postgres ARRAYs serialized in CSV outputs
+.filter 'parsedPostgresArray', ->
+    (text, index) ->
+        # extract the csv-like piece in the text
+        return null unless (m = /^{(.*)}$/.exec text?.trim())?
+        csvLikeText = m[1]
+        # convert backslash escapes to standard CSV escapes
+        csvText = csvLikeText
+            .replace /\\(.)/g, (m, c) ->
+                switch c
+                    when '"'
+                        '""'
+                    else
+                        c
+        array = $.csv.toArray csvText
+        if index?
+            array[index]
+        else
+            array
+

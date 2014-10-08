@@ -29,9 +29,14 @@ rm -f ${appName}{.*,}.js
 ln -sfn ../node_modules
 shopt -s nullglob
 files=(
+bower_components/jquery/dist/jquery.js
+bower_components/bootstrap/dist/js/bootstrap.js
+bower_components/jquery-csv/src/jquery.csv.js
+
 bower_components/angular/angular.js
 bower_components/angular-route/angular-route.js
 bower_components/angular-bootstrap/ui-bootstrap.js
+bower_components/angular-bootstrap/ui-bootstrap-tpls.js
 {!(bower_components|node_modules)/**/,}!(*_test).js
 )
 # with all source map also concatenated
