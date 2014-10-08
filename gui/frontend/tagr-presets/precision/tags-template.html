@@ -1,0 +1,5 @@
+<!-- correct/undecidable/incorrect tags for precision labeling -->
+<div class="btn-group">
+    <label uncheckable btn-radio="true"  ng-model="tag.isCorrect" ng-click="commit(tag)" class="btn" ng-class="tag.isCorrect != null && !tag.isCorrect ? 'btn-default' : 'btn-success'"><i class="glyphicon glyphicon-ok"></i></label>
+    <label uncheckable btn-radio="false" ng-model="tag.isCorrect" ng-click="commit(tag)" class="btn" ng-class="tag.isCorrect != null &&  tag.isCorrect ? 'btn-default' : 'btn-danger' "><i class="glyphicon glyphicon-remove"></i></label>
+</div>

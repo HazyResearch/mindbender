@@ -9,6 +9,7 @@
         "errorhandler": "^1.1.1",
         "jade": "1.7.0",
         "socket.io": "1.1.0",
+        "fs-extra": "0.12.0",
         "async": "0.9.0",
         "tsv": "0.2.0",
         "csv": "0.4.0",

@@ -1,0 +1,7 @@
+{
+    "isCorrect": {
+        "type": "categorical",
+        "values": [true,false,null],
+        "hidden": true
+    }
+}

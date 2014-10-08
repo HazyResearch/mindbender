@@ -5,21 +5,35 @@
 <section class="row">
 
 <div class="panel panel-default"
-    ng-repeat="entry in baseData">
+    ng-repeat="item in items">
     <div class="panel-body">
-        <dl class="dl-horizontal">
-            <dt ng-repeat-start="(key, value) in entry">{{key}}</dt>
-            <dd ng-repeat-end>{{value | json}}</dd>
-        </dl>
+        <!-- custom item rendering -->
+        <span mb-render-item></span>
     </div>
-    <div class="panel-footer">
-        <div class="btn-group">
-            <label class="btn btn-success btn-xs" btn-checkbox ng-model="annotation[$index].correct"    ><i class="glyphicon glyphicon-ok"></i></label>
-            <label class="btn btn-warning btn-xs" btn-checkbox ng-model="annotation[$index].undecidable"><i class="glyphicon glyphicon-question-sign"></i></label>
-            <label class="btn btn-danger  btn-xs" btn-checkbox ng-model="annotation[$index].incorrect"  ><i class="glyphicon glyphicon-remove"></i></label>
-        </div>
+    <div class="panel-footer" ng-controller="TagrTagsCtrl">
+        <!-- custom tagging UI elements -->
+        <span mb-render-tags></span>
 
-        <button class="btn btn-default btn-xs"><i class="glyphicon glyphicon-plus"></i></button>
+        <!-- free form tags -->
+        <span ng-repeat="(tagName, tagSchema) in tagsSchema" ng-if="!tagSchema.hidden">
+            <!-- binary -->
+            <label ng-if="tagSchema.type == 'binary'"
+                btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
+                ng-model="tag[tagName]" ng-click="commit(tag)"
+                ng-class="tag[tagName] ? 'btn-info' : 'btn-default'"
+                class="btn"><i class="glyphicon glyphicon-tag"></i>
+                <span class="tag-name">{{tagName}}</span>
+            </label>
+            <!-- TODO render categorical tags with one input box (name) and a dropdown -->
+            <!-- TODO render freetext tags with two input boxes: name and value -->
+            <!-- TODO autocomplete/typeahead in input boxes -->
+        </span>
+
+        <div class="btn-group">
+            <!-- TODO support entering new binary tags -->
+            <!-- TODO support entering new freetext and categorical tags -->
+            <button class="btn btn-default"><i class="glyphicon glyphicon-plus"></i> <span class="caret"></span></button>
+        </div>
     </div>
 </div>
 
