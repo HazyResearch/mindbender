@@ -49,7 +49,7 @@ angular.module 'mindbenderApp.tagr', [
         templateUrl: 'tagr/tagr.html',
         controller: 'TagrItemsCtrl'
 
-.controller 'TagrItemsCtrl', ($scope, $http, $window) ->
+.controller 'TagrItemsCtrl', ($scope, commitTags, $http, $window) ->
     $scope.presets = ['_default']
 
     $scope.tagsSchema = {}
@@ -86,24 +86,23 @@ angular.module 'mindbenderApp.tagr', [
 
     # create/add tag
     $scope.addTagToCurrentItem = (name, type = 'binary', value = true) ->
-        console.log "adding tag to item #{$scope.cursorIndex}", name, type, value
+        index = $scope.cursorIndex
+        console.log "adding tag to item #{index}", name, type, value
         $scope.tagsSchema[name] =
             type: type
-        $scope.tags[$scope.cursorIndex][name] = value
+        tag = $scope.tags[index]
+        tag[name] = value
         $scope.$emit "tagChanged"
+        commitTags tag, index
 
-.controller 'TagrTagsCtrl', ($scope, $http, $timeout) ->
+.controller 'TagrTagsCtrl', ($scope, commitTags, $timeout) ->
     $scope.tag = ($scope.$parent.tags[$scope.$parent.$index] ?= {})
     $scope.commit = (tag) -> $timeout ->
         $scope.$parent.cursorIndex = $scope.$parent.$index
         $scope.$emit "tagChanged"
         index = $scope.$parent.$index
-        $http.post '/api/tagr/tags', {index, tag}
-            .success (result) ->
-                console.log "committed tags for item #{index}", tag
-            .error (result) ->
-                # FIXME revert tag to previous value
-                console.error "commit failed for item #{index}", tag
+        commitTags tag, index
+        # TODO handle error
 
 .directive 'mbRenderItem', ->
     directiveForIncludingPresetTemplate 'item'
@@ -129,4 +128,13 @@ angular.module 'mindbenderApp.tagr', [
             array[index]
         else
             array
+
+.service 'commitTags', ($http) ->
+    (tag, index) ->
+        $http.post '/api/tagr/tags', {index, tag}
+            .success (result) ->
+                console.log "committed tags for item #{index}", tag
+            .error (result) ->
+                # FIXME revert tag to previous value
+                console.error "commit failed for item #{index}", tag
 
