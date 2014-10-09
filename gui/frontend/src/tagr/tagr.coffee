@@ -12,7 +12,8 @@ deriveSchema = (tags, baseSchema) ->
     # infer type by induction on observed values
     for tagName,tagSchema of schema
         tagSchema.type =
-            if tagSchema.values.length == 2 and
+            if (tagSchema.values.every (v) -> not v? or (typeof v) is 'boolean') or
+                    tagSchema.values.length == 2 and
                     not tagSchema.values[0] is not not tagSchema.values[1]
                 'binary'
             else
@@ -52,6 +53,7 @@ angular.module 'mindbenderApp.tagr', [
     $scope.presets = ['_default']
 
     $scope.tagsSchema = {}
+    $scope.keys = (obj) -> key for key of obj
 
     $http.get '/api/tagr/schema'
         .success ({presets, tags:schema}) ->
@@ -75,12 +77,20 @@ angular.module 'mindbenderApp.tagr', [
     $scope.$on "tagChanged", ->
         # update schema
         console.log "some tags changed"
-        $scope.tagsSchema = deriveSchema $scope.tags, $scope.tagsSchemaBase
+        #$scope.tagsSchema = deriveSchema $scope.tags, $scope.tagsSchemaBase
 
     # cursor
     $scope.cursorIndex = 0
     $scope.moveCursorTo = (index) ->
         $scope.cursorIndex = index
+
+    # create/add tag
+    $scope.addTagToCurrentItem = (name, type = 'binary', value = true) ->
+        console.log "adding tag to item #{$scope.cursorIndex}", name, type, value
+        $scope.tagsSchema[name] =
+            type: type
+        $scope.tags[$scope.cursorIndex][name] = value
+        $scope.$emit "tagChanged"
 
 .controller 'TagrTagsCtrl', ($scope, $http, $timeout) ->
     $scope.tag = ($scope.$parent.tags[$scope.$parent.$index] ?= {})
