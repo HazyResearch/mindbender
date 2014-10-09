@@ -6,6 +6,7 @@
   "repository": "https://github.com/netj/mindbender.git",
   "license": "MIT",
   "dependencies": {
-    "underscore": "1.7.0"
+    "underscore": "1.7.0",
+    "coffee-script": "1.8.0"
   }
 }
