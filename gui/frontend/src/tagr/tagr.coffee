@@ -77,9 +77,15 @@ angular.module 'mindbenderApp.tagr', [
         console.log "some tags changed"
         $scope.tagsSchema = deriveSchema $scope.tags, $scope.tagsSchemaBase
 
+    # cursor
+    $scope.cursorIndex = 0
+    $scope.moveCursorTo = (index) ->
+        $scope.cursorIndex = index
+
 .controller 'TagrTagsCtrl', ($scope, $http, $timeout) ->
     $scope.tag = ($scope.$parent.tags[$scope.$parent.$index] ?= {})
     $scope.commit = (tag) -> $timeout ->
+        $scope.$parent.cursorIndex = $scope.$parent.$index
         $scope.$emit "tagChanged"
         index = $scope.$parent.$index
         $http.post '/api/tagr/tags', {index, tag}

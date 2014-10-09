@@ -67,8 +67,9 @@
 
 <section class="row">
 
-<div class="panel panel-default"
-    ng-repeat="item in items">
+<div class="panel panel-default" ng-repeat="item in items"
+  ng-class="$index == cursorIndex ? 'panel-primary' : 'panel-default'"
+  ng-click="moveCursorTo($index)">
     <div class="panel-body">
         <!-- custom item rendering -->
         <span mb-render-item></span>
