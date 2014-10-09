@@ -8,6 +8,11 @@
                 <tr><td>lemma</td> <td>{{item.lemma | parsedPostgresArray:$index}}</td></tr>
             </table>
         "
+        ng-class="
+            item.m1_start <= $index && $index < item.m1_end ? 'bg-success' :
+            item.m2_start <= $index && $index < item.m2_end ? 'bg-info' :
+            ''
+        "
         tooltip-animation="false"
         tooltip-trigger="mouseenter"
         tooltip-append-to-body="p">

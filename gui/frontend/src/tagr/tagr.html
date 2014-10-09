@@ -67,7 +67,7 @@
 
 <section class="row">
 
-<div class="panel panel-default" ng-repeat="item in items | limitTo:10"
+<div class="panel panel-default" ng-repeat="item in items"
   ng-class="$index == $parent.cursorIndex ? 'panel-primary' : 'panel-default'"
   ng-click="moveCursorTo($index)">
     <div class="panel-body">
