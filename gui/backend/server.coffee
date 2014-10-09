@@ -65,6 +65,31 @@ app.get "/api/foo", (req, res) ->
     res.json "Not implemented"
 
 
+class MindbenderUtils
+    @escapeSqlString: (s) ->
+        s?.replace /'/g, "''"
+    @asSqlLiteral: (value) ->
+        if value?
+            switch typeof value
+                when "object"
+                    "'#{MindbenderUtils.escapeSqlString (JSON.stringify value)}'"
+                when "number"
+                    if _.isNaN value
+                        "NULL"
+                    else
+                        "#{value}"
+                when "boolean"
+                    if value then "TRUE" else "FALSE"
+                else # when "string"
+                    "'#{MindbenderUtils.escapeSqlString value}'"
+        else
+            "NULL"
+    @findAllKeys: (objs) ->
+        merged = {}
+        _.extend merged, obj for obj in objs
+        _.keys merged
+
+
 # some routines for loading and storing data
 CSV_OPTIONS =
     columns: yes
@@ -106,9 +131,7 @@ writeDataFile = (fName, array, next) ->
                 fs.writeFile fName, (JSON.stringify array), next
             else # when ".csv"
                 # find out the columns first
-                merged = {}
-                _.extend merged, row for row in array
-                columns = _.keys merged
+                columns = MindbenderUtils.findAllKeys objs
                 # Stringify all columns
                 arrayProcessed =
                     for row in array
@@ -194,6 +217,8 @@ async.parallel {
         res.json items
     app.get "/api/tagr/tags", (req, res) ->
         res.json tags
+    # TODO use keys instead of index
+    # TODO support saving the entire state?
     app.post "/api/tagr/tags", (req, res) ->
         index = req.body.index
         if 0 <= index < items.length
@@ -204,4 +229,54 @@ async.parallel {
         else
             res.status 400
                 .send "Bad request: index #{index} not in range [0, #{items.length})"
+
+    # set up APIs for exporting
+    exportTagsWithItemKeys = (keys) ->
+        for item,i in items
+            row = _.extend {}, tags[i]
+            row[key] = item[key] for key in keys
+            row
+    app.get "/api/tagr/tags.:format", (req, res) ->
+        format = req.param "format"
+        keys = req.param("keys")?.split(/\s*,\s*/)
+        unless keys?.length > 0
+            return res.status 400
+                .send "Bad request: no keys specified"
+        rows = exportTagsWithItemKeys keys
+        columnNames = MindbenderUtils.findAllKeys rows
+        res.contentType "text/plain"
+        res.set "Content-Disposition": "attachment; filename=tags-#{
+            keys.join "-"}.#{new Date().toISOString()}.#{format}"
+        switch format
+            when "sql"
+                tableName = req.param "table" ? "tags"
+                res.send """
+                    DROP TABLE #{tableName};
+                    CREATE TABLE #{tableName}(\n#{("#{c} TEXT" for c in columnNames).join ",\n"}
+                    );
+                    INSERT INTO #{tableName}(#{(columnNames.join ", ")}) VALUES
+                    #{(
+                        for row in rows
+                            "(#{(MindbenderUtils.asSqlLiteral row[c] for c in columnNames).join ", "})"
+                    ).join ",\n"
+                    };
+                    """
+            when "tsv"
+                res.send TSV.stringify rows
+            when "csv"
+                csv.stringify rows, {
+                    header: yes
+                    columns: columnNames
+                }, (err, formatted) ->
+                    if err
+                        res.status 500
+                            .send "Failed to export in CSV"
+                    else
+                        res.send formatted
+            when "json"
+                res.contentType "application/json"
+                res.json rows
+            else
+                res.status 404
+                    .send "Not found"
 

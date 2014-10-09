@@ -1,5 +1,40 @@
 <header class="page-header row">
-    <h1>Tag Items</h1>
+    <h1 class="pull-left">Tag Items</h1>
+
+    <!-- Export Tags stuff -->
+    <div class="text-right">
+        <button class="btn btn-primary" data-toggle="modal" data-target="#export-modal">
+            <i class="glyphicon glyphicon-download-alt"></i> Export Tags
+        </button>
+    </div>
+    <div class="modal fade" id="export-modal" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 class="modal-title" id="exportModalLabel">Export Tags</h4>
+          </div>
+          <div class="modal-body">
+              <h5>Select attributes to export</h5>
+              <ul class="list-unstyled" ng-repeat="(attrName, attrSchema) in itemSchema">
+                  <input id="export-attr-{{attrName}}" type="checkbox" ng-model="attrSchema.export">
+                  <label for="export-attr-{{attrName}}">{{attrName}}</label>
+              </ul>
+              <label for="export-format">Format</label>
+              <select id="export-format" ng-model="exportFormat">
+                  <option>sql</option>
+                  <option>json</option>
+                  <option>tsv</option>
+                  <option>csv</option>
+              </select>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" ng-click="export(exportFormat)">Download</button>
+          </div>
+        </div>
+      </div>
+    </div>
 </header>
 
 <section class="row">

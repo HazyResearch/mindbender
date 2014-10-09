@@ -1,3 +1,8 @@
+findAllKeys = (rows) ->
+    merged = {}
+    angular.extend merged, rows...
+    key for key of merged
+
 deriveSchema = (tags, baseSchema) ->
     schema = {}
     # examine all tags  # TODO sample if large?
@@ -43,7 +48,7 @@ angular.module 'mindbenderApp.tagr', [
         templateUrl: 'tagr/tagr.html',
         controller: 'TagrItemsCtrl'
 
-.controller 'TagrItemsCtrl', ($scope, $http) ->
+.controller 'TagrItemsCtrl', ($scope, $http, $window) ->
     $scope.presets = ['_default']
 
     $scope.tagsSchema = {}
@@ -59,6 +64,13 @@ angular.module 'mindbenderApp.tagr', [
                     $http.get '/api/tagr/items'
                         .success (items) ->
                             $scope.items = items
+                            $scope.itemSchema = deriveSchema items
+                            $scope.exportFormat = "sql"
+                            $scope.export = (format) ->
+                                $window.location.href = "/api/tagr/tags.#{format ? $scope.exportFormat}?keys=#{
+                                    encodeURIComponent ((attrName for attrName,attrSchema of $scope.itemSchema when attrSchema.export).join ",")
+                                }"
+                                # TODO table=
 
     $scope.$on "tagChanged", ->
         # update schema
@@ -74,6 +86,7 @@ angular.module 'mindbenderApp.tagr', [
             .success (result) ->
                 console.log "committed tags for item #{index}", tag
             .error (result) ->
+                # FIXME revert tag to previous value
                 console.error "commit failed for item #{index}", tag
 
 .directive 'mbRenderItem', ->
