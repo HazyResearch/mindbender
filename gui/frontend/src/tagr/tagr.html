@@ -2,9 +2,21 @@
     <h1 class="pull-left">Tag Items</h1>
 
     <!-- Export Tags stuff -->
-    <div class="text-right">
-        <button class="btn btn-primary" data-toggle="modal" data-target="#export-modal">
-            <i class="glyphicon glyphicon-download-alt"></i> Export Tags
+    <div class="text-right" style="margin-top: 20px;">
+        <button class="btn btn-default" disabled>
+            <i class="glyphicon glyphicon-filter"></i> Filter by <span class="caret"></span>
+        </button>
+        <button class="btn btn-default" disabled>
+            <i class="glyphicon glyphicon-sort-by-attributes"></i> Order by <span class="caret"></span>
+        </button>
+        <button class="btn btn-default" disabled>
+            <i class="glyphicon glyphicon-th-list"></i> Group by <span class="caret"></span>
+        </button>
+        <button class="btn btn-default" disabled>
+            <i class="glyphicon glyphicon-tags"></i> Tag Settings</span>
+        </button>
+        <button class="btn btn-info" data-toggle="modal" data-target="#export-modal">
+            <i class="glyphicon glyphicon-save"></i> Export Tags
         </button>
     </div>
     <div class="modal fade" id="export-modal" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
@@ -15,18 +27,34 @@
             <h4 class="modal-title" id="exportModalLabel">Export Tags</h4>
           </div>
           <div class="modal-body">
-              <h5>Select attributes to export</h5>
-              <ul class="list-unstyled" ng-repeat="(attrName, attrSchema) in itemSchema">
-                  <input id="export-attr-{{attrName}}" type="checkbox" ng-model="attrSchema.export">
-                  <label for="export-attr-{{attrName}}">{{attrName}}</label>
-              </ul>
-              <label for="export-format">Format</label>
-              <select id="export-format" ng-model="exportFormat">
-                  <option>sql</option>
-                  <option>json</option>
-                  <option>tsv</option>
-                  <option>csv</option>
-              </select>
+            <form class="form-horizontal" role="form">
+              <div class="form-group">
+                <label for="export-attrs" class="col-sm-2 control-label">Attributes to export</label>
+                <div class="col-sm-10">
+                  <ul class="list-inline">
+                    <li ng-repeat="(attrName, attrSchema) in itemSchema">
+                      <span class="checkbox">
+                        <label>
+                          <input type="checkbox" ng-model="attrSchema.export">
+                          {{attrName}}
+                        </label>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="export-format" class="col-sm-2 control-label">Format</label>
+                <div class="col-sm-10">
+                  <select id="export-format" class="form-control" ng-model="exportFormat">
+                    <option>sql</option>
+                    <option>json</option>
+                    <option>tsv</option>
+                    <option>csv</option>
+                  </select>
+                </div>
+              </div>
+            </form>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
