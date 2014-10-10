@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# mindbender-version -- show mindbender's version and build information
+# > mindbender version
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2014-10-09
+# Generated: 2014-10-09
+set -eu
+
+cd "$MINDBENDER_HOME"
+. .build-info.sh
+
+cat <<-HEADER
+Mindbender $version ($build_os $build_machine)
+HEADER
+
+if [ -s LICENSE.txt ]; then
+    echo
+    sed 's/^/  /' <LICENSE.txt
+    echo
+fi
+
+cat <<-VERSION
+Information on this build of Mindbender follows.
+
+  Mindbender version: $version_long
+  Mindbender Git commit: $version_commit
+  
+  Build Date: $build_timestamp
+  Build Host: $build_hostname
+  Build Operating System: $build_os
+  Build Machine: $build_machine
+  
+  Bundled Dependencies:
+$(ls depends/bundled | sed 's/^/    /')
+
+  Running Operating System: $(uname)
+  Running Machine: $(uname -m)
+  
+VERSION

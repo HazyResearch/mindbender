@@ -8,7 +8,7 @@
 #   -t      force logging to non-ttys
 #           (default is to log messages to stderr only when it's a tty)
 #
-# Generated: 2014-09-29
+# Generated: 2014-10-09
 set -eu
 
 if [ -z "${MINDBENDER_HOME:-}" ]; then
