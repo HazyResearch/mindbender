@@ -249,12 +249,13 @@ async.parallel {
             keys.join "-"}.#{new Date().toISOString()}.#{format}"
         switch format
             when "sql"
-                tableName = req.param "table" ? "tags"
+                tableName = (req.param "table") ? "tags"
+                # TODO escape quoted columnNames?
                 res.send """
                     DROP TABLE #{tableName};
-                    CREATE TABLE #{tableName}(\n#{("#{c} TEXT" for c in columnNames).join ",\n"}
+                    CREATE TABLE #{tableName}(\n#{("\"#{c}\" TEXT" for c in columnNames).join ",\n"}
                     );
-                    INSERT INTO #{tableName}(#{(columnNames.join ", ")}) VALUES
+                    INSERT INTO #{tableName}(#{(("\"#{c}\"" for c in columnNames).join ", ")}) VALUES
                     #{(
                         for row in rows
                             "(#{(MindbenderUtils.asSqlLiteral row[c] for c in columnNames).join ", "})"
