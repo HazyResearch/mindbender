@@ -49,8 +49,11 @@ angular.module 'mindbenderApp.tagr', [
         templateUrl: 'tagr/tagr.html',
         controller: 'TagrItemsCtrl'
 
-.controller 'TagrItemsCtrl', ($scope, commitTags, $http, $window) ->
+.controller 'TagrItemsCtrl', ($scope, commitTags, $http, $window, $location) ->
     $scope.presets = ['_default']
+
+    $scope.items = []
+    $scope.tags = []
 
     $scope.tagsSchema = {}
     $scope.keys = (obj) -> key for key of obj
@@ -83,6 +86,13 @@ angular.module 'mindbenderApp.tagr', [
     $scope.cursorIndex = 0
     $scope.moveCursorTo = (index) ->
         $scope.cursorIndex = index
+    # pagination
+    $scope.currentPage = 1
+    $scope.itemsPerPage = 10
+    $scope.itemsOnCurrentPage = ->
+        a = $scope.itemsPerPage * ($scope.currentPage - 1)
+        b = $scope.itemsPerPage * ($scope.currentPage    )
+        $scope.items[a...b]
 
     # create/add tag
     $scope.addTagToCurrentItem = (name, type = 'binary', value = true) ->
@@ -96,12 +106,13 @@ angular.module 'mindbenderApp.tagr', [
         commitTags tag, index
 
 .controller 'TagrTagsCtrl', ($scope, commitTags, $timeout) ->
-    $scope.tag = ($scope.$parent.tags[$scope.$parent.$index] ?= {})
+    itemIndex = $scope.$parent.$index +
+            $scope.$parent.currentPage * $scope.$parent.itemsPerPage
+    $scope.tag = ($scope.$parent.tags[itemIndex] ?= {})
     $scope.commit = (tag) -> $timeout ->
         $scope.$parent.cursorIndex = $scope.$parent.$index
         $scope.$emit "tagChanged"
-        index = $scope.$parent.$index
-        commitTags tag, index
+        commitTags tag, itemIndex
         # TODO handle error
 
 .directive 'mbRenderItem', ->

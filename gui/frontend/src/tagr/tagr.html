@@ -67,7 +67,9 @@
 
 <section class="row">
 
-<div class="panel panel-default" ng-repeat="item in items"
+  cursorIndex: {{cursorIndex}} of page {{currentPage}}
+
+<div class="panel panel-default" ng-repeat="item in itemsOnCurrentPage()"
   ng-class="$index == $parent.cursorIndex ? 'panel-primary' : 'panel-default'"
   ng-click="moveCursorTo($index)">
     <div class="panel-body">
@@ -102,6 +104,15 @@
       </span>
     </div>
 </div>
+
+<nav class="navbar navbar-default navbar-fixed-bottom" role="navigation">
+  <div class="container">
+    <pagination total-items="items.length" items-per-page="itemsPerPage" ng-model="currentPage"
+      max-size="7" class="pagination-sm" boundary-links="true" rotate="false">
+  </div>
+</nav>
+<style>body { padding-bottom: 70px; }</style>
+
 <div class="modal" id="add-tag-modal" tabindex="-1" role="dialog" aria-labelledby="addTagModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
