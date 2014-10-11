@@ -41,23 +41,7 @@ bower_components/angular-bootstrap/ui-bootstrap-tpls.js
 )
 # with all source map also concatenated
 # See: https://github.com/kozy4324/grunt-concat-sourcemap#readme
-coffee /dev/stdin ${appName}.concat.js "${files[@]}" <<END
-[output, sources...] = process.argv[2..]
-console.error "#{output} concatenates files below with source map:"
-console.error "  #{src}" for src in sources
-files = {}; files[output] = sources
-
-process.argv = [process.argv[0..1]..., "concat_sourcemap"]
-grunt = require "grunt"
-grunt.initConfig 
-    concat_sourcemap:
-        target:
-            files: files
-grunt.loadNpmTasks("grunt-concat-sourcemap");
-grunt.cli
-    base: process.env.PWD
-    gruntfile: "/dev/null"
-END
+../js-concat-sourcemap ${appName}.concat.js "${files[@]}"
 
 # Annotate angular dependencies
 echo >&2 "${appName}.annotate.js ng-annotates ${appName}.concat.js"
