@@ -1,8 +1,8 @@
 # Declare app level module which depends on views, and components
 angular.module 'mindbenderApp', [
     'ngRoute'
-    'mindbenderApp.tagr'
+    'mindbenderApp.mindtagger'
 ]
 .config ['$routeProvider', ($routeProvider) ->
-    $routeProvider.otherwise redirectTo: '/tagr'
+    $routeProvider.otherwise redirectTo: '/mindtagger'
 ]

@@ -29,14 +29,14 @@ MINDTAGGER_PRESET_ROOT = "#{process.env.MINDBENDER_HOME}/gui/presets"
 # parse command-line args and environment
 MINDBENDER_PORT = parseInt process.env.PORT ? 8000
 
-tagrArgs = {}
+mindtaggerArgs = {}
 [
-    tagrArgs.itemsFile
-    tagrArgs.workspaceDir
-    tagrArgs.presets...
+    mindtaggerArgs.itemsFile
+    mindtaggerArgs.workspaceDir
+    mindtaggerArgs.presets...
 ] = process.argv[2..] # FIXME generalize parsing
-tagrArgs.workspaceDir ?= "#{tagrArgs.itemsFile}.tagging"
-tagrArgs.presets = ["_default"] unless tagrArgs.presets?.length > 0
+mindtaggerArgs.workspaceDir ?= "#{mindtaggerArgs.itemsFile}.tagging"
+mindtaggerArgs.presets = ["_default"] unless mindtaggerArgs.presets?.length > 0
 
 ## express.js server
 app = module.exports = express()
@@ -148,8 +148,8 @@ writeDataFile = (fName, array, next) ->
     catch err
         next err
 
-tagrArgs.presetDirs =
-    for preset,i in tagrArgs.presets
+mindtaggerArgs.presetDirs =
+    for preset,i in mindtaggerArgs.presets
         presetDir = preset
         if not fs.existsSync presetDir
             bundledPresetDir = "#{MINDTAGGER_PRESET_ROOT}/#{presetDir}"
@@ -158,12 +158,12 @@ tagrArgs.presetDirs =
         unless (fs.statSync presetDir)?.isDirectory()
             throw new Error "#{presetDir}: Not a directory"
         presetDir
-console.log "Mindtagger using ", tagrArgs
-fs.mkdirsSync tagrArgs.workspaceDir
-tagsFile    = "#{tagrArgs.workspaceDir}/tags.json"
-schemaFiles = ("#{presetDir}/schema.json" for presetDir in tagrArgs.presetDirs)
+console.log "Mindtagger using ", mindtaggerArgs
+fs.mkdirsSync mindtaggerArgs.workspaceDir
+tagsFile    = "#{mindtaggerArgs.workspaceDir}/tags.json"
+schemaFiles = ("#{presetDir}/schema.json" for presetDir in mindtaggerArgs.presetDirs)
 async.parallel {
-    items : (next) -> loadDataFile tagrArgs.itemsFile, next
+    items : (next) -> loadDataFile mindtaggerArgs.itemsFile, next
     tags  : (next) -> loadOptionalDataFile tagsFile, [], next
     schema: (next) ->
         # load all schema files and merge
@@ -202,24 +202,24 @@ async.parallel {
     # set up preset URLs to make mixin mechanism work
     MIXIN_PRESET_DIR = "#{MINDTAGGER_PRESET_ROOT}/_mixin"
     DEFAULT_PRESET_DIR = "#{MINDTAGGER_PRESET_ROOT}/_default"
-    for preset,i in tagrArgs.presets
-        presetDir = tagrArgs.presetDirs[i]
-        app.use "/tagr/preset/#{preset}", express.static presetDir
-        app.use "/tagr/preset/#{preset}", express.static MIXIN_PRESET_DIR
-    app.use "/tagr/preset", express.static MINDTAGGER_PRESET_ROOT
+    for preset,i in mindtaggerArgs.presets
+        presetDir = mindtaggerArgs.presetDirs[i]
+        app.use "/mindtagger/preset/#{preset}", express.static presetDir
+        app.use "/mindtagger/preset/#{preset}", express.static MIXIN_PRESET_DIR
+    app.use "/mindtagger/preset", express.static MINDTAGGER_PRESET_ROOT
 
     # set up JSON APIs
-    app.get "/api/tagr/schema", (req, res) ->
+    app.get "/api/mindtagger/schema", (req, res) ->
         res.json
-            presets: tagrArgs.presets
+            presets: mindtaggerArgs.presets
             tags:    schema
-    app.get "/api/tagr/items", (req, res) ->
+    app.get "/api/mindtagger/items", (req, res) ->
         res.json items
-    app.get "/api/tagr/tags", (req, res) ->
+    app.get "/api/mindtagger/tags", (req, res) ->
         res.json tags
     # TODO use keys instead of index
     # TODO support saving the entire state?
-    app.post "/api/tagr/tags", (req, res) ->
+    app.post "/api/mindtagger/tags", (req, res) ->
         index = req.body.index
         if 0 <= index < items.length
             tags[index] = req.body.tag
@@ -236,7 +236,7 @@ async.parallel {
             row = _.extend {}, tags[i]
             row[key] = item[key] for key in keys
             row
-    app.get "/api/tagr/tags.:format", (req, res) ->
+    app.get "/api/mindtagger/tags.:format", (req, res) ->
         format = req.param "format"
         keys = req.param("keys")?.split(/\s*,\s*/)
         unless keys?.length > 0

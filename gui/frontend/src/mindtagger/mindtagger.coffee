@@ -35,44 +35,44 @@ directiveForIncludingPresetTemplate = (templateName) ->
             else
                 # fallback to _default preset if the stack is empty but a render is forced
                 ['_default']
-        $scope.presetPath = "/tagr/preset/#{preset}"
+        $scope.presetPath = "/mindtagger/preset/#{preset}"
     template: """
         <span ng-include="presetPath + '/#{templateName}-template.html'"></span>
         """
 
-angular.module 'mindbenderApp.tagr', [
+angular.module 'mindbenderApp.mindtagger', [
     'ui.bootstrap'
 ]
 
 .config ($routeProvider) ->
-    $routeProvider.when '/tagr',
-        templateUrl: 'tagr/tagr.html',
-        controller: 'TagrItemsCtrl'
+    $routeProvider.when '/mindtagger',
+        templateUrl: 'mindtagger/mindtagger.html',
+        controller: 'MindtaggerItemsCtrl'
 
-.controller 'TagrItemsCtrl', ($scope, commitTags, $http, $window, $location) ->
+.controller 'MindtaggerItemsCtrl', ($scope, commitTags, $http, $window, $location) ->
     $scope.presets = ['_default']
 
-    $scope.items = []
-    $scope.tags = []
+    $scope.items ?= []
+    $scope.tags ?= []
 
-    $scope.tagsSchema = {}
+    $scope.tagsSchema ?= {}
     $scope.keys = (obj) -> key for key of obj
 
-    $http.get '/api/tagr/schema'
+    $http.get '/api/mindtagger/schema'
         .success ({presets, tags:schema}) ->
             $scope.presets = presets
             $scope.tagsSchemaBase = schema
-            $http.get '/api/tagr/tags'
+            $http.get '/api/mindtagger/tags'
                 .success (tags) ->
                     $scope.tags = tags
                     $scope.tagsSchema = deriveSchema $scope.tags, $scope.tagsSchemaBase
-                    $http.get '/api/tagr/items'
+                    $http.get '/api/mindtagger/items'
                         .success (items) ->
                             $scope.items = items
                             $scope.itemSchema = deriveSchema items
                             $scope.exportFormat = "sql"
                             $scope.export = (format) ->
-                                $window.location.href = "/api/tagr/tags.#{format ? $scope.exportFormat}?keys=#{
+                                $window.location.href = "/api/mindtagger/tags.#{format ? $scope.exportFormat}?keys=#{
                                     encodeURIComponent ((attrName for attrName,attrSchema of $scope.itemSchema when attrSchema.export).join ",")
                                 }"
                                 # TODO table=
@@ -87,12 +87,15 @@ angular.module 'mindbenderApp.tagr', [
     $scope.moveCursorTo = (index) ->
         $scope.cursorIndex = index
     # pagination
-    $scope.currentPage = 1
+    console.log $location.search().p
+    $scope.currentPage = +($location.search().p ? 1)
     $scope.itemsPerPage = 10
     $scope.itemsOnCurrentPage = ->
         a = $scope.itemsPerPage * ($scope.currentPage - 1)
         b = $scope.itemsPerPage * ($scope.currentPage    )
         $scope.items[a...b]
+    $scope.pageChanged = ->
+        #$location.search 'p', $scope.currentPage
 
     # create/add tag
     $scope.addTagToCurrentItem = (name, type = 'binary', value = true) ->
@@ -105,7 +108,7 @@ angular.module 'mindbenderApp.tagr', [
         $scope.$emit "tagChanged"
         commitTags tag, index
 
-.controller 'TagrTagsCtrl', ($scope, commitTags, $timeout) ->
+.controller 'MindtaggerTagsCtrl', ($scope, commitTags, $timeout) ->
     itemIndex = $scope.$parent.$index +
             $scope.$parent.currentPage * $scope.$parent.itemsPerPage
     $scope.tag = ($scope.$parent.tags[itemIndex] ?= {})
@@ -142,7 +145,7 @@ angular.module 'mindbenderApp.tagr', [
 
 .service 'commitTags', ($http) ->
     (tag, index) ->
-        $http.post '/api/tagr/tags', {index, tag}
+        $http.post '/api/mindtagger/tags', {index, tag}
             .success (result) ->
                 console.log "committed tags for item #{index}", tag
             .error (result) ->

@@ -78,7 +78,7 @@
         <span mb-render-item></span>
       </big>
     </div>
-    <div class="panel-footer" ng-controller="TagrTagsCtrl">
+    <div class="panel-footer" ng-controller="MindtaggerTagsCtrl">
       <!-- custom tagging UI elements -->
       <span mb-render-tags></span>
 
@@ -105,9 +105,11 @@
     </div>
 </div>
 
-<nav class="navbar navbar-default navbar-fixed-bottom" role="navigation">
+<nav class="navbar navbar-default navbar-fixed-bottom" role="navigation"
+  ng-if="items.length > 0">
   <div class="container">
-    <pagination total-items="items.length" items-per-page="itemsPerPage" ng-model="currentPage"
+    <pagination total-items="items.length" items-per-page="itemsPerPage"
+      ng-model="currentPage" ng-change="pageChanged()"
       max-size="7" class="pagination-sm" boundary-links="true" rotate="false">
   </div>
 </nav>
