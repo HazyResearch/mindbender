@@ -99,7 +99,7 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.$emit "tagChanged"
         commitTags $scope, tag, index
 
-.controller 'MindtaggerTagsCtrl', ($scope, commitTags, $timeout) ->
+.controller 'MindtaggerTagsCtrl', ($scope, commitTags, $timeout, $modal, $window) ->
     itemIndex = $scope.$parent.$index +
             ($scope.$parent.currentPage - 1) * $scope.$parent.itemsPerPage
     $scope.tag = ($scope.$parent.tags[itemIndex] ?= {})
@@ -107,7 +107,10 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.$parent.cursorIndex = $scope.$parent.$index
         $scope.$emit "tagChanged"
         commitTags $scope.$parent, tag, itemIndex
-        # TODO handle error
+            .error (err) ->
+                # prevent further changes to the UI with an error message
+                $modal.open templateUrl: "mindtagger/commit-error.html"
+                    .result.finally -> do $window.location.reload
 
 .directive 'mbRenderItem', ->
     directiveForIncludingPresetTemplate 'item'
