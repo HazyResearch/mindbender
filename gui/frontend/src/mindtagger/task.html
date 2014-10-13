@@ -63,6 +63,12 @@
       <big>
         <!-- custom item rendering -->
         <span mb-render-item></span>
+
+        <!-- default rendering for all details -->
+        <div ng-if="$presets.length > 0" style="margin-top: 20px;">
+          <button class="btn btn-default btn-xs" btn-checkbox ng-model="isDetailShown">Show all attributes</button>
+          <div ng-init="$presets = []" collapse="!isDetailShown"><mb-render-item/></div>
+        </div>
       </big>
     </div>
     <div class="panel-footer" ng-controller="MindtaggerTagsCtrl">

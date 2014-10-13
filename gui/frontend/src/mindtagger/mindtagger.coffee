@@ -160,7 +160,6 @@ angular.module 'mindbenderApp.mindtagger', [
                     return value if element in array
                     # then, look for identical String representation
                     for e in array when (String e) is (String element)
-                        console.log e, element, value
                         return value
             return null
 

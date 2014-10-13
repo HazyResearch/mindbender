@@ -169,9 +169,9 @@ class MindtaggerTask
         # resolve all preset directories
         @config.presetDirs =
             for [presetName] in @config.presets
-                presetDir = presetName
-                if not fs.existsSync presetDir
-                    bundledPresetDir = "#{MINDTAGGER_PRESET_ROOT}/#{presetDir}"
+                presetDir = path.resolve @config.path, presetName
+                unless fs.existsSync presetDir
+                    bundledPresetDir = "#{MINDTAGGER_PRESET_ROOT}/#{presetName}"
                     if fs.existsSync bundledPresetDir
                         presetDir = bundledPresetDir
                 try
@@ -303,7 +303,7 @@ class MindtaggerTask
     @getAllPresetDirsByPreset: ->
         map = {}
         for taskName,task of MindtaggerTask.ALL
-            for preset,i in task.config.presets
+            for [preset,args],i in task.config.presets
                 presetDir = task.config.presetDirs[i]
                 map[preset] = presetDir
         map
