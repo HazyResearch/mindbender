@@ -5,13 +5,12 @@ MindBender for iterative knowledge base development with [DeepDive][].
 
 ## Synopsis
 ```
-make
+make polish
 
-./mindbender-LATEST.sh compile  examples/genomics-application.mb  examples/genomics-application.deepdive
-./mindbender-LATEST.sh compile  examples/spouse-example.mb        examples/spouse-example.deepdive
+@prefix@/bin/mindbender tagger examples/genomics/mindtagger.conf
 
-./mindbender-LATEST.sh gui      test/phone-sample.csv             test/phone-sample.tsv.tagging/  precision
-./mindbender-LATEST.sh gui      test/nlp-sample.csv               test/nlp-sample.tsv.tagging/    nlp-tags
+@prefix@/bin/mindbender compile  examples/genomics-application.mb  examples/genomics-application.deepdive
+@prefix@/bin/mindbender compile  examples/spouse-example.mb        examples/spouse-example.deepdive
 ```
 
 [DeepDive]: http://deepdive.stanford.edu/

@@ -1,13 +1,9 @@
-findAllKeys = (rows) ->
-    merged = {}
-    angular.extend merged, rows...
-    key for key of merged
-
 FALLBACK_PRESETS = [['_default']]
 directiveForIncludingPresetTemplate = (templateName) ->
     restrict: 'EA'
     scope: true
-    controller: ($scope) ->
+    controller: ($scope, MindtaggerUtils) ->
+        $scope.$utils = MindtaggerUtils
         # pop the preset stack to resolve the current preset
         [[presetName, $scope.$preset], $scope.$presets...] =
             if $scope.$parent.$presets?.length > 0
@@ -147,4 +143,24 @@ angular.module 'mindbenderApp.mindtagger', [
             .error (result) ->
                 # FIXME revert tag to previous value
                 console.error "commit failed for item #{index}", tag
+
+.service 'MindtaggerUtils', (parsedPostgresArrayFilter) ->
+    class MindtaggerUtils
+        @findAllKeys: (rows) ->
+            merged = {}
+            angular.extend merged, rows...
+            key for key of merged
+
+        # for word-array's style_indexes_columns
+        @valueOfPostgresArrayColumnContaining: (element, item, columnMap) ->
+            if columnMap? and (typeof columnMap) is "object"
+                for column,value of columnMap
+                    array = parsedPostgresArrayFilter item[column]
+                    # find and return immediately if found without conversion
+                    return value if element in array
+                    # then, look for identical String representation
+                    for e in array when (String e) is (String element)
+                        console.log e, element, value
+                        return value
+            return null
 
