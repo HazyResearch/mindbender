@@ -1,75 +1,61 @@
-<header class="page-header row">
-  <h1 class="pull-left">
-    {{taskName}}
-    <small>Mindtagger</small>
-  </h1>
+<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+  <div class="container">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mindtagger-navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand">Mindtagger</a>
+    </div>
 
-    <!-- Export Tags stuff -->
-    <div class="text-right" style="margin-top: 20px;">
-        <button class="btn btn-default" disabled>
-            <i class="glyphicon glyphicon-filter"></i> Filter by <span class="caret"></span>
-        </button>
-        <button class="btn btn-default" disabled>
-            <i class="glyphicon glyphicon-sort-by-attributes"></i> Order by <span class="caret"></span>
-        </button>
-        <button class="btn btn-default" disabled>
-            <i class="glyphicon glyphicon-th-list"></i> Group by <span class="caret"></span>
-        </button>
-        <button class="btn btn-default" disabled>
-            <i class="glyphicon glyphicon-tags"></i> Tag Settings</span>
-        </button>
-        <button class="btn btn-info" data-toggle="modal" data-target="#export-modal">
-            <i class="glyphicon glyphicon-save"></i> Export Tags
-        </button>
-    </div>
-    <div class="modal fade" id="export-modal" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-            <h4 class="modal-title" id="exportModalLabel">Export Tags</h4>
-          </div>
-          <div class="modal-body">
-            <form class="form-horizontal" role="form">
-              <div class="form-group">
-                <label for="export-attrs" class="col-sm-2 control-label">Attributes to export</label>
-                <div class="col-sm-10">
-                  <ul class="list-inline">
-                    <li ng-repeat="(attrName, attrSchema) in itemSchema">
-                      <span class="checkbox">
-                        <label>
-                          <input type="checkbox" ng-model="attrSchema.export">
-                          {{attrName}}
-                        </label>
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="export-format" class="col-sm-2 control-label">Format</label>
-                <div class="col-sm-10">
-                  <select id="export-format" class="form-control" ng-model="exportFormat">
-                    <option>sql</option>
-                    <option>json</option>
-                    <option>tsv</option>
-                    <option>csv</option>
-                  </select>
-                </div>
-              </div>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" ng-click="export(exportFormat)">Download</button>
-          </div>
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="mindtagger-navbar-collapse">
+      <ul class="nav navbar-nav" ng-controller="MindtaggerTasksCtrl">
+        <li class="dropdown" ng-if="tasks.length > 1">
+          <a class="dropdown-toggle" data-toggle="dropdown">{{taskName}} <span class="caret"></span></a>
+          <ul class="dropdown-menu" role="menu">
+            <li ng-repeat="task in tasks" ng-if="task.name != taskName"><a href="#/mindtagger/{{task.name}}">{{task.name}}</a></li>
+          </ul>
+        </li>
+        <li ng-if="tasks.length == 1" class="active"><a href="#/mindtagger/{{taskName}}">{{taskName}}</a></li>
+      </ul>
+      <!--
+      <form class="navbar-form navbar-left" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search">
         </div>
-      </div>
-    </div>
-</header>
+        <button type="submit" class="btn btn-default">Submit</button>
+      </form>
+      -->
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown"><a><i class="glyphicon glyphicon-filter"></i> Filter by <span class="caret"></span></a></li>
+        <li class="dropdown"><a><i class="glyphicon glyphicon-sort-by-attributes"></i> Order by <span class="caret"></span></a></li>
+        <li class="dropdown">
+          <a class="dropdown-toggle" data-toggle="dropdown"><i class="glyphicon glyphicon-th-list"></i> Group by <span class="caret"></span></a>
+          <ul class="dropdown-menu" role="menu">
+            <li ng-repeat="(tagName, tagSchema) in tagsSchema">
+              <a><i class="glyphicon glyphicon-tag"></i> {{tagName}}</a>
+            </li>
+            <li class="divider"></li>
+            <li><a>No grouping</a></li>
+          </ul>
+        </li>
+        <li>
+          <a><i class="glyphicon glyphicon-tags"></i> Tag Settings</a>
+        </li>
+      </ul>
+    </div><!-- /.navbar-collapse -->
+  </div>
+</nav>
+<style>body { padding-top: 70px; }</style>
+
 
 <section class="row">
 
+<!-- Rendering items -->
 <div class="panel panel-default" ng-repeat="item in itemsOnCurrentPage()"
   ng-class="$index == $parent.cursorIndex ? 'panel-primary' : 'panel-default'"
   ng-click="moveCursorTo($index)">
@@ -106,16 +92,7 @@
     </div>
 </div>
 
-<nav class="navbar navbar-default navbar-fixed-bottom" role="navigation"
-  ng-if="items.length > 0">
-  <div class="container text-center">
-    <pagination total-items="items.length" items-per-page="itemsPerPage"
-      ng-model="$parent.currentPage" ng-change="pageChanged()"
-      max-size="7" class="pagination-sm" boundary-links="true" rotate="false">
-  </div>
-</nav>
-<style>body { padding-bottom: 70px; }</style>
-
+<!-- Adding new tags -->
 <div class="modal" id="add-tag-modal" tabindex="-1" role="dialog" aria-labelledby="addTagModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -147,6 +124,68 @@
     </div>
   </div>
 </div>
+
+<nav class="navbar navbar-default navbar-fixed-bottom" role="navigation"
+  ng-if="items.length > 0">
+  <div class="container text-center">
+    <div class="pull-right" style="margin-top: 20px;">
+      <button class="btn btn-info" data-toggle="modal" data-target="#export-modal">
+        <i class="glyphicon glyphicon-save"></i> Export
+      </button>
+    </div>
+    <pagination total-items="items.length" items-per-page="itemsPerPage"
+      ng-model="$parent.currentPage" ng-change="pageChanged()"
+      max-size="7" class="pagination-sm" boundary-links="true" rotate="false"></pagination>
+  </div>
+</nav>
+<style>body { padding-bottom: 70px; }</style>
+
+<!-- Export Tags stuff -->
+<div class="modal fade" id="export-modal" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+        <h4 class="modal-title" id="exportModalLabel">Export Tags</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal" role="form">
+          <div class="form-group">
+            <label for="export-attrs" class="col-sm-2 control-label">Attributes to export</label>
+            <div class="col-sm-10">
+              <ul class="list-inline">
+                <li ng-repeat="(attrName, attrSchema) in itemSchema">
+                  <span class="checkbox">
+                    <label>
+                      <input type="checkbox" ng-model="attrSchema.export">
+                      {{attrName}}
+                    </label>
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="export-format" class="col-sm-2 control-label">Format</label>
+            <div class="col-sm-10">
+              <select id="export-format" class="form-control" ng-model="exportFormat">
+                <option>sql</option>
+                <option>json</option>
+                <option>tsv</option>
+                <option>csv</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" ng-click="export(exportFormat)">Download</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!--
 # TODOs
