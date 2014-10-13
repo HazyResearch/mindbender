@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# mindbender-tagger -- Start a Mindtagger GUI
+# Usage: mindbender tagger MINDTAGGER_CONF...
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2014-10-11
+set -eu
+
+[[ $# -gt 0 ]] || usage "$0" "At least one MINDTAGGER_CONF must be specified"
+
+# convert all HOCON mindtagger.conf to JSON
+jsons=()
+for conf; do
+    [[ -f "$conf" && -r "$conf" ]] || error "$conf: No such file"
+    json="$(dirname "$conf")/.$(basename "$conf").json"
+    jsons+=("$json")
+    [[ "$json" -nt "$conf" ]] ||
+        hocon2json >"$json" "$conf"  # TODO base Mindtagger.conf
+done
+set -- "${jsons[@]}"
+
+exec mindbender-gui "$@"

@@ -1,0 +1,13 @@
+<header class="page-header row">
+  <h1 class="pull-left">Mindtagger Tasks</h1>
+</header>
+
+<section class="row">
+  <ul class="list-unstyled">
+    <li ng-repeat="task in tasks">
+      <h2>
+        <a href="#/mindtagger/{{task.name}}">{{task.name}}</a>
+      </h2>
+    </li>
+  </ul>
+</section>

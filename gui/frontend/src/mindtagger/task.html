@@ -1,5 +1,8 @@
 <header class="page-header row">
-    <h1 class="pull-left">Tag Items</h1>
+  <h1 class="pull-left">
+    {{taskName}}
+    <small>Mindtagger</small>
+  </h1>
 
     <!-- Export Tags stuff -->
     <div class="text-right" style="margin-top: 20px;">
@@ -67,8 +70,6 @@
 
 <section class="row">
 
-  cursorIndex: {{cursorIndex}} of page {{currentPage}}
-
 <div class="panel panel-default" ng-repeat="item in itemsOnCurrentPage()"
   ng-class="$index == $parent.cursorIndex ? 'panel-primary' : 'panel-default'"
   ng-click="moveCursorTo($index)">
@@ -107,9 +108,9 @@
 
 <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation"
   ng-if="items.length > 0">
-  <div class="container">
+  <div class="container text-center">
     <pagination total-items="items.length" items-per-page="itemsPerPage"
-      ng-model="currentPage" ng-change="pageChanged()"
+      ng-model="$parent.currentPage" ng-change="pageChanged()"
       max-size="7" class="pagination-sm" boundary-links="true" rotate="false">
   </div>
 </nav>
