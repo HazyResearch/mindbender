@@ -55,10 +55,6 @@ server.listen (app.get "port"), ->
 
 
 ## MindBender backend services
-app.get "/api/foo", (req, res) ->
-    res.json "Not implemented"
-
-
 class MindbenderUtils
     @escapeSqlString: (s) ->
         s?.replace /'/g, "''"
@@ -88,7 +84,7 @@ class MindbenderUtils
         columns: yes
         header: yes
     @loadDataFile: (fName, next) ->
-        console.log "loading #{fName}"
+        util.log "loading #{fName}"
         try
             switch path.extname fName
                 when ".tsv"
@@ -116,7 +112,7 @@ class MindbenderUtils
                 next null, defaultValue
     @writeDataFile: (fName, array, next) ->
         try
-            console.log "writing #{fName}"
+            util.log "writing #{fName}"
             switch path.extname fName
                 when ".tsv"
                     fs.writeFile fName, (TSV.stringify array), next
@@ -154,6 +150,7 @@ class MindtaggerTask
         unless typeof @config is "object"
             configFile = @config
             @config = JSON.parse (fs.readFileSync configFile)
+            @config.file = configFile
             @config.path = path.resolve (path.dirname configFile)
         throw new Error "No path set in config", @config unless @config.path
         # determine task's name
@@ -258,19 +255,20 @@ class MindtaggerTask
             schema
 
     setTagsForItems: (tagsByIndex, next) =>
-        # TODO use keys instead of index
-        index = tagsByIndex.index
-        if 0 <= index < @items.length
-            @tags ?= []
-            @tags[index] = tagsByIndex.tag
-            @areTagsDirty = yes
-            # update tags schema
-            @getSchema (err, schema) =>
-                return next err if err
-                schema.tags = MindtaggerTask.deriveSchema [@tags[index]], schema.tags
-                next null
-        else
-            next "index #{index} not in range [0, #{@items.length})"
+        @getItemsWithTags (err, {items, tags}) =>
+            # TODO use keys instead of index
+            index = tagsByIndex.index
+            if 0 <= index < @items.length
+                @tags ?= []
+                @tags[index] = tagsByIndex.tag
+                @areTagsDirty = yes
+                # update tags schema
+                @getSchema (err, schema) =>
+                    return next err if err
+                    schema.tags = MindtaggerTask.deriveSchema [@tags[index]], schema.tags
+                    next null
+            else
+                next "index #{index} not in range [0, #{@items.length})"
 
 
     writeChanges: (next) =>
@@ -287,7 +285,6 @@ class MindtaggerTask
                 unless exists
                     write next
                 else
-                    console.log "no need to write #{tagsFile}"
                     next null
 
     @WRITER_T = null
@@ -320,7 +317,8 @@ for confFile in mindtaggerConfFiles
     # construct a task
     new MindtaggerTask confFile
 
-console.log "Loaded #{_.size MindtaggerTask.ALL} Mindtagger tasks", MindtaggerTask.ALL  # XXX debug
+util.log "Mindtagger tasks: #{JSON.stringify (task.config for task in _.values MindtaggerTask.ALL), null, 2}"  # XXX debug
+util.log "Loaded #{_.size MindtaggerTask.ALL} Mindtagger tasks: #{_.keys MindtaggerTask.ALL}"
 
 ## Configure Mindtagger API URLs
 # set up preset URLs to make mixin mechanism work
