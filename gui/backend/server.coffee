@@ -168,9 +168,15 @@ class MindtaggerTask
         @areTagsDirty = no
         # resolve all preset directories
         @config.presetDirs =
-            for [presetName] in @config.presets
+            for preset in @config.presets
+                [presetName] = preset
                 presetDir = path.resolve @config.path, presetName
-                unless fs.existsSync presetDir
+                if fs.existsSync presetDir
+                    # use the resolved full path with a prefix as the preset name
+                    preset[0] = "_custom/" + presetDir
+                        .replace /// _ ///g, "__"
+                        .replace /// / ///g, "_"
+                else
                     bundledPresetDir = "#{MINDTAGGER_PRESET_ROOT}/#{presetName}"
                     if fs.existsSync bundledPresetDir
                         presetDir = bundledPresetDir
