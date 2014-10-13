@@ -29,17 +29,19 @@ angular.module 'mindbenderApp.mindtagger', [
 
 .config ($routeProvider) ->
     $routeProvider.when '/mindtagger',
-        templateUrl: 'mindtagger/tasklist.html',
+        template: 'mindtagger/tasklist.html',
         controller: 'MindtaggerTasksCtrl'
     $routeProvider.when '/mindtagger/:task',
         templateUrl: 'mindtagger/task.html',
         controller: 'MindtaggerItemsCtrl'
 
-.controller 'MindtaggerTasksCtrl', ($scope, $http) ->
+.controller 'MindtaggerTasksCtrl', ($scope, $http, $location) ->
     $scope.tasks ?= []
     $http.get "/api/mindtagger/"
         .success (tasks) ->
             $scope.tasks = tasks
+            if $location.path() is "/mindtagger"
+                $location.path "/mindtagger/#{tasks[0].name}"
 
 
 .controller 'MindtaggerItemsCtrl', ($scope, $routeParams, commitTags, $http, $window, $location) ->
