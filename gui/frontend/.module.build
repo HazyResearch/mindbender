@@ -25,7 +25,6 @@ cd ..
 
 # concatenate all .js files
 cd app
-rm -f ${appName}{.*,}.js
 ln -sfn ../node_modules
 shopt -s nullglob
 files=(
@@ -37,23 +36,38 @@ bower_components/angular/angular.js
 bower_components/angular-route/angular-route.js
 bower_components/angular-bootstrap/ui-bootstrap.js
 bower_components/angular-bootstrap/ui-bootstrap-tpls.js
-{!(bower_components|node_modules)/**/,}!(*_test).js
+
+{!(bower_components|node_modules)/**/,}!(*_test|${appName}|${appName}.*).js
 )
-# with all source map also concatenated
-# See: https://github.com/kozy4324/grunt-concat-sourcemap#readme
-../js-concat-sourcemap ${appName}.concat.js "${files[@]}"
 
-# Annotate angular dependencies
-echo >&2 "${appName}.annotate.js ng-annotates ${appName}.concat.js"
-ng-annotate -o ${appName}.annotate.js -a ${appName}.concat.js
+# See if any files have changed and we need to compile .js again
+hasChanged=false
+for input in "${files[@]}"; do
+    [[ ! -L "$input" || -e "$input" ]] || continue
+    [[ "$input" -nt ${appName}.js ]] || continue
+    echo >&2 "$input has changed, recompiling ${appName}.js"
+    hasChanged=true
+    break
+done
+if $hasChanged; then
+    # Concatenate .js files with their source maps
+    # See: https://github.com/kozy4324/grunt-concat-sourcemap#readme
+    ../js-concat-sourcemap ${appName}.concat.js "${files[@]}"
 
-# Uglify to produce the final output
-if $shouldUglify; then
-    echo >&2 "${appName}.js uglifies ${appName}.annotate.js"
-    uglifyjs ${appName}.annotate.js --output ${appName}.js \
-        --in-source-map ${appName}.concat.js.map --source-map ${appName}.js.map \
-        --mangle --compress \
-        #
+    # Annotate angular dependencies
+    echo >&2 "${appName}.annotate.js ng-annotates ${appName}.concat.js"
+    ng-annotate -o ${appName}.annotate.js -a ${appName}.concat.js
+
+    # Uglify to produce the final output
+    if $shouldUglify; then
+        echo >&2 "${appName}.js uglifies ${appName}.annotate.js"
+        uglifyjs ${appName}.annotate.js --output ${appName}.js \
+            --in-source-map ${appName}.concat.js.map --source-map ${appName}.js.map \
+            --mangle --compress \
+            #
+    else
+        ln -vf ${appName}.annotate.js ${appName}.js
+    fi
 else
-    ln -vf ${appName}.annotate.js ${appName}.js
+    echo >&2 "${appName}.js is up-to-date"
 fi
