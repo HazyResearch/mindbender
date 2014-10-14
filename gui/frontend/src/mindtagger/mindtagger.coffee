@@ -121,17 +121,22 @@ angular.module 'mindbenderApp.mindtagger', [
 .filter 'parsedPostgresArray', ->
     (text, index) ->
         # extract the csv-like piece in the text
-        return null unless (m = /^{(.*)}$/.exec text?.trim())?
+        return null unless text? and (m = /^{(.*)}$/.exec text?.trim())?
         csvLikeText = m[1]
         # convert backslash escapes to standard CSV escapes
         csvText = csvLikeText
+            .replace /\\(.)/g, "$1"
             .replace /\\(.)/g, (m, c) ->
                 switch c
                     when '"'
                         '""'
                     else
                         c
-        array = $.csv.toArray csvText
+        array =
+            try $.csv.toArray csvText
+            catch err
+                console.error "csv parse error", text, csvLikeText, csvText, err
+                [text]
         if index?
             array[index]
         else
