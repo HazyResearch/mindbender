@@ -62,10 +62,14 @@ angular.module 'mindbenderApp.mindtagger', [
 
     $scope.exportFormat = "sql"
     $scope.export = (format) ->
-        $window.location.href = "/api/mindtagger/#{$scope.taskName}/tags.#{format ? $scope.exportFormat}?keys=#{
+        $window.location.href = "/api/mindtagger/#{$scope.taskName}/tags.#{format ? $scope.exportFormat
+        }?table=#{
+            "" # TODO allow table name to be customized
+        }&attrs=#{
             encodeURIComponent ((attrName for attrName,attrSchema of $scope.itemSchema when attrSchema.export).join ",")
+        }&tags=#{
+            encodeURIComponent ((tagName for tagName,tagSchema of $scope.tagsSchema when tagSchema.export).join ",")
         }"
-        # TODO table=
 
     $scope.$on "tagChanged", ->
         # update schema

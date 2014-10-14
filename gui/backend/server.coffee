@@ -340,7 +340,7 @@ withTask = (taskName, req, res, next) ->
         res.status 404
             .send "No such task: #{taskName}"
     else
-        next task
+        next task, taskName
 app.get "/api/mindtagger/:task/schema", (req, res) ->
     withTask (req.param "task"), req, res, (task) ->
         task.getSchema (err, schema) ->
@@ -367,55 +367,78 @@ app.post "/api/mindtagger/:task/items", (req, res) ->
                     .send "Bad request: #{err}"
             res.json task.schema
 
-# TODO continue below ###############################################
 # set up APIs for exporting
-exportTagsWithItemKeys = (keys) ->
-    for item,i in items
-        row = _.extend {}, tags[i]
-        row[key] = item[key] for key in keys
-        row
-app.get "/api/mindtagger/tags.:format", (req, res) ->
+app.get "/api/mindtagger/:task/tags.:format", (req, res) ->
     format = req.param "format"
-    keys = req.param("keys")?.split(/\s*,\s*/)
-    unless keys?.length > 0
+    attrsToInclude = req.param("attrs")?.split(/\s*,\s*/)
+    tagsToInclude = req.param("tags")?.split(/\s*,\s*/)
+    unless attrsToInclude?.length > 0
         return res.status 400
-            .send "Bad request: no keys specified"
-    rows = exportTagsWithItemKeys keys
-    columnNames = MindbenderUtils.findAllKeys rows
-    res.contentType "text/plain"
-    res.set "Content-Disposition": "attachment; filename=tags-#{
-        keys.join "-"}.#{new Date().toISOString()}.#{format}"
-    switch format
-        when "sql"
-            tableName = (req.param "table") ? "tags"
-            # TODO escape quoted columnNames?
-            res.send """
-                DROP TABLE #{tableName};
-                CREATE TABLE #{tableName}(\n#{("\"#{c}\" TEXT" for c in columnNames).join ",\n"}
-                );
-                INSERT INTO #{tableName}(#{(("\"#{c}\"" for c in columnNames).join ", ")}) VALUES
-                #{(
-                    for row in rows
-                        "(#{(MindbenderUtils.asSqlLiteral row[c] for c in columnNames).join ", "})"
-                ).join ",\n"
-                };
-                """
-        when "tsv"
-            res.send TSV.stringify rows
-        when "csv"
-            csv.stringify rows, {
-                header: yes
-                columns: columnNames
-            }, (err, formatted) ->
-                if err
-                    res.status 500
-                        .send "Failed to export in CSV"
+            .send "Bad request: no attrs specified"
+    withTask (req.param "task"), req, res, (task, taskName) ->
+        task.getItemsWithTags (err, taggedItems) ->
+            if err
+                return res.status 500
+                    .send "Internal error: #{err}"
+            # resolve any name collisions by appending suffixes
+            tagNames =
+                if tagsToInclude?.length > 0 then tagsToInclude
+                else MindbenderUtils.findAllKeys taggedItems.tags
+            columnIndex = {}
+            columnNames =
+                for name,j in [attrsToInclude..., tagNames...]
+                    if columnIndex[name]?
+                        suffix = 1
+                        suffix++ while columnIndex[name + suffix]?
+                        name += suffix
+                    columnIndex[name] = j
+                    name
+            # construct rows to export
+            rows =
+                for attrs,i in taggedItems.items
+                    tags = taggedItems.tags[i]
+                    row = {}; j = 0
+                    row[columnNames[j++]] = attrs[name] for name in attrsToInclude
+                    row[columnNames[j++]] = tags?[name] for name in tagNames
+                    row
+            # send some headers
+            res.contentType "text/plain"
+            res.set "Content-Disposition": "attachment; filename=tags_#{
+                taskName} #{tagNames.join "-"} by #{attrsToInclude.join "-"} #{
+                    new Date().toISOString()}.#{format}"
+            switch format
+                when "sql"
+                    tableName = req.param "table"
+                    unless tableName?.length > 0  # use default if table name isn't specified
+                        tableName = "tags_#{taskName}_#{tagNames.join "_"}"
+                    # TODO escape quoted columnNames?
+                    res.send """
+                        DROP TABLE "#{tableName}";
+                        CREATE TABLE "#{tableName}"(\n#{("\"#{c}\" TEXT" for c in columnNames).join ",\n"}
+                        );
+                        INSERT INTO "#{tableName}"(#{(("\"#{c}\"" for c in columnNames).join ", ")}) VALUES
+                        #{(
+                            for row in rows
+                                "(#{(MindbenderUtils.asSqlLiteral row[c] for c in columnNames).join ", "})"
+                        ).join ",\n"
+                        };
+                        """
+                when "tsv"
+                    res.send TSV.stringify rows
+                when "csv"
+                    csv.stringify rows, {
+                        header: yes
+                        columns: columnNames
+                    }, (err, formatted) ->
+                        if err
+                            res.status 500
+                                .send "Failed to export in CSV"
+                        else
+                            res.send formatted
+                when "json"
+                    res.contentType "application/json"
+                    res.json rows
                 else
-                    res.send formatted
-        when "json"
-            res.contentType "application/json"
-            res.json rows
-        else
-            res.status 404
-                .send "Not found"
+                    res.status 404
+                        .send "Not found"
 
