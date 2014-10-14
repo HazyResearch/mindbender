@@ -14,8 +14,9 @@ for conf; do
     [[ -f "$conf" && -r "$conf" ]] || error "$conf: No such file"
     json="$(dirname "$conf")/.$(basename "$conf").json"
     jsons+=("$json")
-    [[ "$json" -nt "$conf" ]] ||
-        hocon2json >"$json" "$conf"  # TODO base Mindtagger.conf
+    [[ "$json" -ot "$conf" ]] || continue
+    msg "Parsing task configuration: $conf"
+    hocon2json >"$json" "$conf"  # TODO base Mindtagger.conf
 done
 set -- "${jsons[@]}"
 
