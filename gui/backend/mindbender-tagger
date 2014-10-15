@@ -16,7 +16,8 @@ for conf; do
     jsons+=("$json")
     [[ "$json" -ot "$conf" ]] || continue
     msg "Parsing task configuration: $conf"
-    hocon2json >"$json" "$conf"  # TODO base Mindtagger.conf
+    hocon2json >"$json".tmp "$conf"  # TODO base Mindtagger.conf
+    mv -f "$json".tmp "$json"
 done
 set -- "${jsons[@]}"
 
