@@ -40,7 +40,7 @@ angular.module 'mindbenderApp.mindtagger', [
                 $location.path "/mindtagger/#{tasks[0].name}"
 
 
-.controller 'MindtaggerItemsCtrl', ($scope, $routeParams, commitTags, $http, $window, $location) ->
+.controller 'MindtaggerItemsCtrl', ($scope, $routeParams, commitTags, $http, $window, $timeout, $location) ->
     $scope.taskName = $routeParams.task
 
     $scope.$presets = FALLBACK_PRESETS
@@ -77,10 +77,6 @@ angular.module 'mindbenderApp.mindtagger', [
             encodeURIComponent ((tagName for tagName,tagSchema of $scope.tagsSchema when tagSchema.export).join ",")
         }"
 
-    $scope.$on "tagChanged", ->
-        # update schema
-        console.log "some tags changed"
-
     # cursor
     $scope.cursorIndex = 0
     $scope.moveCursorTo = (index) ->
@@ -96,26 +92,23 @@ angular.module 'mindbenderApp.mindtagger', [
 
     # create/add tag
     $scope.addTagToCurrentItem = (name, type = 'binary', value = true) ->
-        index = $scope.cursorIndex +
-            ($scope.currentPage - 1) * $scope.itemsPerPage
-        console.log "adding tag to item #{index}", name, type, value
-        tag = ($scope.tags[index] ?= {})
+        console.log "adding tag to item under cursor", name, type, value
+        tag = ($scope.tags[$scope.cursorIndex] ?= {})
         tag[name] = value
-        $scope.$emit "tagChanged"
-        commitTags $scope, tag, index
+        $scope.$emit "tagChangedForCurrentItem"
+    $scope.commit = -> $timeout ->
+        $scope.$emit "tagChangedForCurrentItem"
+    $scope.$on "tagChangedForCurrentItem", (event) ->
+        index = $scope.cursorIndex
+        tag = $scope.tags[index]
+        itemIndex = index +
+            ($scope.currentPage - 1) * $scope.itemsPerPage
+        console.log "some tags of current item (##{itemIndex}) changed, committing", tag
+        commitTags $scope, tag, itemIndex
 
-.controller 'MindtaggerTagsCtrl', ($scope, commitTags, $timeout, $modal, $window) ->
-    itemIndex = $scope.$parent.$index +
-            ($scope.$parent.currentPage - 1) * $scope.$parent.itemsPerPage
-    $scope.tag = ($scope.$parent.tags[itemIndex] ?= {})
-    $scope.commit = (tag) -> $timeout ->
-        $scope.$parent.cursorIndex = $scope.$parent.$index
-        $scope.$emit "tagChanged"
-        commitTags $scope.$parent, tag, itemIndex
-            .error (err) ->
-                # prevent further changes to the UI with an error message
-                $modal.open templateUrl: "mindtagger/commit-error.html"
-                    .result.finally -> do $window.location.reload
+.controller 'MindtaggerTagsCtrl', ($scope) ->
+    index = $scope.$parent.$index
+    $scope.tag = ($scope.$parent.tags[index] ?= {})
 
 .directive 'mbRenderItem', ->
     directiveForIncludingPresetTemplate 'item'
@@ -177,7 +170,7 @@ angular.module 'mindbenderApp.mindtagger', [
                     console.error err
                     [text]
 
-.service 'commitTags', ($http) ->
+.service 'commitTags', ($http, $modal, $window) ->
     ($scope, tag, index) ->
         $http.post "/api/mindtagger/#{$scope.taskName}/items", {index, tag}
             .success (schema) ->
@@ -187,6 +180,10 @@ angular.module 'mindbenderApp.mindtagger', [
             .error (result) ->
                 # FIXME revert tag to previous value
                 console.error "commit failed for item #{index}", tag
+            .error (err) ->
+                # prevent further changes to the UI with an error message
+                $modal.open templateUrl: "mindtagger/commit-error.html"
+                    .result.finally -> do $window.location.reload
 
 .service 'MindtaggerUtils', (parsedArrayFilter) ->
     class MindtaggerUtils
