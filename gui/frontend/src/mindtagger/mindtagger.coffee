@@ -44,9 +44,9 @@ angular.module 'mindbenderApp.mindtagger', [
     $scope.taskName = $routeParams.task
 
     $scope.$presets = FALLBACK_PRESETS
-    $scope.items = []
-    $scope.itemsCount = 0
-    $scope.tags = []
+    $scope.items = null
+    $scope.itemsCount = null
+    $scope.tags = null
 
     $scope.tagsSchema = {}
     $scope.keys = (obj) -> key for key of obj
@@ -62,8 +62,8 @@ angular.module 'mindbenderApp.mindtagger', [
                     limit:  $scope.itemsPerPage
             }
                 .success ({tags, items, itemsCount}) ->
-                    $scope.tags = tags ? []
-                    $scope.items = items ? []
+                    $scope.tags = tags
+                    $scope.items = items
                     $scope.itemsCount = itemsCount
 
     $scope.exportFormat = "sql"
