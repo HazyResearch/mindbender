@@ -43,11 +43,12 @@ angular.module 'mindbenderApp.mindtagger', [
 .controller 'MindtaggerItemsCtrl', ($scope, $routeParams, commitTags, $http, $window, $location) ->
     $scope.taskName = $routeParams.task
 
-    $scope.$presets ?= FALLBACK_PRESETS
-    $scope.items ?= []
-    $scope.tags ?= []
+    $scope.$presets = FALLBACK_PRESETS
+    $scope.items = []
+    $scope.itemsCount = 0
+    $scope.tags = []
 
-    $scope.tagsSchema ?= {}
+    $scope.tagsSchema = {}
     $scope.keys = (obj) -> key for key of obj
 
     $http.get "/api/mindtagger/#{$scope.taskName}/schema"
@@ -55,10 +56,15 @@ angular.module 'mindbenderApp.mindtagger', [
             $scope.$presets = presets
             $scope.tagsSchema = schema.tags
             $scope.itemSchema = schema.items
-            $http.get "/api/mindtagger/#{$scope.taskName}/items"
-                .success ({tags, items}) ->
-                    $scope.items = items ? []
+            $http.get "/api/mindtagger/#{$scope.taskName}/items", {
+                params:
+                    offset: $scope.itemsPerPage * ($scope.currentPage - 1)
+                    limit:  $scope.itemsPerPage
+            }
+                .success ({tags, items, itemsCount}) ->
                     $scope.tags = tags ? []
+                    $scope.items = items ? []
+                    $scope.itemsCount = itemsCount
 
     $scope.exportFormat = "sql"
     $scope.export = (format) ->
@@ -81,13 +87,12 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.cursorIndex = index
     # pagination
     $scope.currentPage = +($location.search().p ? 1)
-    $scope.itemsPerPage = 10
-    $scope.itemsOnCurrentPage = ->
-        a = $scope.itemsPerPage * ($scope.currentPage - 1)
-        b = $scope.itemsPerPage * ($scope.currentPage    )
-        $scope.items[a...b]
-    $scope.pageChanged = ->
-        #$location.search 'p', $scope.currentPage
+    $scope.itemsPerPage = +($location.search().s ? 10)
+    $scope.pageChanged = -> $location.search "p", $scope.currentPage
+    $scope.pageSizeChanged = _.debounce ->
+        $scope.$apply ->
+            $location.search "s", $scope.itemsPerPage
+    , 750
 
     # create/add tag
     $scope.addTagToCurrentItem = (name, type = 'binary', value = true) ->

@@ -351,14 +351,23 @@ app.get "/api/mindtagger/:task/schema", (req, res) ->
                 presets: task.config.presets
                 schema:  schema
 app.get "/api/mindtagger/:task/items", (req, res) ->
-    # TODO support offset, limit from req
-    # TODO sanity check offset, limit
+    offset = (try +req.param "offset") ? 0
+    limit  = (try +req.param "limit") ? 10
     withTask (req.param "task"), req, res, (task) ->
         task.getItemsWithTags (err, taggedItems) ->
             if err
                 return res.status 500
                     .send "Internal error: #{err}"
-            res.json taggedItems
+            # TODO sanity check offset, limit
+            items = taggedItems.items[offset...(offset+limit)]
+            tags  = taggedItems. tags[offset...(offset+limit)]
+            res.json {
+                tags
+                items
+                itemsCount: taggedItems.items.length
+                offset
+                limit
+            }
 app.post "/api/mindtagger/:task/items", (req, res) ->
     withTask (req.param "task"), req, res, (task) ->
         task.setTagsForItems req.body, (err) ->

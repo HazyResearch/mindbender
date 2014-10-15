@@ -31,6 +31,7 @@ files=(
 bower_components/jquery/dist/jquery.js
 bower_components/bootstrap/dist/js/bootstrap.js
 bower_components/jquery-csv/src/jquery.csv.js
+bower_components/underscore/underscore.js
 
 bower_components/angular/angular.js
 bower_components/angular-route/angular-route.js
@@ -43,7 +44,7 @@ bower_components/angular-bootstrap/ui-bootstrap-tpls.js
 # See if any files have changed and we need to compile .js again
 hasChanged=false
 for input in "${files[@]}"; do
-    [[ ! -L "$input" || -e "$input" ]] || continue
+    [[ -e "$input" ]] || { echo >&2 "$input: Not found"; false; }
     [[ "$input" -nt ${appName}.js ]] || continue
     echo >&2 "$input has changed, recompiling ${appName}.js"
     hasChanged=true
