@@ -117,7 +117,7 @@ class MindbenderUtils
                 when ".tsv"
                     fs.writeFile fName, (TSV.stringify array), next
                 when ".json"
-                    fs.writeFile fName, (JSON.stringify array), next
+                    fs.writeFile fName, (JSON.stringify array, null, 1), next
                 else # when ".csv"
                     # find out the columns first
                     columns = MindbenderUtils.findAllKeys objs
