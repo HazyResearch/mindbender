@@ -92,7 +92,7 @@ class MindbenderUtils
                 when ".json"
                     fs.readFile fName, (err, data) -> next err, try (JSON.parse String data)
                 else # when ".csv"
-                    parser = csv.parse (_.clone CSV_OPTIONS)
+                    parser = csv.parse (_.clone MindbenderUtils.CSV_OPTIONS)
                     output = []
                     parser.on "readable", ->
                         while record = parser.read()
