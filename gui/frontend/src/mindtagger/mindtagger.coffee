@@ -147,6 +147,36 @@ angular.module 'mindbenderApp.mindtagger', [
         else
             array
 
+.filter 'parsedPythonArray', ->
+    (text, index) ->
+        return null unless text? and (m = /^\[(.*)\]$/.exec text?.trim())?
+        array = []
+        headTailRegex = ///^
+                '([^']*)'  # head # FIXME handle escaping problem
+                (, (.*))?  # optional tail
+            $///
+        remainder = m[1].trim()
+        while remainder?.length > 0
+            if (m = headTailRegex.exec remainder)?
+                array.push m[1]
+                remainder = m[3]?.trim()
+            else
+                return [text]
+        array
+
+.filter 'parsedArray', (parsedPostgresArrayFilter, parsedPythonArrayFilter) ->
+    (text, format) ->
+        switch format
+            when "postgres"
+                parsedPostgresArrayFilter text
+            when "python"
+                parsedPythonArrayFilter text
+            else # when "json"
+                try JSON.parse text
+                catch err
+                    console.error err
+                    [text]
+
 .service 'commitTags', ($http) ->
     ($scope, tag, index) ->
         $http.post "/api/mindtagger/#{$scope.taskName}/items", {index, tag}
@@ -158,7 +188,7 @@ angular.module 'mindbenderApp.mindtagger', [
                 # FIXME revert tag to previous value
                 console.error "commit failed for item #{index}", tag
 
-.service 'MindtaggerUtils', (parsedPostgresArrayFilter) ->
+.service 'MindtaggerUtils', (parsedArrayFilter) ->
     class MindtaggerUtils
         @findAllKeys: (rows) ->
             merged = {}
@@ -166,14 +196,21 @@ angular.module 'mindbenderApp.mindtagger', [
             key for key of merged
 
         # for word-array's style_indexes_columns
-        @valueOfPostgresArrayColumnContaining: (element, item, columnMap) ->
-            if columnMap? and (typeof columnMap) is "object"
-                for column,value of columnMap
-                    array = parsedPostgresArrayFilter item[column]
+        @valueOfArrayColumnContaining: (columnMap, item, element) ->
+            if columnMap? and columnMap instanceof Object
+                for column,[format, value] of columnMap
+                    array = parsedArrayFilter item[column], format
                     # find and return immediately if found without conversion
                     return value if element in array
                     # then, look for identical String representation
                     for e in array when (String e) is (String element)
+                        return value
+            return null
+
+        @valueOfRangeColumnContaining: (rangeColumns, item, element) ->
+            if rangeColumns? and rangeColumns instanceof Array
+                for [columnStart, columnEnd, value] in rangeColumns
+                    if +item[columnStart] <= +element <= +item[columnEnd]
                         return value
             return null
 

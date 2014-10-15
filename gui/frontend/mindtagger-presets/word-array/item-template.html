@@ -1,12 +1,16 @@
 <!-- parse CSV-like array of words, render it together with other tags -->
-<span class="word" ng-repeat="word in item[$preset.column] | parsedPostgresArray track by $index"
-    ng-style="$utils.valueOfPostgresArrayColumnContaining($index, item, $preset.style_indexes_columns)"
+<span class="word"
+    ng-repeat="word in item[$preset.column] | parsedArray:$preset.array_format track by $index"
+    ng-style="
+        $utils.valueOfArrayColumnContaining($preset.style_index_array_columns, item, $index) ||
+        $utils.valueOfRangeColumnContaining($preset.style_index_range_columns, item, $index)
+    "
     xtooltip-html-unsafe="
-    <table>
-        <tr><td>pos</td>   <td>{{item.pos   | parsedPostgresArray:$index}}</td></tr>
-        <tr><td>ner</td>   <td>{{item.ner   | parsedPostgresArray:$index}}</td></tr>
-        <tr><td>lemma</td> <td>{{item.lemma | parsedPostgresArray:$index}}</td></tr>
-    </table>
+        <table>
+            <tr><td>pos</td>   <td>{{item.pos   | parsedPostgresArray:$index}}</td></tr>
+            <tr><td>ner</td>   <td>{{item.ner   | parsedPostgresArray:$index}}</td></tr>
+            <tr><td>lemma</td> <td>{{item.lemma | parsedPostgresArray:$index}}</td></tr>
+        </table>
     "
     tooltip-animation="false"
     tooltip-trigger="mouseenter"
