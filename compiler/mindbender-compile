@@ -67,4 +67,7 @@ mkdir -p ddl ext schemas tooling
 generate-deepdive-application "$jsonFileNormalized" >application.conf
 # TODO codegen ddl, meta, schemas, tooling
 
+# Generate SQL scripts
+generate-ddl-scripts "$jsonFileNormalized" ddl
+
 echo "Generated $OutputDir"

@@ -1,0 +1,62 @@
+#!/usr/bin/env coffee
+# generate-ddl-scripts -- Generate DDL SQL files from given MindBender specification
+# Usage: generate-ddl-scripts MB_FILE_IN_JSON
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2014-10-16
+
+fs = require "fs"
+_ = require "underscore"
+
+[configFile, outputDir] = process.argv[2..]
+
+# map types in Mindbender to Postgres 8.4 SQL types
+sqlTypeFor = (schema) ->
+    switch schema.type
+        when "array"
+            "#{sqlTypeFor schema.items}[]"
+        when "smallint", "int", "integer", "bigint", \
+                "decimal", "numeric", \
+                "real", "double precision", \
+                "serial", "bigserial"
+                # http://www.postgresql.org/docs/8.4/static/datatype-numeric.html
+            schema.type # pass thru
+        when "boolean"
+                # http://www.postgresql.org/docs/8.4/static/datatype-boolean.html
+            schema.type # pass thru
+        when "timestamp", "date", "interval"
+                # http://www.postgresql.org/docs/8.4/static/datatype-datetime.html
+            schema.type # pass thru
+        when "string", "text"
+                # http://www.postgresql.org/docs/8.4/static/datatype-character.html
+            "text"
+        else
+            throw new Error "#{schema.type}: unsupported type by SQL"
+
+try
+    # parse the JSON MindBender spec
+    mbConfig = (JSON.parse (fs.readFileSync configFile))
+    mb = mbConfig.mindbender
+
+    # create .sql files for each artifact that has a schema defined
+    for name,artifact of mb.artifacts when artifact.schema?
+        fs.writeFileSync "#{outputDir}/#{name}.sql", """
+            DROP TABLE IF EXISTS "#{name}" CASCADE;
+            CREATE TABLE "#{name}"
+            ( """ + ((
+                for attrName,attrSchema of artifact.schema
+                    """
+                    "#{attrName}" #{sqlTypeFor attrSchema}
+                    """
+            ).join "\n, ") + """
+
+            );
+            """
+
+    # exit with zero status if everything went well
+    process.exit 0
+catch err
+    console.error err.message
+
+# exit with non-zero status by default
+process.exit 2

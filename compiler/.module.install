@@ -2,6 +2,7 @@ mindbender-compile                      bin/mindbender.d/
 normalize-mindbender                    bin/mindbender.d/
 validate-mindbender                     bin/mindbender.d/
 generate-deepdive-application           bin/mindbender.d/
+generate-ddl-scripts                    bin/mindbender.d/
 hocon2json                              bin/mindbender.d/
 skeleton.mb                             etc/
 skeleton-env.sh                         etc/
