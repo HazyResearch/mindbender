@@ -1,11 +1,12 @@
 {
-  "name": "angular-seed",
-  "description": "A starter project for AngularJS",
+  "name": "mindbender-frontend",
+  "description": "Frontend for Mindbender",
   "version": "0.0.0",
-  "homepage": "https://github.com/angular/angular-seed",
+  "homepage": "https://github.com/netj/mindbender",
   "license": "MIT",
   "private": true,
   "dependencies": {
+    "modernizr": "2.8.3",
     "jquery": "2.1.1",
     "jquery-csv": "*",
     "angular-route": "1.2.x",

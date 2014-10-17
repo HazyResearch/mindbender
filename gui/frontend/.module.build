@@ -9,29 +9,32 @@ shouldUglify=${shouldUglify:-false}
 # Install all dependencies if necessary
 if [[ node_modules -ot package.json ||
         node_modules -ot bower.json ||
-        app/bower_components -ot bower.json ]]; then
+        build/bower_components -ot bower.json ]]; then
     npm install
-    touch node_modules app/bower_components
+    touch node_modules build/bower_components
 fi
 export PATH="$PWD/node_modules/.bin:$PATH"
 export NODE_PATH="$PWD/node_modules${NODE_PATH:+:$NODE_PATH}"
 
 # Compile all CoffeeScript files with source map, LESS to CSS, symlink HTMLs
 cd src
-compile from=.coffee to=.js   with=compile-coffee src=../app/src/%s out=../app/%s **/*.coffee
-compile from=.less   to=.css  with=compile-less   src=../app/src/%s out=../app/%s **/*.less
-compile from=.html   to=.html with=:              src=../app/%s     out=../app/%s **/*.html
+compile from=.coffee to=.js   with=compile-coffee src=../build/src/%s out=../build/%s **/*.coffee
+compile from=.less   to=.css  with=compile-less   src=../build/src/%s out=../build/%s **/*.less
+compile from=.html   to=.html with=:              src=../build/%s     out=../build/%s **/*.html
+compile from=.json   to=.json with=:              src=../build/%s     out=../build/%s **/*.json
 cd ..
 
 # concatenate all .js files
-cd app
+cd build
 ln -sfn ../node_modules
 shopt -s nullglob
 files=(
+bower_components/modernizr/modernizr.js
+bower_components/underscore/underscore.js
+
 bower_components/jquery/dist/jquery.js
 bower_components/bootstrap/dist/js/bootstrap.js
 bower_components/jquery-csv/src/jquery.csv.js
-bower_components/underscore/underscore.js
 
 bower_components/angular/angular.js
 bower_components/angular-route/angular-route.js
@@ -40,6 +43,7 @@ bower_components/angular-bootstrap/ui-bootstrap-tpls.js
 
 {!(bower_components|node_modules)/**/,}!(*_test|${appName}|${appName}.*).js
 )
+shopt -u nullglob
 
 # See if any files have changed and we need to compile .js again
 hasChanged=false
@@ -53,11 +57,13 @@ done
 if $hasChanged; then
     # Concatenate .js files with their source maps
     # See: https://github.com/kozy4324/grunt-concat-sourcemap#readme
-    ../js-concat-sourcemap ${appName}.concat.js "${files[@]}"
+    ../js-concat-sourcemap ${appName}.js "${files[@]}"
+    ln -f ${appName}.js     ${appName}.concat.js
+    ln -f ${appName}.js.map ${appName}.concat.js.map
 
     # Annotate angular dependencies
-    echo >&2 "${appName}.annotate.js ng-annotates ${appName}.concat.js"
-    ng-annotate -o ${appName}.annotate.js -a ${appName}.concat.js
+    echo >&2 "${appName}.annotate.js ng-annotates ${appName}.js"
+    ng-annotate -o ${appName}.annotate.js -a ${appName}.js
 
     # Uglify to produce the final output
     if $shouldUglify; then
@@ -72,3 +78,16 @@ if $hasChanged; then
 else
     echo >&2 "${appName}.js is up-to-date"
 fi
+
+
+# Construct the final version at app/ with necessary files only
+echo >&2 "Staging final products at app/"
+dest=../app
+mkdir -p $dest
+rsync -aH --omit-dir-times --delete \
+    . $dest/ \
+    --exclude=/{bower_components,node_modules,src} \
+    --include=/${appName}.{js,js.map} \
+    --exclude=*.{js,js.map} \
+    -v
+relsymlink  bower_components      $dest/

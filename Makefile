@@ -17,3 +17,10 @@ include buildkit/modules.mk
 buildkit/modules.mk:
 	git submodule update --init
 
+
+# add symlink to gui/frontend/src when under development (with work-in-progress)
+ifneq ($(PACKAGEVERSION=%+WIP:%),$(PACKAGEVERSION))
+polish: $(STAGEDIR)/gui/files/src
+$(STAGEDIR)/gui/files/src:
+	relsymlink gui/frontend/src $(STAGEDIR)/gui/files/
+endif

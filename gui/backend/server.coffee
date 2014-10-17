@@ -24,7 +24,7 @@ async = require "async"
 {TSV,CSV} = require "tsv"
 csv = require "csv"
 
-MINDTAGGER_PRESET_ROOT = "#{process.env.MINDBENDER_HOME}/gui/mindtagger-presets"
+MINDTAGGER_PRESET_ROOT = "#{process.env.MINDBENDER_HOME}/gui/files/mindtagger/presets"
 
 # parse command-line args and environment
 MINDBENDER_PORT = parseInt process.env.PORT ? 8000
