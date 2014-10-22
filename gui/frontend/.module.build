@@ -29,6 +29,8 @@ cd build
 ln -sfn ../node_modules
 shopt -s nullglob
 files=(
+node_modules/source-map-support/browser-source-map-support.js
+
 bower_components/modernizr/modernizr.js
 bower_components/underscore/underscore.js
 

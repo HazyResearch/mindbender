@@ -8,6 +8,7 @@
   "devDependencies": {
     "ng-annotate": "0.10.1",
     "grunt-concat-sourcemap": "0.4.3",
+    "source-map-support": "0.2.8",
     "karma": "~0.10",
     "protractor": "^1.1.1",
     "http-server": "^0.6.1",
