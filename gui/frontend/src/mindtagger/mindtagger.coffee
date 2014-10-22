@@ -48,6 +48,8 @@ angular.module 'mindbenderApp.mindtagger', [
     $scope.itemsCount = null
     $scope.tags = null
 
+    $scope.itemKeys = null
+    $scope.itemSchema = null
     $scope.tagsSchema = {}
     $scope.keys = (obj) -> key for key of obj
 
@@ -56,6 +58,7 @@ angular.module 'mindbenderApp.mindtagger', [
             $scope.$presets = presets
             $scope.tagsSchema = schema.tags
             $scope.itemSchema = schema.items
+            $scope.itemKeys = schema.itemKeys
             $http.get "/api/mindtagger/#{$scope.taskName}/items", {
                 params:
                     offset: $scope.itemsPerPage * ($scope.currentPage - 1)
@@ -100,11 +103,21 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.$emit "tagChangedForCurrentItem"
     $scope.$on "tagChangedForCurrentItem", (event) ->
         index = $scope.cursorIndex
+        item = $scope.items[index]
         tag = $scope.tags[index]
         itemIndex = index +
             ($scope.currentPage - 1) * $scope.itemsPerPage
         console.log "some tags of current item (##{itemIndex}) changed, committing", tag
-        commitTags $scope, tag, itemIndex
+        key =
+            # use itemKeys if available
+            if $scope.itemKeys?.length > 0
+                (item[k] for k in $scope.itemKeys).join "\t"
+            else
+                itemIndex
+        updates = [
+            { tag, key }
+        ]
+        commitTags $scope, updates
 
 .controller 'MindtaggerTagsCtrl', ($scope) ->
     index = $scope.$parent.$index
@@ -171,15 +184,15 @@ angular.module 'mindbenderApp.mindtagger', [
                     [text]
 
 .service 'commitTags', ($http, $modal, $window) ->
-    ($scope, tag, index) ->
-        $http.post "/api/mindtagger/#{$scope.taskName}/items", {index, tag}
+    ($scope, updates) ->
+        $http.post "/api/mindtagger/#{$scope.taskName}/items", updates
             .success (schema) ->
-                console.log "committed tags for item #{index}", tag
+                console.log "committed tags updates", updates
                 $scope.tagsSchema = schema.tags
                 $scope.itemSchema = schema.items
             .error (result) ->
                 # FIXME revert tag to previous value
-                console.error "commit failed for item #{index}", tag
+                console.error "commit failed for updates", updates
             .error (err) ->
                 # prevent further changes to the UI with an error message
                 $modal.open templateUrl: "mindtagger/commit-error.html"

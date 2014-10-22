@@ -145,7 +145,7 @@ class MindbenderUtils
 ## A Mindtagger task that holds items and tags with a schema and other info
 class MindtaggerTask
     @ALL = {}
-    constructor: (@config) ->
+    constructor: (@config, next) ->
         # load task config if necessary
         unless typeof @config is "object"
             configFile = @config
@@ -184,26 +184,23 @@ class MindtaggerTask
                 unless stat.isDirectory()
                     throw new Error "#{presetDir}: Not a directory"
                 presetDir
-        # register itself
-        MindtaggerTask.registerTask @
+        # load all schema files and merge
+        @baseTagsSchema = {}
+        schemaFiles = ("#{presetDir}/schema.json" for presetDir in @config.presetDirs)
+        async.map schemaFiles,
+            (fName, next) -> MindbenderUtils.loadOptionalDataFile fName, {}, next
+        , (err, schemas) =>
+            return next err if err
+            _.extend @baseTagsSchema, s for s in schemas.reverse()
+            # finally, register itself
+            MindtaggerTask.registerTask @
+            next null, @
 
     preferCached: (cache, generator) -> (next) ->
         if cache?
             next null, cache
         else
             generator next
-
-    getBaseTagsSchema: (next) => (@preferCached @baseTagsSchema, (next) =>
-            # load all schema files and merge
-            schemaFiles = ("#{presetDir}/schema.json" for presetDir in @config.presetDirs)
-            async.map schemaFiles,
-                (fName, next) -> MindbenderUtils.loadOptionalDataFile fName, {}, next
-            , (err, schemas) =>
-                return next err if err
-                @baseTagsSchema = {}
-                _.extend @baseTagsSchema, s for s in schemas.reverse()
-                next null, @baseTagsSchema
-        ) next
 
     getItemsWithTags: (next, offset = 0, limit) =>
         async.parallel {
@@ -212,26 +209,66 @@ class MindtaggerTask
                 MindbenderUtils.loadDataFile itemsFile, (err, @items) =>
                     return next err if err
                     @items ?= []
-                    # TODO offset, limit
                     next err, @items
             tags: @preferCached @tags, (next) =>
                 tagsFile = path.resolve @config.path, "tags.json"
-                MindbenderUtils.loadOptionalDataFile tagsFile, [], (err, @tags) =>
+                MindbenderUtils.loadOptionalDataFile tagsFile, {}, (err, @tags) =>
                     return next err if err
-                    @tags ?= []
-                    # TODO offset, limit
+                    @tags ?= {}
                     next err, @tags
-        }, next
+        }, (err, {items, tags}) =>
+            return next err if err
+            # XXX backwards compatibility: upgrade Array-type tags to Object
+            if tags instanceof Array
+                util.log "#{@config.name}: upgrading tags.json from Array"
+                tagsArray = tags
+                @tags = tags = {}
+                for tag,idx in tagsArray when tag?
+                    key = @keyFor items[idx], idx
+                    tags[key] = tag
+            # offset, limit
+            # TODO more sanity check offset, limit
+            parseNum = (x) -> x = +x; if _.isNaN x then null else x
+            offset = parseNum offset
+            limit = parseNum limit
+            itemsSelected =
+                if offset? and limit?
+                    items[offset...(offset+limit)]
+                else if offset?
+                    items[offset...]
+                else if limit?
+                    items[...limit]
+                else
+                    items
+            # join itemsSelected with tags
+            tagsSelected = []
+            for item,i in itemsSelected
+                idx = offset + i
+                key = @keyFor item, idx
+                tagsSelected.push tags[key]
+            next null, {
+                items: itemsSelected
+                itemsCount: items.length
+                tags: tagsSelected
+            }
+
+    keyFor: (item, idx) =>
+        key_columns = @config.items?.key_columns
+        if key_columns?.length > 0
+            # use the configured key_columns
+            (item[k] for k in key_columns).join "\t"
+        else
+            # or simply the row position
+            idx
 
     getSchema: (next) => (@preferCached @schema, (next) =>
-            @getBaseTagsSchema (err, baseTagsSchema) =>
+            @getItemsWithTags (err, {items, tags}) =>
                 return next err if err
-                @getItemsWithTags (err, {items, tags}) =>
-                    return next err if err
-                    @schema =
-                        items: @config.items?.schema ? MindtaggerTask.deriveSchema items
-                        tags : MindtaggerTask.deriveSchema tags, baseTagsSchema
-                    next null, @schema
+                @schema =
+                    items: @config.items?.schema ? MindtaggerTask.deriveSchema items
+                    itemKeys: @config.items?.key_columns
+                    tags: MindtaggerTask.deriveSchema tags, @baseTagsSchema
+                next null, @schema
         ) next
     @deriveSchema: (tags, baseSchema) ->
         schema = {}
@@ -241,6 +278,7 @@ class MindtaggerTask
                 ((schema[name] ?= {}).values ?= []).push value
         # infer type by induction on observed values
         for tagName,tagSchema of schema
+            tagSchema.values = _.uniq tagSchema.values
             tagSchema.type =
                 if (tagSchema.values.every (v) -> not v? or (typeof v) is 'boolean') or
                         tagSchema.values.length == 2 and
@@ -254,21 +292,17 @@ class MindtaggerTask
         else
             schema
 
-    setTagsForItems: (tagsByIndex, next) =>
+    setTagsForItems: (updates, next) =>
         @getItemsWithTags (err, {items, tags}) =>
-            # TODO use keys instead of index
-            index = tagsByIndex.index
-            if 0 <= index < @items.length
-                @tags ?= []
-                @tags[index] = tagsByIndex.tag
+            for update in updates
+                key = update.key
+                @tags[key] = update.tag
                 @areTagsDirty = yes
                 # update tags schema
                 @getSchema (err, schema) =>
                     return next err if err
-                    schema.tags = MindtaggerTask.deriveSchema [@tags[index]], schema.tags
+                    schema.tags = MindtaggerTask.deriveSchema [@tags[key]], schema.tags
                     next null
-            else
-                next "index #{index} not in range [0, #{@items.length})"
 
 
     writeChanges: (next) =>
@@ -278,6 +312,7 @@ class MindtaggerTask
             MindbenderUtils.writeDataFile tagsFile, @tags, (err) =>
                 @areTagsDirty = no unless err
                 next err
+        # TODO persist schema as well
         if @areTagsDirty
             write next
         else
@@ -313,21 +348,23 @@ class MindtaggerTask
                 
 
 # prepare Mindtagger tasks based on given json files
-for confFile in mindtaggerConfFiles
-    # construct a task
-    new MindtaggerTask confFile
+async.each mindtaggerConfFiles,
+    (confFile, next) -> new MindtaggerTask confFile, next
+, (err) ->
+    throw err if err
+    util.log "Mindtagger tasks: #{JSON.stringify (task.config for task in _.values MindtaggerTask.ALL), null, 2}"  # XXX debug
+    util.log "Loaded #{_.size MindtaggerTask.ALL} Mindtagger tasks: #{_.keys MindtaggerTask.ALL}"
 
-util.log "Mindtagger tasks: #{JSON.stringify (task.config for task in _.values MindtaggerTask.ALL), null, 2}"  # XXX debug
-util.log "Loaded #{_.size MindtaggerTask.ALL} Mindtagger tasks: #{_.keys MindtaggerTask.ALL}"
+    # set up preset URLs to make mixin mechanism work
+    MIXIN_PRESET_DIR = "#{MINDTAGGER_PRESET_ROOT}/_mixin"
+    DEFAULT_PRESET_DIR = "#{MINDTAGGER_PRESET_ROOT}/_default"
+    for preset,presetDir of MindtaggerTask.getAllPresetDirsByPreset()
+        app.use "/mindtagger/preset/#{preset}", express.static presetDir
+        app.use "/mindtagger/preset/#{preset}", express.static MIXIN_PRESET_DIR
+    app.use "/mindtagger/preset", express.static MINDTAGGER_PRESET_ROOT
+
 
 ## Configure Mindtagger API URLs
-# set up preset URLs to make mixin mechanism work
-MIXIN_PRESET_DIR = "#{MINDTAGGER_PRESET_ROOT}/_mixin"
-DEFAULT_PRESET_DIR = "#{MINDTAGGER_PRESET_ROOT}/_default"
-for preset,presetDir of MindtaggerTask.getAllPresetDirsByPreset()
-    app.use "/mindtagger/preset/#{preset}", express.static presetDir
-    app.use "/mindtagger/preset/#{preset}", express.static MIXIN_PRESET_DIR
-app.use "/mindtagger/preset", express.static MINDTAGGER_PRESET_ROOT
 
 # list of all tasks
 app.get "/api/mindtagger/", (req, res) ->
@@ -354,20 +391,18 @@ app.get "/api/mindtagger/:task/items", (req, res) ->
     offset = (try +req.param "offset") ? 0
     limit  = (try +req.param "limit") ? 10
     withTask (req.param "task"), req, res, (task) ->
-        task.getItemsWithTags (err, taggedItems) ->
+        task.getItemsWithTags (err, {items, itemsCount, tags}) ->
             if err
                 return res.status 500
                     .send "Internal error: #{err}"
-            # TODO sanity check offset, limit
-            items = taggedItems.items[offset...(offset+limit)]
-            tags  = taggedItems. tags[offset...(offset+limit)]
             res.json {
                 tags
                 items
-                itemsCount: taggedItems.items.length
+                itemsCount
                 offset
                 limit
             }
+        , offset, limit
 app.post "/api/mindtagger/:task/items", (req, res) ->
     withTask (req.param "task"), req, res, (task) ->
         task.setTagsForItems req.body, (err) ->
