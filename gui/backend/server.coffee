@@ -160,8 +160,8 @@ class MindtaggerTask
             ++suffix while MindtaggerTask.ALL["#{@config.name}-#{suffix}"]?
             @config.name += "-#{suffix}"
         # initialize fields
-        @items = null
-        @tags = null
+        @allItems = null
+        @allTags = null
         @areTagsDirty = no
         # resolve all preset directories
         @config.presetDirs =
@@ -202,58 +202,85 @@ class MindtaggerTask
         else
             generator next
 
-    getItemsWithTags: (next, offset = 0, limit) =>
+    createEmptyTags: =>
+        version: 1
+        key_columns: @config.items?.key_columns ? []
+        by_key: {}
+
+    getItemsWithTags: (next, offset, limit) =>
         async.parallel {
-            items: @preferCached @items, (next) =>
+            allItems: @preferCached @allItems, (next) =>
                 itemsFile = path.resolve @config.path, @config.items?.file
-                MindbenderUtils.loadDataFile itemsFile, (err, @items) =>
+                MindbenderUtils.loadDataFile itemsFile, (err, @allItems) =>
                     return next err if err
-                    @items ?= []
-                    next err, @items
-            tags: @preferCached @tags, (next) =>
+                    @allItems ?= []
+                    next err, @allItems
+            allTags: @preferCached @allTags, (next) =>
                 tagsFile = path.resolve @config.path, "tags.json"
-                MindbenderUtils.loadOptionalDataFile tagsFile, {}, (err, @tags) =>
+                emptyTags = @createEmptyTags()
+                MindbenderUtils.loadOptionalDataFile tagsFile, emptyTags, (err, @allTags) =>
                     return next err if err
-                    @tags ?= {}
-                    next err, @tags
-        }, (err, {items, tags}) =>
-            return next err if err
-            # XXX backwards compatibility: upgrade Array-type tags to Object
-            if tags instanceof Array
+                    @allTags ?= emptyTags
+                    next err, @allTags
+        }, (err, {allItems, allTags}) =>
+            return next err, {} if err
+            # XXX backward compatibility: upgrade Array-type tags to Object
+            if allTags instanceof Array
                 util.log "#{@config.name}: upgrading tags.json from Array"
-                tagsArray = tags
-                @tags = tags = {}
+                tagsArray = allTags
+                allTags = @allTags = @createEmptyTags()
                 for tag,idx in tagsArray when tag?
-                    key = @keyFor items[idx], idx
-                    tags[key] = tag
+                    key = @keyFor allItems[idx], idx
+                    allTags.by_key[key] = tag
+            # XXX backward compatibility: upgrade plain Object tags
+            unless allTags.version? and allTags.by_key?
+                util.log "#{@config.name}: upgrading tags.json from plain Object"
+                byKey = allTags
+                allTags = @allTags = @createEmptyTags()
+                allTags.by_key = byKey
+            # make sure we know how to handle this version
+            unless allTags.version == 1
+                err = new Error "tags.json version #{allTags.version} unsupported"
+                util.log err
+                return next err, {}
+            # try upgrading if key_columns have changed
+            if (JSON.stringify allTags.key_columns) isnt (JSON.stringify @config.items?.key_columns)
+                util.log "#{@config.name}: upgrading keys for tags.json from [#{allTags.key_columns}] to [#{@config.items?.key_columns}]"
+                byNewKey = {}
+                oldKeyColumns = allTags.key_columns
+                for item,idx in allItems
+                    oldKey = @keyFor item, idx, oldKeyColumns
+                    if (tag = allTags.by_key[oldKey])?
+                        newKey = @keyFor item, idx
+                        byNewKey[newKey] = tag
+                        delete allTags.by_key[oldKey]
+                        break if (_.size allTags.by_key) == 0
+                allTags.by_key = byNewKey
+                allTags.key_columns = @config.items?.key_columns
             # offset, limit
             # TODO more sanity check offset, limit
-            parseNum = (x) -> x = +x; if _.isNaN x then null else x
-            offset = parseNum offset
-            limit = parseNum limit
-            itemsSelected =
+            items =
                 if offset? and limit?
-                    items[offset...(offset+limit)]
+                    allItems[offset...(offset+limit)]
                 else if offset?
-                    items[offset...]
+                    allItems[offset...]
                 else if limit?
-                    items[...limit]
+                    allItems[...limit]
                 else
-                    items
-            # join itemsSelected with tags
-            tagsSelected = []
-            for item,i in itemsSelected
+                    allItems
+            # join items with tags
+            tags = []
+            for item,i in items
                 idx = offset + i
                 key = @keyFor item, idx
-                tagsSelected.push tags[key]
+                tags.push allTags.by_key[key]
             next null, {
-                items: itemsSelected
-                itemsCount: items.length
-                tags: tagsSelected
+                itemsCount: allItems.length
+                items
+                tags
             }
 
-    keyFor: (item, idx) =>
-        key_columns = @config.items?.key_columns
+    keyFor: (item, idx, key_columns = @config.items?.key_columns) =>
         if key_columns?.length > 0
             # use the configured key_columns
             (item[k] for k in key_columns).join "\t"
@@ -286,6 +313,7 @@ class MindtaggerTask
                     'binary'
                 else
                     # TODO 'categorical'
+                    delete tagSchema.values
                     'freetext'
         if baseSchema?
             _.extend schema, baseSchema
@@ -296,20 +324,20 @@ class MindtaggerTask
         @getItemsWithTags (err, {items, tags}) =>
             for update in updates
                 key = update.key
-                @tags[key] = update.tag
+                @allTags.by_key[key] = update.tag
                 @areTagsDirty = yes
-                # update tags schema
-                @getSchema (err, schema) =>
-                    return next err if err
-                    schema.tags = MindtaggerTask.deriveSchema [@tags[key]], schema.tags
-                    next null
+            # update tags schema
+            @getSchema (err, schema) =>
+                return next err if err
+                schema.tags = MindtaggerTask.deriveSchema (tag for {tag} in updates), schema.tags
+                next null
 
 
     writeChanges: (next) =>
         # write the tags to file
         tagsFile = path.resolve @config.path, "tags.json"
         write = (next) =>
-            MindbenderUtils.writeDataFile tagsFile, @tags, (err) =>
+            MindbenderUtils.writeDataFile tagsFile, @allTags, (err) =>
                 @areTagsDirty = no unless err
                 next err
         # TODO persist schema as well
@@ -352,7 +380,7 @@ async.each mindtaggerConfFiles,
     (confFile, next) -> new MindtaggerTask confFile, next
 , (err) ->
     throw err if err
-    util.log "Mindtagger tasks: #{JSON.stringify (task.config for task in _.values MindtaggerTask.ALL), null, 2}"  # XXX debug
+    #util.log "Mindtagger task #{task.name}: #{JSON.stringify task.config, null, 2}" for task in _.values MindtaggerTask.ALL  # XXX debug
     util.log "Loaded #{_.size MindtaggerTask.ALL} Mindtagger tasks: #{_.keys MindtaggerTask.ALL}"
 
     # set up preset URLs to make mixin mechanism work
@@ -388,19 +416,22 @@ app.get "/api/mindtagger/:task/schema", (req, res) ->
                 presets: task.config.presets
                 schema:  schema
 app.get "/api/mindtagger/:task/items", (req, res) ->
-    offset = (try +req.param "offset") ? 0
-    limit  = (try +req.param "limit") ? 10
+    parseNum = (x) ->
+        return null unless x?
+        x = +x; if _.isNaN x then null else x
+    offset = parseNum (req.param "offset") ? 0
+    limit  = parseNum (req.param "limit" ) ? 10
     withTask (req.param "task"), req, res, (task) ->
         task.getItemsWithTags (err, {items, itemsCount, tags}) ->
             if err
                 return res.status 500
                     .send "Internal error: #{err}"
             res.json {
+                itemsCount
+                limit
+                offset
                 tags
                 items
-                itemsCount
-                offset
-                limit
             }
         , offset, limit
 app.post "/api/mindtagger/:task/items", (req, res) ->
