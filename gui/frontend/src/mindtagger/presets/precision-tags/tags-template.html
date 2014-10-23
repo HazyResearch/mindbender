@@ -3,3 +3,5 @@
     <label uncheckable btn-radio="true"  ng-model="tag.is_correct" ng-click="commit(tag)" class="btn" ng-class="tag.is_correct != null && !tag.is_correct ? 'btn-default' : 'btn-success'"><i class="glyphicon glyphicon-ok"></i></label>
     <label uncheckable btn-radio="false" ng-model="tag.is_correct" ng-click="commit(tag)" class="btn" ng-class="tag.is_correct != null &&  tag.is_correct ? 'btn-default' : 'btn-danger' "><i class="glyphicon glyphicon-remove"></i></label>
 </div>
+
+<mb-render-tags/>
