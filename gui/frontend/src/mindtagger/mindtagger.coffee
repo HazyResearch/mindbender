@@ -36,7 +36,7 @@ angular.module 'mindbenderApp.mindtagger', [
     $http.get "/api/mindtagger/"
         .success (tasks) ->
             $scope.tasks = tasks
-            if $location.path() is "/mindtagger"
+            if $location.path() is "/mindtagger" and tasks?.length > 0
                 $location.path "/mindtagger/#{tasks[0].name}"
 
 
@@ -68,6 +68,8 @@ angular.module 'mindbenderApp.mindtagger', [
                     $scope.tags = tags
                     $scope.items = items
                     $scope.itemsCount = itemsCount
+        .error ->
+            $location.path "/mindtagger"
 
     $scope.exportFormat = "sql"
     $scope.export = (format) ->
