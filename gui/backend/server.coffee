@@ -297,39 +297,58 @@ class MindtaggerTask
                     tags: MindtaggerTask.deriveSchema tags, @baseTagsSchema
                 next null, @schema
         ) next
-    @deriveSchema: (tags, baseSchema) ->
+    @deriveSchema: (tags, baseSchema, oldTags) ->
         schema = {}
-        # examine all tags  # TODO sample if large?
-        for tag in tags
-            for name,value of tag
-                ((schema[name] ?= {}).values ?= []).push value
+        _.extend schema, baseSchema if baseSchema?
+        # compute frequency of all values of all tags
+        # TODO sample if large?
+        for tag in tags when tag?
+            for name,value of tag when value?
+                v = JSON.stringify value
+                ((schema[name] ?= {}).frequency ?= {})[v] ?= 0
+                schema[name].frequency[v] += 1
+            for name,s of schema
+                s.count = 0 unless oldTags?
+                s.count += f for v,f of s.frequency
+        if oldTags?
+            # perform incremental maintenance of value frequencies if previous
+            # values of the same tags were given as well
+            for tag in oldTags when tag?
+                for name,value of tag when value? and schema[name]?
+                    v = JSON.stringify value
+                    unless (schema[name].frequency?[v] -= 1) > 0
+                        delete schema[name].frequency[v]
+            for name,s of schema
+                s.count -= f for v,f of s.frequency
+                delete s.count unless s.count >= 0
         # infer type by induction on observed values
-        for tagName,tagSchema of schema
-            tagSchema.values = _.uniq tagSchema.values
+        for tagName,tagSchema of schema when not tagSchema.type?
+            values = (JSON.parse v for v of tagSchema.frequency)
+            values.push null
             tagSchema.type =
-                if (tagSchema.values.every (v) -> not v? or (typeof v) is 'boolean') or
-                        tagSchema.values.length == 2 and
-                        not tagSchema.values[0] is not not tagSchema.values[1]
+                if (values.every (v) -> not v? or (typeof v) is 'boolean') or
+                        values.length == 2 and
+                        not values[0] is not not values[1]
+                    tagSchema.values = values
                     'binary'
                 else
                     # TODO 'categorical'
-                    delete tagSchema.values
-                    'freetext'
-        if baseSchema?
-            _.extend schema, baseSchema
-        else
-            schema
+                    delete tagSchema.frequency
+                    'text'
+        schema
 
     setTagsForItems: (updates, next) =>
         @getItemsWithTags (err, {items, tags}) =>
-            for update in updates
-                key = update.key
-                @allTags.by_key[key] = update.tag
-                @areTagsDirty = yes
+            oldTags = (@allTags.by_key[update.key] for update in updates)
+            newTags =
+                for update in updates
+                    key = update.key
+                    @areTagsDirty = yes
+                    @allTags.by_key[key] = update.tag
             # update tags schema
             @getSchema (err, schema) =>
                 return next err if err
-                schema.tags = MindtaggerTask.deriveSchema (tag for {tag} in updates), schema.tags
+                schema.tags = MindtaggerTask.deriveSchema newTags, schema.tags, oldTags
                 next null
 
 

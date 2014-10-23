@@ -40,7 +40,8 @@ angular.module 'mindbenderApp.mindtagger', [
                 $location.path "/mindtagger/#{tasks[0].name}"
 
 
-.controller 'MindtaggerItemsCtrl', ($scope, $routeParams, commitTags, $http, $window, $timeout, $location) ->
+.controller 'MindtaggerItemsCtrl', ($scope, $routeParams, MindtaggerUtils, commitTags, $http, $window, $timeout, $location) ->
+    $scope.$utils = MindtaggerUtils
     $scope.taskName = $routeParams.task
 
     $scope.$presets = FALLBACK_PRESETS
@@ -225,4 +226,19 @@ angular.module 'mindbenderApp.mindtagger', [
                     if +item[columnStart] <= +element <= +item[columnEnd]
                         return value
             return null
+
+        @progressBarClassForValue: (json, index) ->
+            value = (try JSON.parse json) ? json
+            switch value
+                when true, "true"
+                    "progress-bar-success"
+                when false, "false"
+                    "progress-bar-danger"
+                when null, "null"
+                    "progress-bar-warning"
+                else
+                    "progress-bar-info#{
+                        if index % 2 == 0 then ""
+                        else " progress-bar-striped"
+                    }"
 
