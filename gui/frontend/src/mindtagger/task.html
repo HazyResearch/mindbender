@@ -1,123 +1,16 @@
-<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
-  <div class="container">
-    <!-- Brand and toggle get grouped for better mobile display -->
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mindtagger-navbar-collapse">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <a class="navbar-brand">Mindtagger</a>
-    </div>
-
-    <!-- Collect the nav links, forms, and other content for toggling -->
-    <div class="collapse navbar-collapse" id="mindtagger-navbar-collapse">
-      <ul class="nav navbar-nav" ng-controller="MindtaggerTasksCtrl">
-        <li class="dropdown" ng-if="tasks.length > 1">
-          <a class="dropdown-toggle">{{taskName}} <span class="caret"></span></a>
-          <ul class="dropdown-menu" role="menu">
-            <li ng-repeat="task in tasks" ng-if="task.name != taskName"><a href="#/mindtagger/{{task.name}}">{{task.name}}</a></li>
-          </ul>
-        </li>
-        <li ng-if="tasks.length == 1" class="active"><a href="#/mindtagger/{{taskName}}">{{taskName}}</a></li>
-      </ul>
-      <!--
-      <form class="navbar-form navbar-left" role="search">
-        <div class="form-group">
-          <input type="text" class="form-control" placeholder="Search">
-        </div>
-        <button type="submit" class="btn btn-default">Submit</button>
-      </form>
-      -->
-      <ul class="nav navbar-nav navbar-right">
-        <li class="dropdown"><a><i class="glyphicon glyphicon-filter"></i> Filter by <span class="caret"></span></a></li>
-        <li class="dropdown"><a><i class="glyphicon glyphicon-sort-by-attributes"></i> Order by <span class="caret"></span></a></li>
-        <li class="dropdown">
-          <a class="dropdown-toggle"><i class="glyphicon glyphicon-th-list"></i> Group by <span class="caret"></span></a>
-          <ul class="dropdown-menu" role="menu">
-            <li ng-repeat="(tagName, tagSchema) in tagsSchema"><a>
-              <i class="glyphicon glyphicon-tag"></i> {{tagName}}
-              <div class="progress" ng-if="tagSchema.frequency">
-                <div class="progress-bar" role="progressbar"
-                  ng-repeat="(value, frequency) in tagSchema.frequency"
-                  tooltip="{{value}}: {{frequency}}/{{itemsCount}}"
-                  tooltip-animation="false" tooltip-trigger="mouseenter" tooltip-append-to-body="ul"
-                  ng-class="$utils.progressBarClassForValue(value, $index)"
-                  aria-valuenow="{{100 * frequency / itemsCount}}" aria-valuemin="0" aria-valuemax="100"
-                  style="width:  {{100 * frequency / itemsCount}}%">
-                  <span>{{frequency}}</span>
-                </div>
-              </div>
-            </a></li>
-            <li class="divider"></li>
-            <li><a>No grouping</a></li>
-          </ul>
-        </li>
-        <li>
-          <a><i class="glyphicon glyphicon-tags"></i> Tag Settings</a>
-        </li>
-      </ul>
-    </div><!-- /.navbar-collapse -->
-  </div>
-</nav>
-<style>body { padding-top: 70px; }</style>
-
+<div ng-include="'mindtagger/tasks/' + taskName + '/template.html'"></div>
 
 <section class="row">
-
-  <div ng-if="!items" class="alert alert-block alert-info text-center col-md-offset-4 col-md-4" style="margin-top: 20%;">
-    <h4>Loading items...</h4>
-    <div class="progress">
-      <div class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar"
-        aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
-        <span></span>
-      </div>
+<div ng-if="!items" class="alert alert-block alert-info text-center col-md-offset-4 col-md-4" style="margin-top: 20%;">
+  <h4>Loading items...</h4>
+  <div class="progress">
+    <div class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar"
+      aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+      <span></span>
     </div>
   </div>
-
-<!-- Rendering items -->
-<div class="panel panel-default" ng-repeat="item in items"
-  ng-class="$index == $parent.cursorIndex ? 'panel-primary' : 'panel-default'"
-  ng-click="moveCursorTo($index)">
-    <div class="panel-body">
-      <big>
-        <!-- custom item rendering -->
-        <span mb-render-item></span>
-
-        <!-- default rendering for all details -->
-        <div ng-if="$presets.length > 0" style="margin-top: 20px;">
-          <button class="btn btn-default btn-xs" btn-checkbox ng-model="isDetailShown">Show all attributes</button>
-          <div ng-init="$presets = []" collapse="!isDetailShown"><mb-render-item/></div>
-        </div>
-      </big>
-    </div>
-    <div class="panel-footer" ng-controller="MindtaggerTagsCtrl">
-      <!-- custom tagging UI elements -->
-      <span mb-render-tags></span>
-
-      <!-- free form tags -->
-      <span class="btn-group" style="margin-left:20px;">
-        <button class="btn btn-default" data-toggle="modal" data-target="#add-tag-modal">
-          <i class="glyphicon glyphicon-plus"></i>
-          <span class="sr-only">Add Tag</span>
-        </button>
-      </span>
-      <span ng-repeat="(tagName, tagSchema) in tagsSchema" ng-if="!tagSchema.hidden">
-        <!-- binary -->
-        <label ng-if="tagSchema.type == 'binary'"
-          btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
-          ng-model="tag[tagName]" ng-click="commit(tag)"
-          ng-class="tag[tagName] ? 'btn-info' : 'btn-default'"
-          class="btn"><i class="glyphicon glyphicon-tag"></i>
-          <span class="tag-name">{{tagName}}</span>
-        </label>
-        <!-- TODO render categorical tags with one input box (name) and a dropdown -->
-        <!-- TODO render freetext tags with two input boxes: name and value -->
-        <!-- TODO autocomplete/typeahead in input boxes -->
-      </span>
-    </div>
 </div>
+</section>
 
 <!-- Adding new tags -->
 <div class="modal" id="add-tag-modal" tabindex="-1" role="dialog" aria-labelledby="addTagModalLabel" aria-hidden="true">
@@ -167,33 +60,6 @@
     <button class="btn btn-danger" ng-click="$close()">Reload</button>
   </div>
 </script>
-
-<nav class="navbar navbar-default navbar-fixed-bottom" role="navigation"
-  ng-if="items.length > 0">
-  <div class="container">
-    <div class="col-md-2 text-left" style="padding-top:20px;">
-      <span class="input-group">
-        <input type="number" min="1" max="50" size="2" value="10"
-          ng-model="$parent.itemsPerPage" ng-change="pageSizeChanged()" 
-          class="form-control">
-        <span class="input-group-addon">per page</span>
-      </span>
-    </div>
-
-    <div class="col-md-8 text-center">
-      <pagination total-items="itemsCount" items-per-page="itemsPerPage"
-        ng-model="$parent.currentPage" ng-change="pageChanged()"
-        max-size="4" class="pagination" boundary-links="true" rotate="false"></pagination>
-    </div>
-
-    <div class="col-md-2 text-right" style="padding-top:20px;">
-      <button class="btn btn-info" data-toggle="modal" data-target="#export-modal">
-        <i class="glyphicon glyphicon-save"></i> Export
-      </button>
-    </div>
-  </div>
-</nav>
-<style>body { padding-bottom: 70px; }</style>
 
 <!-- Export Tags stuff -->
 <div class="modal fade" id="export-modal" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
@@ -255,73 +121,3 @@
     </div>
   </div>
 </div>
-
-
-<!--
-# TODOs
-
-* Data model for tags
-    * Fixed/enum (Binary, Multinomial) and Free-text/value tags
-        * or Non-parameterized (binary) vs. Parameterized tags (the rest)
-    * Repeatability of each tag: singleton? zero or more? up to N?
-    * Side note: Different UI elements necessary for each category of tags
-        * binary tags: checkbox/toggle button
-        * multinomial tags: dropdown select or toggle button, with a way to manage the their value sets
-        * Free-text/value tags: text or number input entry
-
-* Minimal end-to-end features for workflows
-    * Precision debugging workflow
-        * correct/incorrect/undecidable buttons for each item
-        * note input field, which will be superseded by free-text tags
-    * Recall labeling workflow
-        * add array of texts to each item
-        * note input field, which will be superseded by free-text tags
-    * Persistent state maintained in the extra annotation file (output)
-
-* Arbitrary tags support
-    * to each item
-    * defining a new tag
-    * entering a new value for a tag
-    * selecting a previously entered tag
-    * autocompletion of tag names as well as tag values
-    * removing tag
-    * filtering/clustering items by tag while tagging
-        * e.g., "only show items that have no correct or incorrect tag"
-        * "group items by a tag"
-        * "show a histogram of selected tags"
-        * "show a histogram of values of a tag"
-
-* Custom renderers/controls
-    * item controls
-        * highlighting substrings in one column based on other columns
-            * e.g., extracted entity candidates with the sentence
-        * sentence with NLP tags as text that responds to interaction
-    * tag controls
-        * a way to specify a set of predefined tags
-        * ok, question-sign, remove buttons for precision labeling
-
-* Other goodies
-    * Rich export feature
-        * TSV generation
-            * JSON for array fields
-        * SQL generation (CREATE TABLE, INSERT INTO) with choice of schema
-            * nested, array of tag values: (id, tag1[], tag2[], ...)
-            * unnested flattened table:    (id, tag1, tag2, ...)
-
-    * Keyboard shortcut support
-        * navigation: prev/next item
-        * easy tag toggling/addition/removal
-
-    * Support array-typed items
-        * Sentence with NLP tags (POS, NER, ...) is often represented as a tuple of arrays with same length
-        * Other array columns in the input often contain aux info corresponding to each
-
-    * Selecting a piece of text to use as a tag, or as a tag's value
-        * mainly for recall ground truth labeling, to free user from copy/pasting all text
-
-* See also
-    * [GUIDELINES FOR DESIGNING USER INTERFACE SOFTWARE (ESD-TR-86-278)](http://hcibib.org/sam/1.html)
-
--->
-
-</section>

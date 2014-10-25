@@ -1,31 +1,10 @@
-FALLBACK_PRESETS = [['_default']]
-directiveForIncludingPresetTemplate = (templateName) ->
-    restrict: 'EA'
-    scope: true
-    controller: ($scope, MindtaggerUtils) ->
-        $scope.$utils = MindtaggerUtils
-        # pop the preset stack to resolve the current preset
-        [[presetName, $scope.$preset], $scope.$presets...] =
-            if $scope.$parent.$presets?.length > 0
-                $scope.$parent.$presets
-            else
-                # fallback to _default preset if the stack is empty but a render is forced
-                FALLBACK_PRESETS
-        $scope.$preset ?= {}
-        angular.extend $scope.$preset,
-            $name: presetName
-            $path: "/mindtagger/preset/#{presetName}"
-    template: """
-        <span ng-include="$preset.$path + '/#{templateName}-template.html'"></span>
-        """
-
 angular.module 'mindbenderApp.mindtagger', [
     'ui.bootstrap'
 ]
 
 .config ($routeProvider) ->
     $routeProvider.when '/mindtagger',
-        template: 'mindtagger/tasklist.html',
+        templateUrl: 'mindtagger/tasklist.html',
         controller: 'MindtaggerTasksCtrl'
     $routeProvider.when '/mindtagger/:task',
         templateUrl: 'mindtagger/task.html',
@@ -44,7 +23,10 @@ angular.module 'mindbenderApp.mindtagger', [
     $scope.$utils = MindtaggerUtils
     $scope.taskName = $routeParams.task
 
-    $scope.$presets = FALLBACK_PRESETS
+    # TODO fold other variables into this
+    $scope.MindtaggerTask =
+        name: $routeParams.task
+
     $scope.items = null
     $scope.itemsCount = null
     $scope.tags = null
@@ -56,6 +38,7 @@ angular.module 'mindbenderApp.mindtagger', [
 
     $http.get "/api/mindtagger/#{$scope.taskName}/schema"
         .success ({presets, schema}) ->
+            $scope.MindtaggerTask.presets = presets
             $scope.$presets = presets
             $scope.tagsSchema = schema.tags
             $scope.itemSchema = schema.items
@@ -126,10 +109,78 @@ angular.module 'mindbenderApp.mindtagger', [
     index = $scope.$parent.$index
     $scope.tag = ($scope.$parent.tags[index] ?= {})
 
-.directive 'mbRenderItem', ->
-    directiveForIncludingPresetTemplate 'item'
-.directive 'mbRenderTags', ->
-    directiveForIncludingPresetTemplate 'tags'
+
+.directive 'mindtagger', ($compile) ->
+    restrict: 'EAC', transclude: true, priority: 2000
+    templateUrl: ($element, $attrs) -> "mindtagger/mode-#{$attrs.mode}.html"
+    compile: (tElement, tAttrs) ->
+        # Keep a clone of the template element so we can fill in the
+        # mb-transclude selectors as we link later.
+        templateToExpand = $(tElement).clone()
+        ($scope, $element, $attrs, controller, $transclude) ->
+            $transclude (clone, scope) ->
+                # Fill the elements with mb-transclude selectors by finding
+                # them in the clone, which is the element the directive is
+                # originally used on.
+                templateToExpand.find("[mb-transclude]").each ->
+                    container = $ @
+                    selector = container.attr("mb-transclude")
+                    found = $(clone).find(selector).addBack(selector)
+                    container.empty()
+                    container.append found
+                # Replace the element on DOM by compiling the whole expanded
+                # template again.
+                $element.empty()
+                $element.append $compile(templateToExpand.children())(scope)
+
+.directive 'mindtaggerNavbar', ->
+    restrict: 'EAC', transclude: true
+    templateUrl: "mindtagger/navbar.html"
+
+.directive 'mindtaggerPagination', ->
+    restrict: 'EAC', transclude: true
+    templateUrl: "mindtagger/pagination.html"
+
+
+.directive 'mindtaggerWordArray', ->
+    restrict: 'EAC', transclude: true
+    priority: 1
+    scope:
+        mindtaggerWordArray: '='
+        arrayFormat: '@'
+    template: """
+        <span class="mindtagger-word"
+            ng-repeat="word in mindtaggerWordArray | parsedArray:arrayFormat track by $index">
+            {{word}}
+            <span ng-transclude></span>
+        </span>
+    """
+
+.directive 'mindtaggerHighlightWords', (parsedArrayFilter) ->
+    restrict: 'EAC'
+    scope:
+        from: '='
+        to: '='
+        indexArray: '='
+    compile: (tElement, tAttrs) ->
+        arrayFormat = tAttrs.arrayFormat ? "json"
+        style = tElement.attr("style")
+        # remove style
+        ($scope, $element) ->
+            $element.attr("style", null)
+            $scope.$watch (-> JSON.stringify [$scope.indexArray, $element.find(".mindtagger-word").length]), ->
+                words = $element.find(".mindtagger-word")
+                wordsToHighlight =
+                    if $scope.from? and $scope.to? and 0 <= +$scope.from <= +$scope.to < words.length
+                         words.slice +$scope.from-1, +$scope.to
+                    else if $scope.indexArray?.length > 0
+                        indexes = (+i for i in parsedArrayFilter $scope.indexArray, arrayFormat)
+                        $().add (words.eq(i) for i in indexes)...
+                if wordsToHighlight?.length > 0
+                    # apply style
+                    console.log style, wordsToHighlight
+                    wordsToHighlight.attr("style", (i, css = "") -> css + style)
+
 
 # a handy filter for parsing Postgres ARRAYs serialized in CSV outputs
 .filter 'parsedPostgresArray', ->

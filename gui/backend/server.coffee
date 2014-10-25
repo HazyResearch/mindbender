@@ -24,8 +24,6 @@ async = require "async"
 {TSV,CSV} = require "tsv"
 csv = require "csv"
 
-MINDTAGGER_PRESET_ROOT = "#{process.env.MINDBENDER_HOME}/gui/files/mindtagger/presets"
-
 # parse command-line args and environment
 MINDBENDER_PORT = parseInt process.env.PORT ? 8000
 
@@ -163,30 +161,9 @@ class MindtaggerTask
         @allItems = null
         @allTags = null
         @areTagsDirty = no
-        # resolve all preset directories
-        @config.presetDirs =
-            for preset in @config.presets
-                [presetName] = preset
-                presetDir = path.resolve @config.path, presetName
-                if fs.existsSync presetDir
-                    # use the resolved full path with a prefix as the preset name
-                    preset[0] = "_custom/" + presetDir
-                        .replace /// _ ///g, "__"
-                        .replace /// / ///g, "_"
-                else
-                    bundledPresetDir = "#{MINDTAGGER_PRESET_ROOT}/#{presetName}"
-                    if fs.existsSync bundledPresetDir
-                        presetDir = bundledPresetDir
-                try
-                    stat = fs.statSync presetDir
-                catch err
-                    throw new Error "#{presetDir}: No such directory"
-                unless stat.isDirectory()
-                    throw new Error "#{presetDir}: Not a directory"
-                presetDir
         # load all schema files and merge
         @baseTagsSchema = {}
-        schemaFiles = ("#{presetDir}/schema.json" for presetDir in @config.presetDirs)
+        schemaFiles = ("#{dir}/schema.json" for dir in [@config.path])
         async.map schemaFiles,
             (fName, next) -> MindbenderUtils.loadOptionalDataFile fName, {}, next
         , (err, schemas) =>
@@ -385,30 +362,17 @@ class MindtaggerTask
     @writeBackChanges: (next = (err) ->) ->
         async.each (_.values MindtaggerTask.ALL), ((task, next) -> task.writeChanges next), next
 
-    @getAllPresetDirsByPreset: ->
-        map = {}
-        for taskName,task of MindtaggerTask.ALL
-            for [preset,args],i in task.config.presets
-                presetDir = task.config.presetDirs[i]
-                map[preset] = presetDir
-        map
-                
 
 # prepare Mindtagger tasks based on given json files
-async.each mindtaggerConfFiles,
+async.map mindtaggerConfFiles,
     (confFile, next) -> new MindtaggerTask confFile, next
-, (err) ->
+, (err, tasks) ->
     throw err if err
     #util.log "Mindtagger task #{task.name}: #{JSON.stringify task.config, null, 2}" for task in _.values MindtaggerTask.ALL  # XXX debug
-    util.log "Loaded #{_.size MindtaggerTask.ALL} Mindtagger tasks: #{_.keys MindtaggerTask.ALL}"
-
-    # set up preset URLs to make mixin mechanism work
-    MIXIN_PRESET_DIR = "#{MINDTAGGER_PRESET_ROOT}/_mixin"
-    DEFAULT_PRESET_DIR = "#{MINDTAGGER_PRESET_ROOT}/_default"
-    for preset,presetDir of MindtaggerTask.getAllPresetDirsByPreset()
-        app.use "/mindtagger/preset/#{preset}", express.static presetDir
-        app.use "/mindtagger/preset/#{preset}", express.static MIXIN_PRESET_DIR
-    app.use "/mindtagger/preset", express.static MINDTAGGER_PRESET_ROOT
+    util.log "Loaded #{_.size tasks} Mindtagger tasks: #{task.config.name for task in tasks}"
+    # expose each task directory
+    for task in tasks
+        app.use "/mindtagger/tasks/#{task.config.name}/", express.static task.config.path
 
 
 ## Configure Mindtagger API URLs
@@ -432,7 +396,6 @@ app.get "/api/mindtagger/:task/schema", (req, res) ->
                 return res.status 500
                     .send "Internal error: #{err}"
             res.json
-                presets: task.config.presets
                 schema:  schema
 app.get "/api/mindtagger/:task/items", (req, res) ->
     parseNum = (x) ->

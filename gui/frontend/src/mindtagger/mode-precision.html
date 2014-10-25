@@ -1,0 +1,95 @@
+<div mindtagger-navbar>
+
+  <ul class="nav navbar-nav navbar-right">
+    <li class="dropdown"><a><i class="glyphicon glyphicon-filter"></i> Filter by <span class="caret"></span></a></li>
+    <li class="dropdown"><a><i class="glyphicon glyphicon-sort-by-attributes"></i> Order by <span class="caret"></span></a></li>
+    <li class="dropdown">
+      <a class="dropdown-toggle"><i class="glyphicon glyphicon-th-list"></i> Group by <span class="caret"></span></a>
+      <ul class="dropdown-menu" role="menu">
+        <li ng-repeat="(tagName, tagSchema) in tagsSchema"><a>
+          <i class="glyphicon glyphicon-tag"></i> {{tagName}}
+          <div class="progress" ng-if="tagSchema.frequency">
+            <div class="progress-bar" role="progressbar"
+              ng-repeat="(value, frequency) in tagSchema.frequency"
+              tooltip="{{value}}: {{frequency}}/{{itemsCount}}"
+              tooltip-animation="false" tooltip-trigger="mouseenter" tooltip-append-to-body="ul"
+              ng-class="$utils.progressBarClassForValue(value, $index)"
+              aria-valuenow="{{100 * frequency / itemsCount}}" aria-valuemin="0" aria-valuemax="100"
+              style="width:  {{100 * frequency / itemsCount}}%">
+              <span>{{frequency}}</span>
+            </div>
+          </div>
+        </a></li>
+        <li class="divider"></li>
+        <li><a>No grouping</a></li>
+      </ul>
+    </li>
+    <li>
+      <a><i class="glyphicon glyphicon-tags"></i> Tag Settings</a>
+    </li>
+  </ul>
+
+  <div mb-transclude="[for-mindtagger-navbar]"></div>
+
+</div>
+
+<section class="row">
+<!-- Rendering items -->
+<div class="panel panel-default" ng-repeat="item in items"
+  ng-class="$index == $parent.cursorIndex ? 'panel-primary' : 'panel-default'"
+  ng-click="moveCursorTo($index)">
+    <div class="panel-body">
+      <big>
+        <div mb-transclude="[for-each-mindtagger-item]"></div>
+
+        <!-- default rendering for all attributes of each item -->
+        <div style="margin-top: 20px;">
+          <button class="btn btn-default btn-xs" btn-checkbox ng-model="isDetailShown">Show all attributes</button>
+          <dl class="dl-horizontal" collapse="!isDetailShown">
+              <dt ng-repeat-start="(key, value) in item">{{key}}</dt>
+              <dd ng-repeat-end title="{{value | json}}">{{value}}</dd>
+          </dl>
+        </div>
+      </big>
+    </div>
+
+    <div class="panel-footer" ng-controller="MindtaggerTagsCtrl">
+      <!-- correct/undecidable/incorrect tags for precision labeling -->
+      <span class="btn-group">
+        <label uncheckable btn-radio="true"  ng-model="tag.is_correct" ng-click="commit(tag)" class="btn" ng-class="tag.is_correct != null && !tag.is_correct ? 'btn-default' : 'btn-success'"><i class="glyphicon glyphicon-ok"></i></label>
+        <label uncheckable btn-radio="false" ng-model="tag.is_correct" ng-click="commit(tag)" class="btn" ng-class="tag.is_correct != null &&  tag.is_correct ? 'btn-default' : 'btn-danger' "><i class="glyphicon glyphicon-remove"></i></label>
+      </span>
+
+      <!-- free form tags -->
+      <span class="btn-group" style="margin-left:20px;">
+        <button class="btn btn-default" data-toggle="modal" data-target="#add-tag-modal">
+          <i class="glyphicon glyphicon-plus"></i>
+          <span class="sr-only">Add Tag</span>
+        </button>
+      </span>
+      <span ng-repeat="(tagName, tagSchema) in tagsSchema" ng-if="!tagSchema.hidden">
+        <!-- binary -->
+        <label ng-if="tagSchema.type == 'binary'"
+          btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
+          ng-model="tag[tagName]" ng-click="commit(tag)"
+          ng-class="tag[tagName] ? 'btn-info' : 'btn-default'"
+          class="btn"><i class="glyphicon glyphicon-tag"></i>
+          <span class="tag-name">{{tagName}}</span>
+        </label>
+        <!-- TODO render categorical tags with one input box (name) and a dropdown -->
+        <!-- TODO render freetext tags with two input boxes: name and value -->
+        <!-- TODO autocomplete/typeahead in input boxes -->
+      </span>
+
+      <!-- Note on each item -->
+      <div class="pull-right form-group" ng-class="tag.note ? 'has-success' : ''">
+        <textarea rows="1" class="form-control" ng-model="tag.note" ng-change="commit(tag)" placeholder="Note"></textarea>
+      </div>
+
+      <!-- custom tagging UI elements -->
+      <span mb-transclude="[for-mindtagger-tags]"></span>
+    </div>
+</div>
+</section>
+
+<div mindtagger-pagination mb-transclude="[for-mindtagger-pagination]"></div>
