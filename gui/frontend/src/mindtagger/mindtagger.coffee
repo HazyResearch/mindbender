@@ -35,7 +35,10 @@ angular.module 'mindbenderApp.mindtagger', [
             do MindtaggerTask.updateSchema
         updateSchema: (schema...) ->
             _.extend MindtaggerTask.schema, schema... if schema.length > 0
-            _.extend MindtaggerTask.schema.tags, MindtaggerTask.schemaTagsFixed
+            # TODO a recursive version of _.extend
+            MindtaggerTask.schema.tags ?= {}
+            for tagName,tagSchema of MindtaggerTask.schemaTagsFixed
+                _.extend MindtaggerTask.schema.tags[tagName], tagSchema
 
         tags: null
         items: null
