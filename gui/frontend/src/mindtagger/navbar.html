@@ -13,14 +13,14 @@
 
     <!-- Collect the nav links, forms, and other content for toggling -->
     <div class="collapse navbar-collapse" id="mindtagger-navbar-collapse">
-      <ul class="nav navbar-nav" ng-controller="MindtaggerTasksCtrl">
+      <ul class="nav navbar-nav" ng-controller="MindtaggerTaskListCtrl">
         <li class="dropdown" ng-if="tasks.length > 1">
-          <a class="dropdown-toggle">{{taskName}} <span class="caret"></span></a>
+          <a class="dropdown-toggle">{{MindtaggerTask.name}} <span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
-            <li ng-repeat="task in tasks" ng-if="task.name != taskName"><a href="#/mindtagger/{{task.name}}">{{task.name}}</a></li>
+            <li ng-repeat="task in tasks" ng-if="task.name != MindtaggerTask.name"><a href="#/mindtagger/{{task.name}}">{{task.name}}</a></li>
           </ul>
         </li>
-        <li ng-if="tasks.length == 1" class="active"><a href="#/mindtagger/{{taskName}}">{{taskName}}</a></li>
+        <li ng-if="tasks.length == 1" class="active"><a href="#/mindtagger/{{MindtaggerTask.name}}">{{MindtaggerTask.name}}</a></li>
       </ul>
 
       <!-- Plug in navbar buttons for the configured mode -->

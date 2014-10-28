@@ -5,12 +5,12 @@ angular.module 'mindbenderApp.mindtagger', [
 .config ($routeProvider) ->
     $routeProvider.when '/mindtagger',
         templateUrl: 'mindtagger/tasklist.html',
-        controller: 'MindtaggerTasksCtrl'
+        controller: 'MindtaggerTaskListCtrl'
     $routeProvider.when '/mindtagger/:task',
         templateUrl: 'mindtagger/task.html',
-        controller: 'MindtaggerItemsCtrl'
+        controller: 'MindtaggerTaskCtrl'
 
-.controller 'MindtaggerTasksCtrl', ($scope, $http, $location) ->
+.controller 'MindtaggerTaskListCtrl', ($scope, $http, $location) ->
     $scope.tasks ?= []
     $http.get "/api/mindtagger/"
         .success (tasks) ->
@@ -19,95 +19,87 @@ angular.module 'mindbenderApp.mindtagger', [
                 $location.path "/mindtagger/#{tasks[0].name}"
 
 
-.controller 'MindtaggerItemsCtrl', ($scope, $routeParams, MindtaggerUtils, commitTags, $http, $window, $timeout, $location) ->
+.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerUtils, commitTags, $http, $window, $timeout, $location) ->
     $scope.$utils = MindtaggerUtils
-    $scope.taskName = $routeParams.task
 
-    # TODO fold other variables into this
     $scope.MindtaggerTask =
+    MindtaggerTask =
         name: $routeParams.task
 
-    $scope.items = null
-    $scope.itemsCount = null
-    $scope.tags = null
+        tags: null
+        items: null
+        itemsCount: null
 
-    $scope.itemKeys = null
-    $scope.itemSchema = null
-    $scope.tagsSchema = {}
+        currentPage: +($location.search().p ? 1)
+        itemsPerPage: +($location.search().s ? 10)
+        cursorIndex: 0
+
     $scope.keys = (obj) -> key for key of obj
 
-    $http.get "/api/mindtagger/#{$scope.taskName}/schema"
-        .success ({presets, schema}) ->
-            $scope.MindtaggerTask.presets = presets
-            $scope.$presets = presets
-            $scope.tagsSchema = schema.tags
-            $scope.itemSchema = schema.items
-            $scope.itemKeys = schema.itemKeys
-            $http.get "/api/mindtagger/#{$scope.taskName}/items", {
+    $http.get "/api/mindtagger/#{MindtaggerTask.name}/schema"
+        .success ({schema}) ->
+            MindtaggerTask.schema = schema
+            $http.get "/api/mindtagger/#{MindtaggerTask.name}/items", {
                 params:
-                    offset: $scope.itemsPerPage * ($scope.currentPage - 1)
-                    limit:  $scope.itemsPerPage
+                    offset: MindtaggerTask.itemsPerPage * (MindtaggerTask.currentPage - 1)
+                    limit:  MindtaggerTask.itemsPerPage
             }
                 .success ({tags, items, itemsCount}) ->
-                    $scope.tags = tags
-                    $scope.items = items
-                    $scope.itemsCount = itemsCount
+                    MindtaggerTask.tags = tags
+                    MindtaggerTask.items = items
+                    MindtaggerTask.itemsCount = itemsCount
         .error ->
             $location.path "/mindtagger"
 
     $scope.exportFormat = "sql"
     $scope.export = (format) ->
-        $window.location.href = "/api/mindtagger/#{$scope.taskName}/tags.#{format ? $scope.exportFormat
+        $window.location.href = "/api/mindtagger/#{MindtaggerTask.name}/tags.#{format ? $scope.exportFormat
         }?table=#{
             "" # TODO allow table name to be customized
         }&attrs=#{
-            encodeURIComponent ((attrName for attrName,attrSchema of $scope.itemSchema when attrSchema.export).join ",")
+            encodeURIComponent ((attrName for attrName,attrSchema of MindtaggerTask.schema.items when attrSchema.export).join ",")
         }&tags=#{
-            encodeURIComponent ((tagName for tagName,tagSchema of $scope.tagsSchema when tagSchema.export).join ",")
+            encodeURIComponent ((tagName for tagName,tagSchema of MindtaggerTask.schema.tags when tagSchema.export).join ",")
         }"
 
     # cursor
-    $scope.cursorIndex = 0
-    $scope.moveCursorTo = (index) ->
-        $scope.cursorIndex = index
+    $scope.moveCursorTo = (index) -> MindtaggerTask.cursorIndex = index
     # pagination
-    $scope.currentPage = +($location.search().p ? 1)
-    $scope.itemsPerPage = +($location.search().s ? 10)
-    $scope.pageChanged = -> $location.search "p", $scope.currentPage
-    $scope.pageSizeChanged = _.debounce ->
-        $scope.$apply ->
-            $location.search "s", $scope.itemsPerPage
-    , 750
+    $scope.pageChanged = -> $location.search "p", MindtaggerTask.currentPage
+    $scope.pageSizeChanged = _.debounce -> $scope.$apply ->
+            $location.search "s", MindtaggerTask.itemsPerPage
+        , 750
 
     # create/add tag
     $scope.addTagToCurrentItem = (name, type = 'binary', value = true) ->
         console.log "adding tag to item under cursor", name, type, value
-        tag = ($scope.tags[$scope.cursorIndex] ?= {})
+        tag = (MindtaggerTask.tags[MindtaggerTask.cursorIndex] ?= {})
         tag[name] = value
         $scope.$emit "tagChangedForCurrentItem"
     $scope.commit = -> $timeout ->
         $scope.$emit "tagChangedForCurrentItem"
     $scope.$on "tagChangedForCurrentItem", (event) ->
-        index = $scope.cursorIndex
-        item = $scope.items[index]
-        tag = $scope.tags[index]
+        index = MindtaggerTask.cursorIndex
+        item = MindtaggerTask.items[index]
+        tag = MindtaggerTask.tags[index]
         itemIndex = index +
-            ($scope.currentPage - 1) * $scope.itemsPerPage
+            (MindtaggerTask.currentPage - 1) * MindtaggerTask.itemsPerPage
         console.log "some tags of current item (##{itemIndex}) changed, committing", tag
         key =
             # use itemKeys if available
-            if $scope.itemKeys?.length > 0
-                (item[k] for k in $scope.itemKeys).join "\t"
+            if MindtaggerTask.schema.itemKeys?.length > 0
+                (item[k] for k in MindtaggerTask.schema.itemKeys).join "\t"
             else
                 itemIndex
         updates = [
             { tag, key }
         ]
-        commitTags $scope, updates
+        commitTags MindtaggerTask, updates
 
 .controller 'MindtaggerTagsCtrl', ($scope) ->
     index = $scope.$parent.$index
-    $scope.tag = ($scope.$parent.tags[index] ?= {})
+    # FIXME Is there any way to avoid $parent?
+    $scope.tag = ($scope.$parent.MindtaggerTask.tags[index] ?= {})
 
 
 .directive 'mindtagger', ($compile) ->
@@ -178,7 +170,6 @@ angular.module 'mindbenderApp.mindtagger', [
                         $().add (words.eq(i) for i in indexes)...
                 if wordsToHighlight?.length > 0
                     # apply style
-                    console.log style, wordsToHighlight
                     wordsToHighlight.attr("style", (i, css = "") -> css + style)
 
 
@@ -238,12 +229,11 @@ angular.module 'mindbenderApp.mindtagger', [
                     [text]
 
 .service 'commitTags', ($http, $modal, $window) ->
-    ($scope, updates) ->
-        $http.post "/api/mindtagger/#{$scope.taskName}/items", updates
+    (MindtaggerTask, updates) ->
+        $http.post "/api/mindtagger/#{MindtaggerTask.name}/items", updates
             .success (schema) ->
                 console.log "committed tags updates", updates
-                $scope.tagsSchema = schema.tags
-                $scope.itemSchema = schema.items
+                MindtaggerTask.schema = schema
             .error (result) ->
                 # FIXME revert tag to previous value
                 console.error "commit failed for updates", updates

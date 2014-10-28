@@ -1,7 +1,7 @@
-<div ng-include="'mindtagger/tasks/' + taskName + '/template.html'"></div>
+<div ng-include="'mindtagger/tasks/' + MindtaggerTask.name + '/template.html'"></div>
 
 <section class="row">
-<div ng-if="!items" class="alert alert-block alert-info text-center col-md-offset-4 col-md-4" style="margin-top: 20%;">
+<div ng-if="!MindtaggerTask.items" class="alert alert-block alert-info text-center col-md-offset-4 col-md-4" style="margin-top: 20%;">
   <h4>Loading items...</h4>
   <div class="progress">
     <div class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar"
@@ -29,7 +29,7 @@
             <div class="col-sm-10">
               <input type="text" class="form-control" id="add-tag-name"
                 ng-model="tagNameToAdd"
-                typeahead="tagName for tagName in keys(tagsSchema) | filter:$viewValue | limitTo:8">
+                typeahead="tagName for tagName in keys(MindtaggerTask.schema.tags) | filter:$viewValue | limitTo:8">
             </div>
           </div>
         </form>
@@ -75,7 +75,7 @@
             <label for="export-attrs" class="col-sm-2 control-label">Attributes to export</label>
             <div class="col-sm-10">
               <ul class="list-inline">
-                <li ng-repeat="(attrName, attrSchema) in itemSchema">
+                <li ng-repeat="(attrName, attrSchema) in MindtaggerTask.schema.items">
                   <span class="checkbox">
                     <label>
                       <input type="checkbox" ng-model="attrSchema.export">
@@ -90,7 +90,7 @@
             <label for="export-tags" class="col-sm-2 control-label">Tags to export</label>
             <div class="col-sm-10">
               <ul class="list-inline">
-                <li ng-repeat="(tagName, tagSchema) in tagsSchema">
+                <li ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags">
                   <span class="checkbox">
                     <label>
                       <input type="checkbox" ng-model="tagSchema.export">
