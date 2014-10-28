@@ -176,8 +176,10 @@ angular.module 'mindbenderApp.mindtagger', [
 .directive 'mindtaggerPagination', ->
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/pagination.html"
 
+.directive 'mindtaggerItemDetails', ->
+    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/item-details.html"
+
 .directive 'mindtaggerAdhocTags', ->
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-adhoc.html"
-
 .directive 'mindtaggerNoteTags', ->
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-note.html"
