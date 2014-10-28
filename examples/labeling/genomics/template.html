@@ -3,17 +3,13 @@
   <div for-each-mindtagger-item>
     <strong>{{item.mention_text}}</strong> appeared in:
     <blockquote>
-      <span class="text-muted">
-        {{item.sentences_before}}
-      </span>
+      <span class="text-muted">{{item.sentences_before | concatArray:'postgres'}}</span>
       <span mindtagger-highlight-words index-array="item.mention_pos" array-format="postgres" style="text-decoration: underline;">
       <span mindtagger-highlight-words index-array="item.mention_pos" array-format="postgres" style="background-color: yellow;">
           <big mindtagger-word-array="item.words" array-format="postgres"></big>
       </span>
       </span>
-      <span class="text-muted">
-        {{item.sentences_after}}
-      </span>
+      <span class="text-muted">{{item.sentences_after | concatArray:'postgres'}}</span>
     </blockquote>
   </div>
 

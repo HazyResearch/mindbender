@@ -55,3 +55,8 @@ angular.module 'mindbenderApp.mindtagger.arrayParsers', [
                 catch err
                     console.error err
                     [text]
+
+.filter 'concatArray', (parsedArrayFilter) ->
+    (text, format, delim = " ") ->
+        ((parsedArrayFilter text, format)?.join delim) ? text
+
