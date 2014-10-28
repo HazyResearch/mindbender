@@ -28,6 +28,15 @@ angular.module 'mindbenderApp.mindtagger', [
     MindtaggerTask =
         name: $routeParams.task
 
+        schema: {}
+        schemaTagsFixed: {}
+        defineTags: (tagsSchema...) ->
+            _.extend MindtaggerTask.schemaTagsFixed, tagsSchema...
+            do MindtaggerTask.updateSchema
+        updateSchema: (schema...) ->
+            _.extend MindtaggerTask.schema, schema... if schema.length > 0
+            _.extend MindtaggerTask.schema.tags, MindtaggerTask.schemaTagsFixed
+
         tags: null
         items: null
         itemsCount: null
@@ -40,7 +49,7 @@ angular.module 'mindbenderApp.mindtagger', [
 
     $http.get "/api/mindtagger/#{MindtaggerTask.name}/schema"
         .success ({schema}) ->
-            MindtaggerTask.schema = schema
+            MindtaggerTask.updateSchema schema
             $http.get "/api/mindtagger/#{MindtaggerTask.name}/items", {
                 params:
                     offset: MindtaggerTask.itemsPerPage * (MindtaggerTask.currentPage - 1)
@@ -110,7 +119,7 @@ angular.module 'mindbenderApp.mindtagger', [
         $http.post "/api/mindtagger/#{MindtaggerTask.name}/items", updates
             .success (schema) ->
                 console.log "committed tags updates", updates
-                MindtaggerTask.schema = schema
+                MindtaggerTask.updateSchema schema
             .error (result) ->
                 # FIXME revert tag to previous value
                 console.error "commit failed for updates", updates
