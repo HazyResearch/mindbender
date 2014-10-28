@@ -43,8 +43,7 @@
 
 </div>
 
-<section class="row"
->
+<section class="row">
 <!-- Rendering items -->
 <div class="panel panel-default" ng-repeat="item in MindtaggerTask.items"
   ng-class="$index == $parent.cursorIndex ? 'panel-primary' : 'panel-default'"
@@ -70,32 +69,6 @@
         <label uncheckable btn-radio="true"  ng-model="tag.is_correct" ng-click="commit(tag)" class="btn" ng-class="tag.is_correct != null && !tag.is_correct ? 'btn-default' : 'btn-success'"><i class="glyphicon glyphicon-ok"></i></label>
         <label uncheckable btn-radio="false" ng-model="tag.is_correct" ng-click="commit(tag)" class="btn" ng-class="tag.is_correct != null &&  tag.is_correct ? 'btn-default' : 'btn-danger' "><i class="glyphicon glyphicon-remove"></i></label>
       </span>
-
-      <!-- free form tags -->
-      <span class="btn-group" style="margin-left:20px;">
-        <button class="btn btn-default" data-toggle="modal" data-target="#add-tag-modal">
-          <i class="glyphicon glyphicon-plus"></i>
-          <span class="sr-only">Add Tag</span>
-        </button>
-      </span>
-      <span ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags" ng-if="!tagSchema.hidden">
-        <!-- binary -->
-        <label ng-if="tagSchema.type == 'binary'"
-          btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
-          ng-model="tag[tagName]" ng-click="commit(tag)"
-          ng-class="tag[tagName] ? 'btn-info' : 'btn-default'"
-          class="btn"><i class="glyphicon glyphicon-tag"></i>
-          <span class="tag-name">{{tagName}}</span>
-        </label>
-        <!-- TODO render categorical tags with one input box (name) and a dropdown -->
-        <!-- TODO render freetext tags with two input boxes: name and value -->
-        <!-- TODO autocomplete/typeahead in input boxes -->
-      </span>
-
-      <!-- Note on each item -->
-      <div class="pull-right form-group" ng-class="tag.note ? 'has-success' : ''">
-        <textarea rows="1" class="form-control" ng-model="tag.note" ng-change="commit(tag)" placeholder="Note"></textarea>
-      </div>
 
       <!-- custom tagging UI elements -->
       <span mb-transclude="[for-mindtagger-tags]"></span>

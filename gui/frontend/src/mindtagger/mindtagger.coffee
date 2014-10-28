@@ -171,10 +171,13 @@ angular.module 'mindbenderApp.mindtagger', [
                 $element.append $compile(templateToExpand.children())(scope)
 
 .directive 'mindtaggerNavbar', ->
-    restrict: 'EAC', transclude: true
-    templateUrl: "mindtagger/navbar.html"
+    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/navbar.html"
 
 .directive 'mindtaggerPagination', ->
-    restrict: 'EAC', transclude: true
-    templateUrl: "mindtagger/pagination.html"
+    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/pagination.html"
 
+.directive 'mindtaggerAdhocTags', ->
+    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-adhoc.html"
+
+.directive 'mindtaggerNoteTags', ->
+    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-note.html"

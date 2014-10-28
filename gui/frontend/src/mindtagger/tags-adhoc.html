@@ -1,0 +1,20 @@
+<!-- free form tags -->
+<span class="btn-group" style="margin-left:20px;">
+  <button class="btn btn-default" data-toggle="modal" data-target="#add-tag-modal">
+    <i class="glyphicon glyphicon-plus"></i>
+    <span class="sr-only">Add Tag</span>
+  </button>
+</span>
+<span ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags" ng-if="!tagSchema.hidden">
+  <!-- binary -->
+  <label ng-if="tagSchema.type == 'binary'"
+    btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
+    ng-model="tag[tagName]" ng-click="commit(tag)"
+    ng-class="tag[tagName] ? 'btn-info' : 'btn-default'"
+    class="btn"><i class="glyphicon glyphicon-tag"></i>
+    <span class="tag-name">{{tagName}}</span>
+  </label>
+  <!-- TODO render categorical tags with one input box (name) and a dropdown -->
+  <!-- TODO render freetext tags with two input boxes: name and value -->
+  <!-- TODO autocomplete/typeahead in input boxes -->
+</span>
