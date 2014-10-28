@@ -63,6 +63,7 @@ angular.module 'mindbenderApp.mindtagger', [
                     MindtaggerTask.items = items
                     MindtaggerTask.itemsCount = itemsCount
         .error ->
+            console.error "#{MindtaggerTask.name} not found"
             $location.path "/mindtagger"
 
     $scope.exportFormat = "sql"
@@ -80,9 +81,9 @@ angular.module 'mindbenderApp.mindtagger', [
     $scope.moveCursorTo = (index) -> MindtaggerTask.cursorIndex = index
     # pagination
     $scope.pageChanged = -> $location.search "p", MindtaggerTask.currentPage
-    $scope.pageSizeChanged = _.debounce -> $scope.$apply ->
-            $location.search "s", MindtaggerTask.itemsPerPage
-        , 750
+    $scope.pageSizeChanged = _.debounce ->
+        $scope.$apply -> $location.search "s", MindtaggerTask.itemsPerPage
+    , 750
 
     # create/add tag
     $scope.addTagToCurrentItem = (name, type = 'binary', value = true) ->
@@ -156,7 +157,7 @@ angular.module 'mindbenderApp.mindtagger', [
     compile: (tElement, tAttrs) ->
         # Keep a clone of the template element so we can fill in the
         # mb-transclude selectors as we link later.
-        templateToExpand = $(tElement).clone()
+        templateToExpand = tElement.clone()
         ($scope, $element, $attrs, controller, $transclude) ->
             $transclude (clone, scope) ->
                 # Fill the elements with mb-transclude selectors by finding
@@ -165,9 +166,8 @@ angular.module 'mindbenderApp.mindtagger', [
                 templateToExpand.find("[mb-transclude]").each ->
                     container = $ @
                     selector = container.attr("mb-transclude")
-                    found = $(clone).find(selector).addBack(selector)
                     container.empty()
-                    container.append found
+                    clone.find(selector).addBack(selector).appendTo(container)
                 # Replace the element on DOM by compiling the whole expanded
                 # template again.
                 $element.empty()
@@ -175,7 +175,6 @@ angular.module 'mindbenderApp.mindtagger', [
 
 .directive 'mindtaggerNavbar', ->
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/navbar.html"
-
 .directive 'mindtaggerPagination', ->
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/pagination.html"
 
@@ -186,3 +185,4 @@ angular.module 'mindbenderApp.mindtagger', [
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-adhoc.html"
 .directive 'mindtaggerNoteTags', ->
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-note.html"
+

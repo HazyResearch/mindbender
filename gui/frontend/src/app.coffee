@@ -6,10 +6,11 @@ angular.module 'mindbenderApp', [
 .config ($routeProvider) ->
     $routeProvider.otherwise redirectTo: '/mindtagger'
 
-# Workaround to get source mapping for uncaught exceptions
-# See: http://stackoverflow.com/a/25642699
-.config ($provide) ->
-    $provide.decorator '$exceptionHandler', ($delegate) ->
-        (exception, cause) ->
-            $delegate exception, cause
-            throw exception
+## Workaround to get source mapping for uncaught exceptions
+## See: http://stackoverflow.com/a/25642699
+#.config ($provide) ->
+#    $provide.decorator '$exceptionHandler', ($delegate) ->
+#        (exception, cause) ->
+#            $delegate exception, cause
+#            throw exception
+#            # XXX app may restart inadvertently if we throw exceptions here
