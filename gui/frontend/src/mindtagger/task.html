@@ -1,4 +1,8 @@
-<div ng-include="'mindtagger/tasks/' + MindtaggerTask.name + '/template.html'"></div>
+<div ng-include="'mindtagger/tasks/' + MindtaggerTask.name + '/template.html'">
+    <div class="alert alert-danger">
+        Task <strong>{{MindtaggerTask.name}}</strong> not found!
+    </div>
+</div>
 
 <section class="row">
 <div ng-if="!MindtaggerTask.items" class="alert alert-block alert-info text-center col-md-offset-4 col-md-4" style="margin-top: 20%;">

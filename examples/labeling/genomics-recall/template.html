@@ -1,0 +1,17 @@
+<mindtagger mode="recall">
+
+  <span for-each-mindtagger-item>
+      <span mindtagger-selectable-words ng-model="MindtaggerTask.cursorItem.selections">
+      <span mindtagger-highlight-words index-array="item.selections" style="background-color: cyan;">
+      <span mindtagger-highlight-words index-array="item.positions" array-format="postgres" style="background-color: yellow;">
+          <big mindtagger-word-array="item.words" array-format="postgres"></big>
+      </span>
+      </span>
+      </span>
+  </span>
+
+  <span for-mindtagger-tags>
+    <span mindtagger-adhoc-tags with-value="MindtaggerTask.cursorItem.selections"></span>
+  </span>
+
+</mindtagger>

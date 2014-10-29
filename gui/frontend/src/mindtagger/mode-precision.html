@@ -46,7 +46,7 @@
 <section class="row">
 <!-- Rendering items -->
 <div class="panel panel-default" ng-repeat="item in MindtaggerTask.items"
-  ng-class="$index == $parent.cursorIndex ? 'panel-primary' : 'panel-default'"
+  ng-class="$index == MindtaggerTask.cursorIndex ? 'panel-primary' : 'panel-default'"
   ng-click="moveCursorTo($index)">
     <div class="panel-body">
       <big>
@@ -67,6 +67,8 @@
 </div>
 </section>
 
-<div mindtagger-pagination mb-transclude="[for-mindtagger-pagination]"></div>
+<div mindtagger-pagination>
+    <div mb-transclude="[for-mindtagger-pagination]"></div>
+</div>
 
 </div>

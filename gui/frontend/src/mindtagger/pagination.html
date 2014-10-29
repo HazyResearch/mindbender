@@ -1,6 +1,8 @@
 <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation"
   ng-if="MindtaggerTask.items.length > 0">
   <div class="container">
+    <div ng-transclude></div>
+
     <div class="col-md-2 text-left" style="padding-top:20px;">
       <span class="input-group">
         <input type="number" min="1" max="50" size="2" value="10"
@@ -23,4 +25,4 @@
     </div>
   </div>
 </nav>
-<style>body { padding-bottom: 70px; }</style>
+<style>body { padding-bottom: 100px; }</style>

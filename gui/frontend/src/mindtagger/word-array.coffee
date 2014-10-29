@@ -39,4 +39,6 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 if wordsToHighlight?.length > 0
                     # apply style
                     wordsToHighlight.attr("style", (i, css = "") -> css + style)
+                    # TODO append a stylesheet per directive
 
+# TODO recall mode
