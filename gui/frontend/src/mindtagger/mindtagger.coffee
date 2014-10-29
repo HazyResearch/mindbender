@@ -46,7 +46,10 @@ angular.module 'mindbenderApp.mindtagger', [
 
         currentPage: +($location.search().p ? 1)
         itemsPerPage: +($location.search().s ? 10)
-        cursorIndex: 0
+        cursor:
+            index: null
+            item: null
+            tag: null
 
     $scope.keys = (obj) -> key for key of obj
 
@@ -78,7 +81,10 @@ angular.module 'mindbenderApp.mindtagger', [
         }"
 
     # cursor
-    $scope.moveCursorTo = (index) -> MindtaggerTask.cursorIndex = index
+    $scope.moveCursorTo = (index) ->
+        MindtaggerTask.cursor.index = index
+        MindtaggerTask.cursor.item  = MindtaggerTask.items[index]
+        MindtaggerTask.cursor.tag   = MindtaggerTask.tags[index]
     # pagination
     $scope.pageChanged = -> $location.search "p", MindtaggerTask.currentPage
     $scope.pageSizeChanged = _.debounce ->
@@ -88,13 +94,13 @@ angular.module 'mindbenderApp.mindtagger', [
     # create/add tag
     $scope.addTagToCurrentItem = (name, type = 'binary', value = true) ->
         console.log "adding tag to item under cursor", name, type, value
-        tag = (MindtaggerTask.tags[MindtaggerTask.cursorIndex] ?= {})
+        tag = (MindtaggerTask.tags[MindtaggerTask.cursor.index] ?= {})
         tag[name] = value
         $scope.$emit "tagChangedForCurrentItem"
     $scope.commit = -> $timeout ->
         $scope.$emit "tagChangedForCurrentItem"
     $scope.$on "tagChangedForCurrentItem", (event) ->
-        index = MindtaggerTask.cursorIndex
+        index = MindtaggerTask.cursor.index
         item = MindtaggerTask.items[index]
         tag = MindtaggerTask.tags[index]
         itemIndex = index +

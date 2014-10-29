@@ -16,29 +16,69 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         </span>
     """
 
-.directive 'mindtaggerHighlightWords', (parsedArrayFilter) ->
+.service 'mindtaggerCreateStylesheet', ->
+    stylesheetSeq = 0
+    (css) ->
+        $("""
+        <style id="mindtagger-dynamic-style-#{stylesheetSeq++}">
+        #{css}
+        </style>
+        """)
+
+.directive 'mindtaggerHighlightWords', (mindtaggerCreateStylesheet, parsedArrayFilter) ->
+    classNameSeq = 0
     restrict: 'EAC'
     scope:
         from: '='
         to: '='
         indexArray: '='
     compile: (tElement, tAttrs) ->
-        arrayFormat = tAttrs.arrayFormat ? "json"
+        arrayFormat = tAttrs.arrayFormat
         style = tElement.attr("style")
-        # remove style
-        ($scope, $element) ->
+        className = "mindtagger-highlight-words-#{classNameSeq++}"
+        ($scope, $element, $attrs) ->
+            # add a new stylesheet
+            mindtaggerCreateStylesheet(""".mindtagger-word.#{className} { #{style} }""")
+                .appendTo($element.closest("body"))
+            # remove style
             $element.attr("style", null)
-            $scope.$watch (-> JSON.stringify [$scope.indexArray, $element.find(".mindtagger-word").length]), ->
+            thingsToWatch = ->
+                JSON.stringify [
+                    $scope.indexArray
+                    $element.find(".mindtagger-word").length
+                ]
+            $scope.$watch thingsToWatch, ->
                 words = $element.find(".mindtagger-word")
                 wordsToHighlight =
                     if $scope.from? and $scope.to? and 0 <= +$scope.from <= +$scope.to < words.length
-                         words.slice +$scope.from-1, +$scope.to
+                        words.slice +$scope.from-1, +$scope.to
                     else if $scope.indexArray?.length > 0
-                        indexes = (+i for i in parsedArrayFilter $scope.indexArray, arrayFormat)
-                        $().add (words.eq(i) for i in indexes)...
-                if wordsToHighlight?.length > 0
-                    # apply style
-                    wordsToHighlight.attr("style", (i, css = "") -> css + style)
-                    # TODO append a stylesheet per directive
+                        indexes =
+                            if arrayFormat?
+                                parsedArrayFilter $scope.indexArray, arrayFormat
+                            else
+                                $scope.indexArray
+                        indexes = (+i for i in indexes)
+                        words.filter (i) -> i in indexes
+                # apply style
+                words.removeClass className
+                wordsToHighlight.addClass className
 
-# TODO recall mode
+.directive 'mindtaggerSelectableWords', ($parse) ->
+    restrict: 'EAC'
+    compile: (tElement, tAttrs) ->
+        ($scope, $element, $attrs) ->
+            indexArrayModel = $parse $attrs.indexArray
+            $element.on "click", ".mindtagger-word", (event) ->
+                word = event.target
+                words = $element.find(".mindtagger-word")
+                wordIndex = words.index(word)
+                indexArray = (indexArrayModel $scope) ? []
+                if wordIndex in indexArray
+                    indexArray = _.without indexArray, wordIndex
+                else
+                    indexArray.push wordIndex
+                    indexArray.sort()
+                indexArrayModel.assign $scope, indexArray
+                $scope.$digest()
+

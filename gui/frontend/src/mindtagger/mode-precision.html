@@ -46,7 +46,7 @@
 <section class="row">
 <!-- Rendering items -->
 <div class="panel panel-default" ng-repeat="item in MindtaggerTask.items"
-  ng-class="$index == MindtaggerTask.cursorIndex ? 'panel-primary' : 'panel-default'"
+  ng-class="$index == MindtaggerTask.cursor.index ? 'panel-primary' : 'panel-default'"
   ng-click="moveCursorTo($index)">
     <div class="panel-body">
       <big>

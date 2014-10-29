@@ -5,23 +5,25 @@
 
 <div mindtagger-navbar>
   <div mb-transclude="[for-mindtagger-navbar]"></div>
+
+  <!-- custom tagging UI elements -->
+  <div class="navbar-form" mb-transclude="[for-mindtagger-tags]"></div>
+
 </div>
 
 <section class="row">
 
 <!-- Rendering items as inline text -->
 <span class="item" ng-repeat="item in MindtaggerTask.items"
-  ng-class="$index == MindtaggerTask.cursorIndex ? 'text-info' : 'text-muted'"
-  ng-mouseenter="moveCursorTo($index)">
+  ng-init="tag = MindtaggerTask.tags[$index]"
+  ng-class="$index == MindtaggerTask.cursor.index ? 'text-info' : 'text-muted'"
+  ng-click="moveCursorTo($index)">
   <span mb-transclude="[for-each-mindtagger-item]"></span>
 </span>
 
 </section>
 
 <div mindtagger-pagination>
-  <!-- custom tagging UI elements -->
-  <div class="col-md-12" mb-transclude="[for-mindtagger-tags]"></div>
-
   <div mb-transclude="[for-mindtagger-pagination]"></div>
 </div>
 
