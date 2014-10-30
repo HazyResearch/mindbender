@@ -26,7 +26,7 @@
       </div>
       <div class="modal-body">
         <!-- support entering new binary tags -->
-        <form class="form-horizontal" role="form" ng-submit="addTagToCurrentItem(tagNameToAdd)"
+        <form class="form-horizontal" role="form" ng-submit="MindtaggerTask.addTagToCursor(tagNameToAdd)"
             onsubmit="$('#add-tag-modal').modal('hide');">
           <div class="form-group">
             <label for="add-tag-name" class="col-sm-2 control-label">Tag Name</label>
@@ -42,14 +42,14 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         <button type="button" class="btn btn-primary" data-dismiss="modal"
-          ng-click="addTagToCurrentItem(tagNameToAdd)">Add Tag</button>
+          ng-click="MindtaggerTask.addTagToCursor(tagNameToAdd)">Add Tag</button>
       </div>
     </div>
   </div>
 </div>
 <script>
   // autofocus the first visible input field in the modal
-  $("#add-tag-modal").on("shown.bs.modal", function(e) { $("input:visible:first").focus(); });
+  $("#add-tag-modal").on("shown.bs.modal", function(e) { $(this).find("input:visible:first").focus(); });
 </script>
 
 <script type="text/ng-template" id="mindtagger/commit-error.html">
@@ -120,7 +120,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" ng-click="export(exportFormat)">Download</button>
+        <button type="button" class="btn btn-primary" ng-click="MindtaggerTask.export(exportFormat)">Download</button>
       </div>
     </div>
   </div>

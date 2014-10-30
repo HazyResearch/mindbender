@@ -15,9 +15,9 @@
 
 <!-- Rendering items as inline text -->
 <span class="item" ng-repeat="item in MindtaggerTask.items"
-  ng-init="tag = MindtaggerTask.tags[$index]"
   ng-class="$index == MindtaggerTask.cursor.index ? 'text-info' : 'text-muted'"
-  ng-click="moveCursorTo($index)">
+  ng-init="tag = MindtaggerTask.tagOf(item)"
+  ng-click="MindtaggerTask.moveCursorTo($index)">
   <span mb-transclude="[for-each-mindtagger-item]"></span>
 </span>
 

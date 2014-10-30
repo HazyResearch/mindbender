@@ -9,7 +9,7 @@
   <!-- binary -->
   <label ng-if="tagSchema.type == 'binary'"
     btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
-    ng-model="tag[tagName]" ng-click="commit(tag)"
+    ng-model="tag[tagName]" ng-click="commit(item,tag)"
     ng-class="tag[tagName] ? 'btn-info' : 'btn-default'"
     class="btn"><i class="glyphicon glyphicon-tag"></i>
     <span class="tag-name">{{tagName}}</span>

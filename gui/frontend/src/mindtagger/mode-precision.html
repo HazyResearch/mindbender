@@ -47,18 +47,19 @@
 <!-- Rendering items -->
 <div class="panel panel-default" ng-repeat="item in MindtaggerTask.items"
   ng-class="$index == MindtaggerTask.cursor.index ? 'panel-primary' : 'panel-default'"
-  ng-click="moveCursorTo($index)">
+  ng-init="tag = MindtaggerTask.tagOf(item)"
+  ng-click="MindtaggerTask.moveCursorTo($index)">
     <div class="panel-body">
       <big>
         <div mb-transclude="[for-each-mindtagger-item]"></div>
       </big>
     </div>
 
-    <div class="panel-footer" ng-controller="MindtaggerTagsCtrl">
+    <div class="panel-footer">
       <!-- correct/undecidable/incorrect tags for precision labeling -->
       <span class="btn-group">
-        <label uncheckable btn-radio="true"  ng-model="tag.is_correct" ng-click="commit(tag)" class="btn" ng-class="tag.is_correct != null && !tag.is_correct ? 'btn-default' : 'btn-success'"><i class="glyphicon glyphicon-ok"></i></label>
-        <label uncheckable btn-radio="false" ng-model="tag.is_correct" ng-click="commit(tag)" class="btn" ng-class="tag.is_correct != null &&  tag.is_correct ? 'btn-default' : 'btn-danger' "><i class="glyphicon glyphicon-remove"></i></label>
+        <label uncheckable btn-radio="true"  ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && !tag.is_correct ? 'btn-default' : 'btn-success'"><i class="glyphicon glyphicon-ok"></i></label>
+        <label uncheckable btn-radio="false" ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null &&  tag.is_correct ? 'btn-default' : 'btn-danger' "><i class="glyphicon glyphicon-remove"></i></label>
       </span>
 
       <!-- custom tagging UI elements -->
