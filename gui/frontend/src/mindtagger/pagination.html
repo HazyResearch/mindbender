@@ -5,11 +5,13 @@
       <div ng-transclude></div>
     </div>
 
-    <div class="col-md-6 text-right">
-      <pagination total-items="MindtaggerTask.itemsCount" items-per-page="MindtaggerTask.itemsPerPage"
-        ng-model="MindtaggerTask.currentPage" ng-change="pageChanged()"
-        class="col-md-10 fa" previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
-        max-size="3" class="pagination" boundary-links="true" rotate="false"></pagination>
+    <div class="col-md-6">
+      <div class="col-md-10 text-right">
+        <pagination total-items="MindtaggerTask.itemsCount" items-per-page="MindtaggerTask.itemsPerPage"
+          ng-model="MindtaggerTask.currentPage" ng-change="pageChanged()"
+          class="fa" previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
+          max-size="3" class="pagination" boundary-links="true" rotate="false"></pagination>
+      </div>
       <div class="col-md-2 text-right">
         <span class="input-group" style="margin-top:20px;">
           <input type="number" min="1" max="50" size="2" value="10"
