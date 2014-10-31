@@ -8,7 +8,8 @@
     <div class="col-md-6">
       <div class="col-md-10 text-right">
         <pagination total-items="MindtaggerTask.itemsCount" items-per-page="MindtaggerTask.itemsPerPage"
-          ng-model="MindtaggerTask.currentPage" ng-change="pageChanged()"
+          ng-model="MindtaggerTask.currentPage"
+          ng-model-options="{ debounce: 200 }"
           class="fa" previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
           max-size="3" class="pagination" boundary-links="true" rotate="false"></pagination>
       </div>
@@ -16,7 +17,8 @@
         <span class="input-group" style="margin-top:20px;">
           <input type="number" min="1" max="50" size="2" value="10"
           style="min-width:60px;"
-          ng-model="MindtaggerTask.itemsPerPage" ng-change="pageSizeChanged()" 
+          ng-model="MindtaggerTask.itemsPerPage"
+          ng-model-options="{ updateOn: 'default blur', debounce: {'default': 500, 'blur': 0} }"
           class="form-control">
           <span class="input-group-addon">/page</span>
         </span>

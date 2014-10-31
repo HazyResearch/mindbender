@@ -37,11 +37,14 @@ angular.module 'mindbenderApp.mindtagger', [
     $scope.commit = (item, tag) ->
         $timeout -> task.commitTagsOf item
     # pagination
-    $scope.pageChanged = -> $location.search "p", task.currentPage
-    $scope.pageSizeChanged = _.debounce (pageSize) ->
-            task.itemsPerPage = pageSize
-            $scope.$apply -> $location.search "s", task.itemsPerPage
-        , 750
+    $scope.$watch ->
+            $scope.MindtaggerTask.currentPage
+        , (newPage) ->
+            $location.search "p", newPage
+    $scope.$watch ->
+            $scope.MindtaggerTask.itemsPerPage
+        , (newPageSize) ->
+            $location.search "s", newPageSize
 
     $scope.exportFormat = "sql"
 
