@@ -29,9 +29,9 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
     classNameSeq = 0
     restrict: 'EAC'
     scope:
-        from: '='
-        to: '='
+        from: '=', to: '='
         indexArray: '='
+        indexArrays: '='
     compile: (tElement, tAttrs) ->
         arrayFormat = tAttrs.arrayFormat
         style = tElement.attr("style")
@@ -44,7 +44,9 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
             $element.attr("style", null)
             thingsToWatch = ->
                 JSON.stringify [
+                    $scope.from, $scope.to
                     $scope.indexArray
+                    $scope.indexArrays
                     $element.find(".mindtagger-word").length
                 ]
             $scope.$watch thingsToWatch, ->
@@ -52,14 +54,20 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 wordsToHighlight =
                     if $scope.from? and $scope.to? and 0 <= +$scope.from <= +$scope.to < words.length
                         words.slice +$scope.from-1, +$scope.to
-                    else if $scope.indexArray?.length > 0
+                    else
                         indexes =
-                            if arrayFormat?
-                                parsedArrayFilter $scope.indexArray, arrayFormat
+                            if $scope.indexArray?.length > 0
+                                indexes =
+                                    if arrayFormat?
+                                        parsedArrayFilter $scope.indexArray, arrayFormat
+                                    else
+                                        $scope.indexArray
+                                (+i for i in indexes)
+                            else if $scope.indexArrays?.length > 0
+                                _.union $scope.indexArrays...
                             else
-                                $scope.indexArray
-                        indexes = (+i for i in indexes)
-                        words.filter (i) -> i in indexes
+                                []
+                        words.filter((i) -> i in indexes) if indexes?.length > 0
                 # apply style
                 words.removeClass className
                 wordsToHighlight.addClass className

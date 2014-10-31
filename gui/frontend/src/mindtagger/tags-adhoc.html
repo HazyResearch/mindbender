@@ -17,4 +17,24 @@
   <!-- TODO render categorical tags with one input box (name) and a dropdown -->
   <!-- TODO render freetext tags with two input boxes: name and value -->
   <!-- TODO autocomplete/typeahead in input boxes -->
+
+  <!-- Set of values as Split button -->
+  <span ng-if="tagSchema.type == 'set'" class="btn-group dropup">
+    <button type="button" class="btn btn-default"
+      ng-class="tag[tagName].indexOf(tagValue) > -1 ? 'btn-info' : 'btn-default'"
+      ng-click="addValueToTag(tag, tagName, tagValue); commit(item,tag)">{{tagName}}</button>
+    <button type="button" class="btn dropdown-toggle" data-toggle="dropdown"
+      ng-class="tag[tagName].length > 0 ? 'btn-info' : 'btn-default disabled'">
+      <span class="caret"></span>
+      <span class="sr-only">Toggle Dropdown</span>
+    </button>
+    <ul class="dropdown-menu" role="menu">
+      <!-- TODO custom renderer for value -->
+      <!-- TODO removal of each value -->
+      <li ng-repeat="value in tag[tagName]"><a>{{value}}</a></li>
+      <li class="divider"></li>
+      <li ng-if="tag[tagName].length > 0"><a><i class="fa fa-remove"></i> Remove all</a></li>
+    </ul>
+  </span>
+
 </span>

@@ -34,6 +34,7 @@ angular.module 'mindbenderApp.mindtagger', [
         .finally ->
             do $scope.$digest
 
+    # TODO replace with $watch (probably with a Ctrl?)
     $scope.commit = (item, tag) ->
         $timeout -> task.commitTagsOf item
     # pagination
@@ -105,6 +106,7 @@ angular.module 'mindbenderApp.mindtagger', [
         ]
 
     defineTags: (tagsSchema...) =>
+        console.log "defineTags", tagsSchema...
         _.extend @schemaTagsFixed, tagsSchema...
         do @updateSchema
     updateSchema: (schema...) =>
@@ -112,7 +114,7 @@ angular.module 'mindbenderApp.mindtagger', [
         # TODO a recursive version of _.extend
         @schema.tags ?= {}
         for tagName,tagSchema of @schemaTagsFixed
-            _.extend @schema.tags[tagName], tagSchema
+            _.extend (@schema.tags[tagName] ?= {}), tagSchema
 
     indexOf: (item) =>
         if (typeof item) is "number" then item
@@ -224,6 +226,12 @@ angular.module 'mindbenderApp.mindtagger', [
 
 .directive 'mindtaggerAdhocTags', ->
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-adhoc.html"
+    controller: ($scope, $element, $attrs) ->
+        $scope.$watch $attrs.withValue, (newValue) ->
+            $scope.tagValue = newValue
+        $scope.addValueToTag = (tag, tagName, tagValue) ->
+            tag[tagName] ?= []
+            tag[tagName].push tagValue unless tagValue in tag[tagName]
 .directive 'mindtaggerNoteTags', ->
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-note.html"
 
