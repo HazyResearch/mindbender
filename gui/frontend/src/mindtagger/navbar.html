@@ -23,6 +23,12 @@
         <li ng-if="tasks.length == 1" class="active"><a href="#/mindtagger/{{MindtaggerTask.name}}">{{MindtaggerTask.name}}</a></li>
       </ul>
 
+      <ul class="nav navbar-nav navbar-right">
+        <li><a data-toggle="modal" data-target="#export-modal">
+          <i class="glyphicon glyphicon-save"></i> Export
+        </a></li>
+      </ul>
+
       <!-- Plug in navbar buttons for the configured mode -->
       <span ng-transclude></span>
     </div><!-- /.navbar-collapse -->

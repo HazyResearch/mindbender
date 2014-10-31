@@ -38,7 +38,8 @@ angular.module 'mindbenderApp.mindtagger', [
         $timeout -> task.commitTagsOf item
     # pagination
     $scope.pageChanged = -> $location.search "p", task.currentPage
-    $scope.pageSizeChanged = _.debounce ->
+    $scope.pageSizeChanged = _.debounce (pageSize) ->
+            task.itemsPerPage = pageSize
             $scope.$apply -> $location.search "s", task.itemsPerPage
         , 750
 
@@ -46,6 +47,12 @@ angular.module 'mindbenderApp.mindtagger', [
 
     $scope.keys = (obj) -> key for key of obj
 
+# A controller that sets item and tag to those of the cursor
+.controller 'MindtaggerTaskCursorFollowCtrl', ($scope) ->
+    $scope.$watch 'MindtaggerTask.cursor.index', (cursorIndex) ->
+        cursor = $scope.MindtaggerTask.cursor
+        $scope.item = cursor.item
+        $scope.tag = cursor.tag
 
 .service 'MindtaggerTask', ($http, $q, $modal, $window) ->
   class MindtaggerTask

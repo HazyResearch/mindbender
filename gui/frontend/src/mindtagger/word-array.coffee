@@ -81,4 +81,8 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                     indexArray.sort()
                 indexArrayModel.assign $scope, indexArray
                 $scope.$digest()
+            $scope.$watch ->
+                    $scope.MindtaggerTask.cursor.item is $scope.item
+                , (cursorOnThisItem) ->
+                    indexArrayModel.assign $scope, [] unless cursorOnThisItem
 

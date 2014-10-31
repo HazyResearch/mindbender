@@ -1,13 +1,11 @@
 <div ng-init="
+    pageSizeChanged(50); 'XXX remove after moving to group-based pagination';
     MindtaggerTask.defineTags({
     })
 ">
 
 <div mindtagger-navbar>
   <div mb-transclude="[for-mindtagger-navbar]"></div>
-
-  <!-- custom tagging UI elements -->
-  <div class="navbar-form" mb-transclude="[for-mindtagger-tags]"></div>
 
 </div>
 
@@ -24,7 +22,11 @@
 </section>
 
 <div mindtagger-pagination>
-  <div mb-transclude="[for-mindtagger-pagination]"></div>
+  <!-- custom tagging UI elements -->
+  <span ng-controller="MindtaggerTaskCursorFollowCtrl"
+    class="navbar-form" mb-transclude="[for-mindtagger-tags]"></span>
+
+  <span mb-transclude="[for-mindtagger-pagination]"></span>
 </div>
 
 </div>
