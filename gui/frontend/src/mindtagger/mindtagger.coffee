@@ -229,9 +229,19 @@ angular.module 'mindbenderApp.mindtagger', [
     controller: ($scope, $element, $attrs) ->
         $scope.$watch $attrs.withValue, (newValue) ->
             $scope.tagValue = newValue
-        $scope.addValueToTag = (tag, tagName, tagValue) ->
-            tag[tagName] ?= []
-            tag[tagName].push tagValue unless tagValue in tag[tagName]
+        $scope.toggleValueFromSet = (tag, tagName, tagValue) ->
+            if tag? and tagValue?
+                jsonTagValue = JSON.stringify tagValue
+                set = tag[tagName] ?= []
+                newSet = (v for v in set when jsonTagValue isnt (JSON.stringify v))
+                newSet.push tagValue if newSet.length == set.length
+                tag[tagName] = newSet
+        $scope.containsValueInSet = (tag, tagName, tagValue) ->
+            if tagValue? and tag?[tagName]?
+                jsonTagValue = JSON.stringify tagValue
+                for v in tag[tagName] when jsonTagValue is (JSON.stringify v)
+                    return yes
+            no
 .directive 'mindtaggerNoteTags', ->
     restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-note.html"
 

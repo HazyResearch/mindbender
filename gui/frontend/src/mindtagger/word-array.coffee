@@ -87,6 +87,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 else
                     indexArray.push wordIndex
                     indexArray.sort()
+                indexArray = null if indexArray?.length == 0
                 indexArrayModel.assign $scope, indexArray
                 $scope.$digest()
             $scope.$watch ->
