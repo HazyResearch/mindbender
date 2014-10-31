@@ -23,8 +23,9 @@
 
 <div mindtagger-pagination>
   <!-- custom tagging UI elements -->
-  <span ng-controller="MindtaggerTaskCursorFollowCtrl"
-    class="navbar-form" mb-transclude="[for-mindtagger-tags]"></span>
+  <span ng-controller="MindtaggerTaskCursorFollowCtrl" class="navbar-form">
+    <span mb-transclude="[for-mindtagger-tags]"></span>
+  </span>
 
   <span mb-transclude="[for-mindtagger-pagination]"></span>
 </div>

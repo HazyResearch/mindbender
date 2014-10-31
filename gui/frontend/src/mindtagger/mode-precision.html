@@ -11,10 +11,12 @@
 <div mindtagger-navbar>
 
   <ul class="nav navbar-nav navbar-right">
-    <li class="dropdown"><a><i class="glyphicon glyphicon-filter"></i> Filter by <span class="caret"></span></a></li>
-    <li class="dropdown"><a><i class="glyphicon glyphicon-sort-by-attributes"></i> Order by <span class="caret"></span></a></li>
+    <!--
+      <li class="dropdown"><a><i class="glyphicon glyphicon-filter"></i> Filter by <span class="caret"></span></a></li>
+      <li class="dropdown"><a><i class="glyphicon glyphicon-sort-by-attributes"></i> Order by <span class="caret"></span></a></li>
+    -->
     <li class="dropdown">
-      <a class="dropdown-toggle"><i class="glyphicon glyphicon-th-list"></i> Group by <span class="caret"></span></a>
+      <a class="dropdown-toggle"><i class="glyphicon glyphicon-tags"></i> Tags <span class="caret"></span></a>
       <ul class="dropdown-menu" role="menu">
         <li ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags"><a>
           <i class="glyphicon glyphicon-tag"></i> {{tagName}}
@@ -33,9 +35,6 @@
         <li class="divider"></li>
         <li><a>No grouping</a></li>
       </ul>
-    </li>
-    <li>
-      <a><i class="glyphicon glyphicon-tags"></i> Tag Settings</a>
     </li>
   </ul>
 
