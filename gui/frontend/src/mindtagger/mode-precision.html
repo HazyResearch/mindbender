@@ -47,7 +47,7 @@
 <div class="panel panel-default" ng-repeat="item in MindtaggerTask.items"
   ng-class="$index == MindtaggerTask.cursor.index ? 'panel-primary' : 'panel-default'"
   ng-init="tag = MindtaggerTask.tagOf(item)"
-  ng-click="MindtaggerTask.moveCursorTo($index)">
+  ng-mousedown="MindtaggerTask.moveCursorTo($index)">
     <div class="panel-body">
       <big>
         <div mb-transclude="[for-each-mindtagger-item]"></div>

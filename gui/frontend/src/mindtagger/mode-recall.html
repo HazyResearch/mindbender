@@ -15,7 +15,7 @@
 <span class="item" ng-repeat="item in MindtaggerTask.items"
   ng-class="$index == MindtaggerTask.cursor.index ? 'text-info' : 'text-muted'"
   ng-init="tag = MindtaggerTask.tagOf(item)"
-  ng-click="MindtaggerTask.moveCursorTo($index)">
+  ng-mousedown="MindtaggerTask.moveCursorTo($index)">
   <span mb-transclude="[for-each-mindtagger-item]"></span>
 </span>
 

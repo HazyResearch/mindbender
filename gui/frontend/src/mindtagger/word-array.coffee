@@ -9,9 +9,9 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         mindtaggerWordArray: '='
         arrayFormat: '@'
     template: """
-        <span class="mindtagger-word"
+        <span class="mindtagger-word-container"
             ng-repeat="word in mindtaggerWordArray | parsedArray:arrayFormat track by $index">
-            {{word}}
+            <span class="mindtagger-word">{{word}}</span>
             <span ng-transclude></span>
         </span>
     """
@@ -72,26 +72,52 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 words.removeClass className
                 wordsToHighlight.addClass className
 
-.directive 'mindtaggerSelectableWords', ($parse) ->
+.directive 'mindtaggerSelectableWords', ($parse, $timeout) ->
     restrict: 'EAC'
     compile: (tElement, tAttrs) ->
+        indexArrayModel = $parse tAttrs.indexArray
         ($scope, $element, $attrs) ->
-            indexArrayModel = $parse $attrs.indexArray
-            $element.on "click", ".mindtagger-word", (event) ->
-                word = event.target
-                words = $element.find(".mindtagger-word")
-                wordIndex = words.index(word)
-                indexArray = (indexArrayModel $scope) ? []
-                if wordIndex in indexArray
-                    indexArray = _.without indexArray, wordIndex
-                else
-                    indexArray.push wordIndex
-                    indexArray.sort()
+            updateIndexArray = (indexArray) ->
                 indexArray = null if indexArray?.length == 0
+                indexArray = _.uniq indexArray?.sort()
                 indexArrayModel.assign $scope, indexArray
-                $scope.$digest()
+                console.log indexArray
+                $timeout -> $scope.$digest()
+            isModifyingSelection = (event) -> event.metaKey or event.ctrlKey
+            findWordFor = (el) ->
+                $(el).closest(".mindtagger-word-container").find(".mindtagger-word")
+            $element.on "mouseup", (event) ->
+                words = $element.find(".mindtagger-word")
+                sel = getSelection()
+                if sel.baseNode is sel.extentNode and sel.baseOffset == sel.extentOffset
+                    # if selection is empty, this must be a normal click
+                    word = findWordFor (event.srcElement ? event.target)
+                    selectedWordIndexes = [words.index word]
+                else
+                    # from the selected range
+                    r = sel.getRangeAt(0)
+                    # find boundary words
+                    $startWord = findWordFor r.startContainer
+                    $endWord   = findWordFor r.endContainer
+                    from = words.index $startWord
+                    to   = words.index $endWord
+                    return if from == -1 or to == -1
+                    selectedWordIndexes = [from, to]
+                    # and words contained in the selection
+                    words.each (i, word) ->
+                        selectedWordIndexes.push i if sel.containsNode word
+                    sel.empty()
+                if isModifyingSelection event
+                    # when modifying selection,
+                    prevIndexes = (indexArrayModel $scope) ? []
+                    # add any newly selected words, but remove the previously selected ones
+                    selectedWordIndexes =
+                        _.union (_.difference selectedWordIndexes, prevIndexes),
+                                (_.difference prevIndexes, selectedWordIndexes)
+                # finally, reflect to the model
+                updateIndexArray selectedWordIndexes
             $scope.$watch ->
                     $scope.MindtaggerTask.cursor.item is $scope.item
                 , (cursorOnThisItem) ->
-                    indexArrayModel.assign $scope, [] unless cursorOnThisItem
+                    indexArrayModel.assign $scope, null unless cursorOnThisItem
 
