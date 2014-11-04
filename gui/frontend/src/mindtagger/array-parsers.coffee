@@ -29,27 +29,39 @@ angular.module 'mindbenderApp.mindtagger.arrayParsers', [
 .filter 'parsedPythonArray', ->
     (text, index) ->
         return null unless text? and (m = /^\[(.*)\]$/.exec text?.trim())?
+        remainder = m[1].trim()
         array = []
         headTailRegex = ///^
-                '([^']*)'  # head # FIXME handle escaping problem
-                (, (.*))?  # optional tail
+                (['"])   # Match an opening quote (group 2)
+                (        # Match and capture into group 3:
+                 (?:     # the following regex:
+                  \\.    # Either an escaped character
+                 |       # or
+                  (?!\1) # (as long as we're not right at the matching quote)
+                  .      # any other character.
+                 )*      # Repeat as needed
+                )        # End of capturing group
+                \1       # Match the corresponding closing quote.
+                (?:, (.*))?  # optional tail
             $///
-        remainder = m[1].trim()
         while remainder?.length > 0
             if (m = headTailRegex.exec remainder)?
-                array.push m[1]
+                head = m[2]
+                # TODO handle escape codes, e.g., \xYZ
+                head = head.replace /// \\(.) ///g, "$1"
+                array.push head
                 remainder = m[3]?.trim()
             else
                 return [text]
         array
 
-.filter 'parsedArray', (parsedPostgresArrayFilter, parsedPythonArrayFilter) ->
+.filter 'parsedArray', ($filter) ->
     (text, format) ->
         switch format
             when "postgres"
-                parsedPostgresArrayFilter text
+                ($filter "parsedPostgresArray") text
             when "python"
-                parsedPythonArrayFilter text
+                ($filter "parsedPythonArray") text
             else # when "json"
                 try JSON.parse text
                 catch err
