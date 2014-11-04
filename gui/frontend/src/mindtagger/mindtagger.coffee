@@ -47,8 +47,6 @@ angular.module 'mindbenderApp.mindtagger', [
         , (newPageSize) ->
             $location.search "s", newPageSize
 
-    $scope.exportFormat = "sql"
-
     $scope.keys = (obj) -> key for key of obj
 
 # A controller that sets item and tag to those of the cursor
@@ -115,6 +113,11 @@ angular.module 'mindbenderApp.mindtagger', [
         @schema.tags ?= {}
         for tagName,tagSchema of @schemaTagsFixed
             _.extend (@schema.tags[tagName] ?= {}), tagSchema
+        # set default export options
+        for attrName,attrSchema of @schema.items when attrName in @schema.itemKeys
+            attrSchema.shouldExport ?= yes
+        for tagName,tagSchema of @schema.tags
+            tagSchema.shouldExport ?= yes
 
     indexOf: (item) =>
         if (typeof item) is "number" then item
@@ -168,9 +171,9 @@ angular.module 'mindbenderApp.mindtagger', [
         }?table=#{
             "" # TODO allow table name to be customized
         }&attrs=#{
-            encodeURIComponent ((attrName for attrName,attrSchema of @schema.items when attrSchema.export).join ",")
+            encodeURIComponent ((attrName for attrName,attrSchema of @schema.items when not attrSchema.shouldExport).join ",")
         }&tags=#{
-            encodeURIComponent ((tagName for tagName,tagSchema of @schema.tags when tagSchema.export).join ",")
+            encodeURIComponent ((tagName for tagName,tagSchema of @schema.tags when not tagSchema.shouldExport).join ",")
         }"
 
 
