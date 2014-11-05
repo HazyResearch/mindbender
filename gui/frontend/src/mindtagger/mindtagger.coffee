@@ -171,9 +171,9 @@ angular.module 'mindbenderApp.mindtagger', [
         }?table=#{
             "" # TODO allow table name to be customized
         }&attrs=#{
-            encodeURIComponent ((attrName for attrName,attrSchema of @schema.items when not attrSchema.shouldExport).join ",")
+            encodeURIComponent ((attrName for attrName,attrSchema of @schema.items when attrSchema.shouldExport).join ",")
         }&tags=#{
-            encodeURIComponent ((tagName for tagName,tagSchema of @schema.tags when not tagSchema.shouldExport).join ",")
+            encodeURIComponent ((tagName for tagName,tagSchema of @schema.tags when tagSchema.shouldExport).join ",")
         }"
 
 
