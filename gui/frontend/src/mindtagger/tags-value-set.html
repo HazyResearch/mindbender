@@ -11,7 +11,7 @@
   </button>
   <ul ng-if="tag[tagName].length > 0" class="dropdown-menu" role="menu">
     <!-- TODO removal of each value -->
-    <li ng-repeat="value in tag[tagName]"><a ng-click="tagValue = value">{{renderValueOfSet(value)}}</a></li>
+    <li ng-repeat="value in tag[tagName]"><a ng-click="setTheValue(value)">{{renderValueOfSet(value)}}</a></li>
     <li class="divider"></li>
     <li><a><i class="fa fa-remove"></i> Remove all</a></li>
   </ul>

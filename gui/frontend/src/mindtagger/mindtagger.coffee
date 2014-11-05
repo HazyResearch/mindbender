@@ -233,10 +233,11 @@ angular.module 'mindbenderApp.mindtagger', [
     controller: ($scope, $element, $attrs) ->
         $scope.$watch $attrs.withValue, (newValue) ->
             $scope.tagValue = newValue
-.directive 'mindtaggerValueSetTag', ($interpolate) ->
+.directive 'mindtaggerValueSetTag', ($parse, $interpolate) ->
     restrict: 'A', transclude: true, templateUrl: "mindtagger/tags-value-set.html"
     controller: ($scope, $element, $attrs) ->
         $scope.$watch $attrs.mindtaggerValueSetTag, (newValue) -> $scope.tagName = newValue
+        tagValueModel = $parse $attrs.withValue
         $scope.$watch $attrs.withValue, (newValue) -> $scope.tagValue = newValue
         $scope.toggleValueFromSet = (tag, tagName, tagValue) ->
             if tag? and tagValue?
@@ -251,6 +252,9 @@ angular.module 'mindbenderApp.mindtagger', [
                 for v in tag[tagName] when jsonTagValue is (JSON.stringify v)
                     return yes
             no
+        $scope.setTheValue = (tagValue) ->
+            tagValueModel.assign $scope, tagValue
+            $timeout -> $scope.$digest()
         # custom rendering of each value
         # TODO support html template
         # html = $element.find("[type='text/ng-template']").html()
