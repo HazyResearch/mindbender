@@ -70,7 +70,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                         words.filter((i) -> i in indexes) if indexes?.length > 0
                 # apply style
                 words.removeClass className
-                wordsToHighlight.addClass className
+                wordsToHighlight?.addClass className
 
 .directive 'mindtaggerSelectableWords', ($parse, $timeout) ->
     restrict: 'EAC'

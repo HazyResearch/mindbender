@@ -1,0 +1,18 @@
+<!-- transcluded template for custom rendering of value -->
+<span class="btn-group dropup">
+  <button type="button" class="btn btn-default"
+    ng-class="tagValue == null ? 'btn-default disabled' :
+    containsValueInSet(tag, tagName, tagValue) ? 'btn-info' : 'btn-default'"
+    ng-click="toggleValueFromSet(tag, tagName, tagValue); commit(item,tag)">{{tagName}}</button>
+  <button type="button" class="btn dropdown-toggle" data-toggle="dropdown"
+    ng-class="tag[tagName].length > 0 ? 'btn-info' : 'btn-default disabled'">
+    <span class="caret"></span>
+    <span class="sr-only">Toggle Dropdown</span>
+  </button>
+  <ul ng-if="tag[tagName].length > 0" class="dropdown-menu" role="menu">
+    <!-- TODO removal of each value -->
+    <li ng-repeat="value in tag[tagName]"><a ng-click="tagValue = value">{{renderValueOfSet(value)}}</a></li>
+    <li class="divider"></li>
+    <li><a><i class="fa fa-remove"></i> Remove all</a></li>
+  </ul>
+</span>

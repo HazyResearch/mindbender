@@ -198,7 +198,7 @@ angular.module 'mindbenderApp.mindtagger', [
 
 
 .directive 'mindtagger', ($compile) ->
-    restrict: 'EAC', transclude: true, priority: 2000
+    restrict: 'E', transclude: true, priority: 2000
     templateUrl: ($element, $attrs) -> "mindtagger/mode-#{$attrs.mode}.html"
     compile: (tElement, tAttrs) ->
         # Keep a clone of the template element so we can fill in the
@@ -209,29 +209,35 @@ angular.module 'mindbenderApp.mindtagger', [
                 # Fill the elements with mb-transclude selectors by finding
                 # them in the clone, which is the element the directive is
                 # originally used on.
-                templateToExpand.find("[mb-transclude]").each ->
+                t = templateToExpand.clone()
+                t.find("[mb-transclude]").each ->
                     container = $ @
                     selector = container.attr("mb-transclude")
                     container.empty()
-                    clone.find(selector).addBack(selector).appendTo(container)
+                    clone.find(selector).addBack(selector).clone().appendTo(container)
                 # Replace the element on DOM by compiling the whole expanded
                 # template again.
                 $element.empty()
-                $element.append $compile(templateToExpand.children())(scope)
+                $element.append $compile(t.children())(scope)
 
 .directive 'mindtaggerNavbar', ->
-    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/navbar.html"
+    restrict: 'EA', transclude: true, templateUrl: "mindtagger/navbar.html"
 .directive 'mindtaggerPagination', ->
-    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/pagination.html"
+    restrict: 'EA', transclude: true, templateUrl: "mindtagger/pagination.html"
 
 .directive 'mindtaggerItemDetails', ->
-    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/item-details.html"
+    restrict: 'EA', transclude: true, templateUrl: "mindtagger/item-details.html"
 
 .directive 'mindtaggerAdhocTags', ->
-    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-adhoc.html"
+    restrict: 'EA', transclude: true, templateUrl: "mindtagger/tags-adhoc.html"
     controller: ($scope, $element, $attrs) ->
         $scope.$watch $attrs.withValue, (newValue) ->
             $scope.tagValue = newValue
+.directive 'mindtaggerValueSetTag', ($interpolate) ->
+    restrict: 'A', transclude: true, templateUrl: "mindtagger/tags-value-set.html"
+    controller: ($scope, $element, $attrs) ->
+        $scope.$watch $attrs.mindtaggerValueSetTag, (newValue) -> $scope.tagName = newValue
+        $scope.$watch $attrs.withValue, (newValue) -> $scope.tagValue = newValue
         $scope.toggleValueFromSet = (tag, tagName, tagValue) ->
             if tag? and tagValue?
                 jsonTagValue = JSON.stringify tagValue
@@ -245,6 +251,22 @@ angular.module 'mindbenderApp.mindtagger', [
                 for v in tag[tagName] when jsonTagValue is (JSON.stringify v)
                     return yes
             no
+        # custom rendering of each value
+        # TODO support html template
+        # html = $element.find("[type='text/ng-template']").html()
+        # exp = if html? then $interpolate html
+        #$scope.renderValueOfSet =
+        #    if exp?
+        #        (value) -> exp (_.extend {value}, $scope)
+        #    else
+        #        (value) -> html ? value
+        renderEachValueExp =
+            if $attrs.renderEachValue then $interpolate $attrs.renderEachValue
+        $scope.renderValueOfSet =
+            if renderEachValueExp?
+                (value) -> renderEachValueExp (_.extend {value}, $scope)
+            else
+                (value) -> value
 .directive 'mindtaggerNoteTags', ->
-    restrict: 'EAC', transclude: true, templateUrl: "mindtagger/tags-note.html"
+    restrict: 'EA', transclude: true, templateUrl: "mindtagger/tags-note.html"
 

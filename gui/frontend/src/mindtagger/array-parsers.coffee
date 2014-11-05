@@ -57,6 +57,7 @@ angular.module 'mindbenderApp.mindtagger.arrayParsers', [
 
 .filter 'parsedArray', ($filter) ->
     (text, format) ->
+        return text if text instanceof Array
         switch format
             when "postgres"
                 ($filter "parsedPostgresArray") text
@@ -71,4 +72,14 @@ angular.module 'mindbenderApp.mindtagger.arrayParsers', [
 .filter 'concatArray', (parsedArrayFilter) ->
     (text, format, delim = " ") ->
         ((parsedArrayFilter text, format)?.join delim) ? text
+
+.filter 'filterArrayByIndexes', (parsedArrayFilter) ->
+    (textOrArray, indexArrayOrText, format) ->
+        array =
+            if textOrArray instanceof Array then textOrArray
+            else parsedArrayFilter textOrArray, format
+        indexArray =
+            if indexArrayOrText instanceof Array then indexArrayOrText
+            else parsedArrayFilter indexArrayOrText, format
+        array[i] for i in indexArray
 
