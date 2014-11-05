@@ -78,10 +78,11 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         indexArrayModel = $parse tAttrs.indexArray
         ($scope, $element, $attrs) ->
             updateIndexArray = (indexArray) ->
-                indexArray = null if indexArray?.length == 0
-                indexArray = _.uniq indexArray?.sort()
+                if indexArray?.length == 0
+                    indexArray = null
+                else
+                    indexArray = _.uniq indexArray?.sort()
                 indexArrayModel.assign $scope, indexArray
-                console.log indexArray
                 $timeout -> $scope.$digest()
             isModifyingSelection = (event) -> event.metaKey or event.ctrlKey
             findWordFor = (el) ->

@@ -21,7 +21,8 @@
   <!-- Set of values as Split button -->
   <span ng-if="tagSchema.type == 'set'" class="btn-group dropup">
     <button type="button" class="btn btn-default"
-      ng-class="containsValueInSet(tag, tagName, tagValue) ? 'btn-info' : 'btn-default'"
+      ng-class="tagValue == null ? 'btn-default disabled' :
+                containsValueInSet(tag, tagName, tagValue) ? 'btn-info' : 'btn-default'"
       ng-click="toggleValueFromSet(tag, tagName, tagValue); commit(item,tag)">{{tagName}}</button>
     <button type="button" class="btn dropdown-toggle" data-toggle="dropdown"
       ng-class="tag[tagName].length > 0 ? 'btn-info' : 'btn-default disabled'">
