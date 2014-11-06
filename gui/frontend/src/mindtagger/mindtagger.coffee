@@ -21,7 +21,7 @@ angular.module 'mindbenderApp.mindtagger', [
                 $location.path "/mindtagger/#{tasks[0].name}"
 
 
-.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location, $window) ->
+.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location, $window, hotkeys) ->
     $scope.MindtaggerTask =
     task = MindtaggerTask.forName $routeParams.task,
             currentPage: +($location.search().p ? 1)
@@ -50,22 +50,10 @@ angular.module 'mindbenderApp.mindtagger', [
     $scope.keys = (obj) -> key for key of obj
 
     # map keyboard events
-    handleKeyboardDownEvents = (event) ->
-        if $scope.MindtaggerTask.items?
-            switch event.keyCode
-                when 38, 40 # up or down
-                    incr = event.keyCode - 39
-                    $scope.$apply ->
-                        $scope.MindtaggerTask.moveCursorBy incr
-                else
-                    return
-        do event.preventDefault
-    handleKeyboardUpEvents = (event) ->
-    $($window).on "keydown", handleKeyboardDownEvents
-    $($window).on "keyup", handleKeyboardUpEvents
-    $scope.$on "$destroy", ->
-        $($window).off "keydown", handleKeyboardDownEvents
-        $($window).off "keyup", handleKeyboardUpEvents
+    hotkeys.bindTo $scope
+        .add combo: "up",   description: "Move cursor to previous item", callback: ((event) -> do event.preventDefault; $scope.MindtaggerTask.moveCursorBy -1)
+        .add combo: "down", description: "Move cursor to next item",     callback: ((event) -> do event.preventDefault; $scope.MindtaggerTask.moveCursorBy +1)
+
 
 .directive 'mindtaggerTaskKeepsCursorVisible', ($timeout) ->
     restrict: 'A'
@@ -183,12 +171,12 @@ angular.module 'mindbenderApp.mindtagger', [
         newIndex = @cursor.index + increment
         if newIndex < 0
             # page underflow
-            if newIndex == -1 and @currentPage > 1
+            if not @cursorInitIndex? and @currentPage > 1
                 @currentPage--
                 @cursorInitIndex = @itemsPerPage - 1
         else if newIndex >= @itemsPerPage
             # page overflow
-            if newIndex == @itemsPerPage and @currentPage * @itemsPerPage < @itemsCount
+            if not @cursorInitIndex? and @currentPage * @itemsPerPage < @itemsCount
                 @currentPage++
                 @cursorInitIndex = 0
         else
@@ -292,7 +280,7 @@ angular.module 'mindbenderApp.mindtagger', [
     controller: ($scope, $element, $attrs) ->
         $scope.$watch $attrs.withValue, (newValue) ->
             $scope.tagValue = newValue
-.directive 'mindtaggerValueSetTag', ($parse, $interpolate) ->
+.directive 'mindtaggerValueSetTag', ($parse, $interpolate, hotkeys) ->
     restrict: 'A', transclude: true, templateUrl: "mindtagger/tags-value-set.html"
     controller: ($scope, $element, $attrs) ->
         $scope.$watch $attrs.mindtaggerValueSetTag, (newValue) -> $scope.tagName = newValue
@@ -330,6 +318,13 @@ angular.module 'mindbenderApp.mindtagger', [
                 (value) -> renderEachValueExp (_.extend {value}, $scope)
             else
                 (value) -> value
+        hotkeys.bindTo($scope)
+            .add {
+                combo: "enter"
+                description: "toggle value in set"
+                callback: ->
+                    $scope.$eval "toggleValueFromSet(tag, tagName, tagValue); commit(item,tag)"
+            }
 .directive 'mindtaggerNoteTags', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/tags-note.html"
 
