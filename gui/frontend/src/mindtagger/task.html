@@ -1,4 +1,6 @@
-<div ng-include="'mindtagger/tasks/' + MindtaggerTask.name + '/template.html'">
+<div ng-include="'mindtagger/tasks/' + MindtaggerTask.name + '/template.html'"
+  mindtagger-task-keeps-cursor-visible
+  >
     <div class="alert alert-danger">
         Task <strong>{{MindtaggerTask.name}}</strong> not found!
     </div>

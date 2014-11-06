@@ -21,7 +21,7 @@ angular.module 'mindbenderApp.mindtagger', [
                 $location.path "/mindtagger/#{tasks[0].name}"
 
 
-.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location) ->
+.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location, $window) ->
     $scope.MindtaggerTask =
     task = MindtaggerTask.forName $routeParams.task,
             currentPage: +($location.search().p ? 1)
@@ -49,6 +49,36 @@ angular.module 'mindbenderApp.mindtagger', [
 
     $scope.keys = (obj) -> key for key of obj
 
+    # map keyboard events
+    handleKeyboardDownEvents = (event) ->
+        if $scope.MindtaggerTask.items?
+            switch event.keyCode
+                when 38, 40 # up or down
+                    incr = event.keyCode - 39
+                    $scope.$apply ->
+                        $scope.MindtaggerTask.moveCursorBy incr
+                else
+                    return
+        do event.preventDefault
+    handleKeyboardUpEvents = (event) ->
+    $($window).on "keydown", handleKeyboardDownEvents
+    $($window).on "keyup", handleKeyboardUpEvents
+    $scope.$on "$destroy", ->
+        $($window).off "keydown", handleKeyboardDownEvents
+        $($window).off "keyup", handleKeyboardUpEvents
+
+.directive 'mindtaggerTaskKeepsCursorVisible', ($timeout) ->
+    restrict: 'A'
+    controller: ($scope, $element) ->
+        $scope.$watch 'MindtaggerTask.cursor.index', (newIndex) ->
+            console.log "scrollTo", newIndex
+            return unless newIndex?
+            $timeout ->
+                if $scope.MindtaggerTask?.cursor?.mayNeedScroll
+                    cursorItem = $element.find(".mindtagger-item").eq(newIndex)
+                    cursorItem.offsetParent()?.scrollTo cursorItem.offset()?.top - 100
+                delete $scope.MindtaggerTask?.cursor?.mayNeedScroll
+
 # A controller that sets item and tag to those of the cursor
 .controller 'MindtaggerTaskCursorFollowCtrl', ($scope) ->
     $scope.$watch 'MindtaggerTask.cursor.index', (cursorIndex) ->
@@ -56,7 +86,7 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.item = cursor.item
         $scope.tag = cursor.tag
 
-.service 'MindtaggerTask', ($http, $q, $modal, $window) ->
+.service 'MindtaggerTask', ($http, $q, $modal, $window, $timeout) ->
   class MindtaggerTask
     @allTasks: {}
     @forName: (name, args) ->
@@ -99,7 +129,10 @@ angular.module 'mindbenderApp.mindtagger', [
                     @tags = tags
                     @items = items
                     @itemsCount = itemsCount
-                    @moveCursorTo 0
+                    $timeout =>
+                        # XXX we need to defer this so the mindtaggerTaskKeepsCursorVisible can scroll after the items are rendered
+                        @moveCursorTo @cursorInitIndex
+                        @cursorInitIndex = null
             )
         ]
 
@@ -133,10 +166,34 @@ angular.module 'mindbenderApp.mindtagger', [
     tagOf: (item) => @tags[@indexOf item] ?= {}
 
     # cursor
-    moveCursorTo: (index) =>
-        @cursor.index = index
-        @cursor.item  = @items[index]
-        @cursor.tag   = @tags[index]
+    moveCursorTo: (index = 0, mayNeedScroll = yes) =>
+        if index?
+            @cursor.index = index
+            @cursor.item  = @items?[index]
+            @cursor.tag   = @tags?[index]
+            @cursor.mayNeedScroll = mayNeedScroll
+        else
+            @cursor.index =
+            @cursor.item =
+            @cursor.tag =
+            @cursor.mayNeedScroll =
+                null
+    moveCursorBy: (increment = 0) =>
+        return if increment == 0
+        newIndex = @cursor.index + increment
+        if newIndex < 0
+            # page underflow
+            if newIndex == -1 and @currentPage > 1
+                @currentPage--
+                @cursorInitIndex = @itemsPerPage - 1
+        else if newIndex >= @itemsPerPage
+            # page overflow
+            if newIndex == @itemsPerPage and @currentPage * @itemsPerPage < @itemsCount
+                @currentPage++
+                @cursorInitIndex = 0
+        else
+            @moveCursorTo newIndex
+            
 
     # create/add tag
     addTagToCursor: (args...) => @addTagTo @cursor.index, args...
@@ -219,6 +276,8 @@ angular.module 'mindbenderApp.mindtagger', [
                 # template again.
                 $element.empty()
                 $element.append $compile(t.children())(scope)
+            $element.on "keyup", (event) ->
+                console.log event.keyCode
 
 .directive 'mindtaggerNavbar', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/navbar.html"
