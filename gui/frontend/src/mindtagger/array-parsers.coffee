@@ -78,8 +78,10 @@ angular.module 'mindbenderApp.mindtagger.arrayParsers', [
         array =
             if textOrArray instanceof Array then textOrArray
             else parsedArrayFilter textOrArray, format
+        return null unless array?
         indexArray =
             if indexArrayOrText instanceof Array then indexArrayOrText
             else parsedArrayFilter indexArrayOrText, format
+        return null unless indexArray?
         array[i] for i in indexArray
 

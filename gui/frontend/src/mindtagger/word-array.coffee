@@ -72,53 +72,71 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 words.removeClass className
                 wordsToHighlight?.addClass className
 
-.directive 'mindtaggerSelectableWords', ($parse, $timeout) ->
+.directive 'mindtaggerSelectableWords', ($parse, $timeout, hotkeys, overrideDefaultEventWith) ->
     restrict: 'EAC'
-    compile: (tElement, tAttrs) ->
-        indexArrayModel = $parse tAttrs.indexArray
-        ($scope, $element, $attrs) ->
-            updateIndexArray = (indexArray) ->
-                if indexArray?.length == 0
-                    indexArray = null
+    controller: ($scope, $element, $attrs) ->
+        indexArrayModel = $parse $attrs.indexArray
+        updateIndexArray = (indexArray) ->
+            if indexArray?.length == 0
+                indexArray = null
+            else
+                indexArray = _.uniq indexArray?.sort()
+            indexArrayModel.assign $scope, indexArray
+            $timeout -> $scope.$digest()
+        isModifyingSelection = (event) -> event.metaKey or event.ctrlKey
+        findWordFor = (el) ->
+            $(el).closest(".mindtagger-word-container").find(".mindtagger-word")
+        $element.on "mouseup", (event) ->
+            words = $element.find(".mindtagger-word")
+            sel = getSelection()
+            if sel.baseNode is sel.extentNode and sel.baseOffset == sel.extentOffset
+                # if selection is empty, this must be a normal click
+                word = findWordFor (event.srcElement ? event.target)
+                selectedWordIndexes = [words.index word]
+            else
+                # from the selected range
+                r = sel.getRangeAt(0)
+                # find boundary words
+                $startWord = findWordFor r.startContainer
+                $endWord   = findWordFor r.endContainer
+                from = words.index $startWord
+                to   = words.index $endWord
+                return if from == -1 or to == -1
+                selectedWordIndexes = [from, to]
+                # and words contained in the selection
+                words.each (i, word) ->
+                    selectedWordIndexes.push i if sel.containsNode word
+                sel.empty()
+            if isModifyingSelection event
+                # when modifying selection,
+                prevIndexes = (indexArrayModel $scope) ? []
+                # add any newly selected words, but remove the previously selected ones
+                selectedWordIndexes =
+                    _.union (_.difference selectedWordIndexes, prevIndexes),
+                            (_.difference prevIndexes, selectedWordIndexes)
+            # finally, reflect to the model
+            updateIndexArray selectedWordIndexes
+        # keyboard shortcuts
+        moveIndexArrayBy = (incr = 0) ->
+            return if incr == 0
+            numWords = $element.find(".mindtagger-word").length
+            indexArray = indexArrayModel $scope
+            if indexArray?
+                for i in indexArray
+                    return if i + incr < 0
+                    return if i + incr >= numWords
+                updateIndexArray (i + incr for i in indexArray)
+            else
+                updateIndexArray [if incr > 0 then 0 else numWords - 1]
+        $scope.$watch ->
+                $scope.MindtaggerTask.cursor.item is $scope.item
+            , (cursorOnThisItem) ->
+                if cursorOnThisItem
+                    hotkeys.bindTo $scope
+                        .add combo: "left",  description: "Select previous word", callback: (overrideDefaultEventWith -> moveIndexArrayBy -1)
+                        .add combo: "right", description: "Select next word",     callback: (overrideDefaultEventWith -> moveIndexArrayBy +1)
                 else
-                    indexArray = _.uniq indexArray?.sort()
-                indexArrayModel.assign $scope, indexArray
-                $timeout -> $scope.$digest()
-            isModifyingSelection = (event) -> event.metaKey or event.ctrlKey
-            findWordFor = (el) ->
-                $(el).closest(".mindtagger-word-container").find(".mindtagger-word")
-            $element.on "mouseup", (event) ->
-                words = $element.find(".mindtagger-word")
-                sel = getSelection()
-                if sel.baseNode is sel.extentNode and sel.baseOffset == sel.extentOffset
-                    # if selection is empty, this must be a normal click
-                    word = findWordFor (event.srcElement ? event.target)
-                    selectedWordIndexes = [words.index word]
-                else
-                    # from the selected range
-                    r = sel.getRangeAt(0)
-                    # find boundary words
-                    $startWord = findWordFor r.startContainer
-                    $endWord   = findWordFor r.endContainer
-                    from = words.index $startWord
-                    to   = words.index $endWord
-                    return if from == -1 or to == -1
-                    selectedWordIndexes = [from, to]
-                    # and words contained in the selection
-                    words.each (i, word) ->
-                        selectedWordIndexes.push i if sel.containsNode word
-                    sel.empty()
-                if isModifyingSelection event
-                    # when modifying selection,
-                    prevIndexes = (indexArrayModel $scope) ? []
-                    # add any newly selected words, but remove the previously selected ones
-                    selectedWordIndexes =
-                        _.union (_.difference selectedWordIndexes, prevIndexes),
-                                (_.difference prevIndexes, selectedWordIndexes)
-                # finally, reflect to the model
-                updateIndexArray selectedWordIndexes
-            $scope.$watch ->
-                    $scope.MindtaggerTask.cursor.item is $scope.item
-                , (cursorOnThisItem) ->
-                    indexArrayModel.assign $scope, null unless cursorOnThisItem
+                    indexArrayModel.assign $scope, null
+                    hotkeys.del "left"
+                    hotkeys.del "right"
 

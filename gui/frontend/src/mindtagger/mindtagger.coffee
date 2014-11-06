@@ -21,7 +21,7 @@ angular.module 'mindbenderApp.mindtagger', [
                 $location.path "/mindtagger/#{tasks[0].name}"
 
 
-.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location, $window, hotkeys) ->
+.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location, $window, hotkeys, overrideDefaultEventWith) ->
     $scope.MindtaggerTask =
     task = MindtaggerTask.forName $routeParams.task,
             currentPage: +($location.search().p ? 1)
@@ -51,15 +51,16 @@ angular.module 'mindbenderApp.mindtagger', [
 
     # map keyboard events
     hotkeys.bindTo $scope
-        .add combo: "up",   description: "Move cursor to previous item", callback: ((event) -> do event.preventDefault; $scope.MindtaggerTask.moveCursorBy -1)
-        .add combo: "down", description: "Move cursor to next item",     callback: ((event) -> do event.preventDefault; $scope.MindtaggerTask.moveCursorBy +1)
+        .add combo: "up",   description: "Move cursor to previous item", callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy -1)
+        .add combo: "down", description: "Move cursor to next item",     callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy +1)
 
+.service 'overrideDefaultEventWith', ->
+    (fn) -> (event, args...) -> do event.preventDefault; fn event, args...
 
 .directive 'mindtaggerTaskKeepsCursorVisible', ($timeout) ->
     restrict: 'A'
     controller: ($scope, $element) ->
         $scope.$watch 'MindtaggerTask.cursor.index', (newIndex) ->
-            console.log "scrollTo", newIndex
             return unless newIndex?
             $timeout ->
                 if $scope.MindtaggerTask?.cursor?.mayNeedScroll
@@ -280,6 +281,7 @@ angular.module 'mindbenderApp.mindtagger', [
     controller: ($scope, $element, $attrs) ->
         $scope.$watch $attrs.withValue, (newValue) ->
             $scope.tagValue = newValue
+
 .directive 'mindtaggerValueSetTag', ($parse, $interpolate, hotkeys) ->
     restrict: 'A', transclude: true, templateUrl: "mindtagger/tags-value-set.html"
     controller: ($scope, $element, $attrs) ->
@@ -318,13 +320,10 @@ angular.module 'mindbenderApp.mindtagger', [
                 (value) -> renderEachValueExp (_.extend {value}, $scope)
             else
                 (value) -> value
-        hotkeys.bindTo($scope)
-            .add {
-                combo: "enter"
-                description: "toggle value in set"
-                callback: ->
-                    $scope.$eval "toggleValueFromSet(tag, tagName, tagValue); commit(item,tag)"
-            }
+        hotkeys.bindTo $scope
+            .add combo: "enter", description: "toggle value in set", callback: ->
+                $scope.$eval "toggleValueFromSet(tag, tagName, tagValue); commit(item,tag)"
+
 .directive 'mindtaggerNoteTags', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/tags-note.html"
 
