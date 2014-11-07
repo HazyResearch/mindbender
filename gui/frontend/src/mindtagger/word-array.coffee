@@ -72,15 +72,22 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 words.removeClass className
                 wordsToHighlight?.addClass className
 
-.directive 'mindtaggerSelectableWords', ($parse, $timeout, hotkeys, overrideDefaultEventWith) ->
-    restrict: 'EAC'
+.directive 'mindtaggerSelectableWords', ($parse, $timeout, hotkeys, MindtaggerTaskHotkeyDemux) ->
+    MindtaggerSelectableWordsHotkeyDemux = new MindtaggerTaskHotkeyDemux [
+        { combo: "left"       , description: "Select previous word"             , expr: "  moveIndexArrayBy(-1)" }
+        { combo: "right"      , description: "Select next word"                 , expr: "  moveIndexArrayBy(+1)" }
+        { combo: "shift+left" , description: "Extend selection to previous word", expr: "extendIndexArrayBy(-1)" }
+        { combo: "shift+right", description: "Extend selection to next word"    , expr: "extendIndexArrayBy(+1)" }
+    ]
+
+    restrict: 'A'
     controller: ($scope, $element, $attrs) ->
         indexArrayModel = $parse $attrs.indexArray
         updateIndexArray = (indexArray) ->
-            if indexArray?.length == 0
-                indexArray = null
+            if indexArray?.length > 0
+                indexArray = _.uniq indexArray.sort()
             else
-                indexArray = _.uniq indexArray?.sort()
+                indexArray = null
             indexArrayModel.assign $scope, indexArray
             $timeout -> $scope.$digest()
         isModifyingSelection = (event) -> event.metaKey or event.ctrlKey
@@ -116,27 +123,35 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                             (_.difference prevIndexes, selectedWordIndexes)
             # finally, reflect to the model
             updateIndexArray selectedWordIndexes
-        # keyboard shortcuts
-        moveIndexArrayBy = (incr = 0) ->
+        # keyboard shortcuts handlers
+        $scope.moveIndexArrayBy = (incr = 0) ->
             return if incr == 0
             numWords = $element.find(".mindtagger-word").length
             indexArray = indexArrayModel $scope
-            if indexArray?
+            if indexArray?.length > 0
                 for i in indexArray
                     return if i + incr < 0
                     return if i + incr >= numWords
                 updateIndexArray (i + incr for i in indexArray)
             else
                 updateIndexArray [if incr > 0 then 0 else numWords - 1]
+        $scope.extendIndexArrayBy = (dir = 0) ->
+            return if dir == 0
+            numWords = $element.find(".mindtagger-word").length
+            indexArray = indexArrayModel $scope
+            boundaryIndex = (if dir > 0 then Math.max else Math.min) indexArray...
+            if 0 <= boundaryIndex + dir < numWords
+                indexArray.push boundaryIndex + dir
+                updateIndexArray indexArray
         $scope.$watch ->
+                # TODO move this to MindtaggerTaskHotkeyDemux as well
                 $scope.MindtaggerTask.cursor.item is $scope.item
-            , (cursorOnThisItem) ->
-                if cursorOnThisItem
-                    hotkeys.bindTo $scope
-                        .add combo: "left",  description: "Select previous word", callback: (overrideDefaultEventWith -> moveIndexArrayBy -1)
-                        .add combo: "right", description: "Select next word",     callback: (overrideDefaultEventWith -> moveIndexArrayBy +1)
+            , (isCursorOnThisItem) ->
+                if isCursorOnThisItem
+                    # when cursor is placed on this, make sure keyboard events are routed correctly
+                    MindtaggerSelectableWordsHotkeyDemux.routeTo $scope
                 else
+                    # blur the selection when this item loses focus
                     indexArrayModel.assign $scope, null
-                    hotkeys.del "left"
-                    hotkeys.del "right"
+        MindtaggerSelectableWordsHotkeyDemux.attach $scope
 

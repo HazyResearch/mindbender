@@ -68,6 +68,27 @@ angular.module 'mindbenderApp.mindtagger', [
                     cursorItem.offsetParent()?.scrollTo cursorItem.offset()?.top - 100
                 delete $scope.MindtaggerTask?.cursor?.mayNeedScroll
 
+# A demultiplexer that routes registered hotkeys for a directive to the item under cursor
+.service 'MindtaggerTaskHotkeyDemux', (hotkeys, overrideDefaultEventWith) ->
+    class MindtaggerTaskHotkeyDemux
+        constructor: (@hotkeys) ->
+            @numConnected = 0
+        routeTo: (@$scope) =>
+            # no-op
+        attach: ($scope) =>
+            $scope.$on "$destroy", => @detach $scope
+            # TODO follow cursor
+            if @numConnected++ == 0
+                for {combo,description,expr} in @hotkeys
+                    hotkeys.add {
+                        combo
+                        description
+                        callback: do (expr) => (overrideDefaultEventWith => @$scope?.$eval expr)
+                    }
+        detach: ($scope) =>
+            if --@numConnected == 0
+                hotkeys.del combo for {combo} in @hotkeys
+
 # A controller that sets item and tag to those of the cursor
 .controller 'MindtaggerTaskCursorFollowCtrl', ($scope) ->
     $scope.$watch 'MindtaggerTask.cursor.index', (cursorIndex) ->
