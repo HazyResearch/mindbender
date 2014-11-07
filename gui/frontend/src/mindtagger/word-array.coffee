@@ -143,10 +143,15 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 updateIndexArray [if incr > 0 then 0 else numWords - 1]
         $scope.extendIndexArrayBy = (dir = 0) ->
             return if dir == 0
-            numWords = $element.find(".mindtagger-word").length
             indexArray = indexArrayModel $scope
-            boundaryIndex = (if dir > 0 then Math.max else Math.min) indexArray...
-            if 0 <= boundaryIndex + dir < numWords
-                indexArray.push boundaryIndex + dir
-                updateIndexArray indexArray
+            return unless indexArray?.length > 0
+            return if dir < 0 and indexArray?.length + dir <= 0
+            numWords = $element.find(".mindtagger-word").length
+            leftmostIndex = Math.min indexArray...
+            rightmostIndex = Math.max indexArray...
+            indexArray =
+                if dir > 0 then indexArray.concat [(rightmostIndex+1)..(Math.min rightmostIndex+dir, numWords-1)]
+                else _.difference indexArray, [(Math.max 0, rightmostIndex+dir+1)..rightmostIndex]
+            indexArray = [leftmostIndex] if indexArray.length == 0
+            updateIndexArray indexArray
 
