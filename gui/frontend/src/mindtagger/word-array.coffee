@@ -72,16 +72,17 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 words.removeClass className
                 wordsToHighlight?.addClass className
 
-.directive 'mindtaggerSelectableWords', ($parse, $timeout, hotkeys, MindtaggerTaskHotkeyDemux) ->
-    MindtaggerSelectableWordsHotkeyDemux = new MindtaggerTaskHotkeyDemux [
-        { combo: "left"       , description: "Select previous word"             , expr: "  moveIndexArrayBy(-1)" }
-        { combo: "right"      , description: "Select next word"                 , expr: "  moveIndexArrayBy(+1)" }
-        { combo: "shift+left" , description: "Extend selection to previous word", expr: "extendIndexArrayBy(-1)" }
-        { combo: "shift+right", description: "Extend selection to next word"    , expr: "extendIndexArrayBy(+1)" }
+.directive 'mindtaggerSelectableWords', ($parse, $timeout, hotkeys, MindtaggerTaskHotkeysDemuxCtrl) ->
+    hotkeysDemux = new MindtaggerTaskHotkeysDemuxCtrl [
+        { combo: "left"       , description: "Select previous word"             , action: "  moveIndexArrayBy(-1)" }
+        { combo: "right"      , description: "Select next word"                 , action: "  moveIndexArrayBy(+1)" }
+        { combo: "shift+left" , description: "Extend selection to previous word", action: "extendIndexArrayBy(-1)" }
+        { combo: "shift+right", description: "Extend selection to next word"    , action: "extendIndexArrayBy(+1)" }
     ]
 
     restrict: 'A'
     controller: ($scope, $element, $attrs) ->
+        hotkeysDemux.attach $scope
         indexArrayModel = $parse $attrs.indexArray
         updateIndexArray = (indexArray) ->
             if indexArray?.length > 0
@@ -123,6 +124,11 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                             (_.difference prevIndexes, selectedWordIndexes)
             # finally, reflect to the model
             updateIndexArray selectedWordIndexes
+        # blur the selection when this item loses focus
+        $scope.$watch ->
+                $scope.MindtaggerTask.cursor.item is $scope.item
+            , (isCursorOnThisItem) ->
+                indexArrayModel.assign $scope, null unless isCursorOnThisItem
         # keyboard shortcuts handlers
         $scope.moveIndexArrayBy = (incr = 0) ->
             return if incr == 0
@@ -143,15 +149,4 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
             if 0 <= boundaryIndex + dir < numWords
                 indexArray.push boundaryIndex + dir
                 updateIndexArray indexArray
-        $scope.$watch ->
-                # TODO move this to MindtaggerTaskHotkeyDemux as well
-                $scope.MindtaggerTask.cursor.item is $scope.item
-            , (isCursorOnThisItem) ->
-                if isCursorOnThisItem
-                    # when cursor is placed on this, make sure keyboard events are routed correctly
-                    MindtaggerSelectableWordsHotkeyDemux.routeTo $scope
-                else
-                    # blur the selection when this item loses focus
-                    indexArrayModel.assign $scope, null
-        MindtaggerSelectableWordsHotkeyDemux.attach $scope
 
