@@ -21,18 +21,33 @@ angular.module 'mindbenderApp.mindtagger', [
                 $location.path "/mindtagger/#{tasks[0].name}"
 
 
-.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location, $window, hotkeys, overrideDefaultEventWith) ->
+.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location, $window, hotkeys, overrideDefaultEventWith, localStorageState) ->
+    # load current page and cursor position saved in localStorage
+    savedState = localStorageState "MindtaggerTask_#{$routeParams.task}", $scope, [
+        "MindtaggerTask.currentPage"
+        "MindtaggerTask.itemsPerPage"
+        "MindtaggerTask.cursor.index"
+    ]
+    # make sure the search includes the required parameters
+    search = $location.search()
+    unless search.p? and search.s?
+        $location.search "p", savedState["MindtaggerTask.currentPage"]  ? 1
+        $location.search "s", savedState["MindtaggerTask.itemsPerPage"] ? 10
+        return
+    # initialize or load task
     $scope.MindtaggerTask =
     task = MindtaggerTask.forName $routeParams.task,
-            currentPage: +($location.search().p ? 1)
-            itemsPerPage: +($location.search().s ? 10)
-            $scope: $scope
+        currentPage:  +$location.search().p
+        itemsPerPage: +$location.search().s
+        $scope: $scope
+    task.cursorInitIndex ?= savedState["MindtaggerTask.cursor.index"]
     task.load()
         .catch (err) ->
             console.error "#{MindtaggerTask.name} not found"
             $location.path "/mindtagger"
         .finally ->
             do $scope.$digest
+    do savedState.startWatching
 
     # TODO replace with $watch (probably with a Ctrl?)
     $scope.commit = (item, tag) ->
@@ -42,10 +57,12 @@ angular.module 'mindbenderApp.mindtagger', [
             $scope.MindtaggerTask.currentPage
         , (newPage) ->
             $location.search "p", newPage
+            task.moveCursorTo 0 unless task.cursorInitIndex?
     $scope.$watch ->
             $scope.MindtaggerTask.itemsPerPage
         , (newPageSize) ->
             $location.search "s", newPageSize
+            task.moveCursorTo 0 unless task.cursorInitIndex?
 
     $scope.keys = (obj) -> key for key of obj
 
@@ -53,55 +70,6 @@ angular.module 'mindbenderApp.mindtagger', [
     hotkeys.bindTo $scope
         .add combo: "up",   description: "Move cursor to previous item", callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy -1)
         .add combo: "down", description: "Move cursor to next item",     callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy +1)
-
-.service 'overrideDefaultEventWith', ->
-    (fn) -> (event, args...) -> do event.preventDefault; fn event, args...
-
-.directive 'mindtaggerTaskKeepsCursorVisible', ($timeout) ->
-    restrict: 'A'
-    controller: ($scope, $element) ->
-        $scope.$watch 'MindtaggerTask.cursor.index', (newIndex) ->
-            return unless newIndex?
-            $timeout ->
-                if $scope.MindtaggerTask?.cursor?.mayNeedScroll
-                    cursorItem = $element.find(".mindtagger-item").eq(newIndex)
-                    cursorItem.offsetParent()?.scrollTo cursorItem.offset()?.top - 100
-                delete $scope.MindtaggerTask?.cursor?.mayNeedScroll
-
-# A factory for directive controllers that routes registered hotkey events to the item under cursor
-.service 'MindtaggerTaskHotkeysDemuxCtrl', (hotkeys, overrideDefaultEventWith) ->
-    class MindtaggerTaskHotkeysDemuxCtrl
-        constructor: (@hotkeys) ->
-            @numConnected = 0
-            @$scope = null
-        routeTo: (@$scope) =>
-            # setter
-        attach: ($scope) =>
-            return unless $scope?
-            $scope.$on "$destroy", => @detach $scope
-            # route to the item while the cursor points to it
-            if $scope.MindtaggerTask? and $scope.item?
-                $scope.$watch =>
-                        $scope.MindtaggerTask.cursor.item is $scope.item
-                    , (isCursorOnTheItem) =>
-                        @routeTo $scope if isCursorOnTheItem
-            if @numConnected++ == 0
-                for {combo,description,action} in @hotkeys
-                    hotkeys.add {
-                        combo
-                        description
-                        callback: do (action) => (overrideDefaultEventWith => @$scope?.$eval action)
-                    }
-        detach: ($scope) =>
-            if --@numConnected == 0
-                hotkeys.del combo for {combo} in @hotkeys
-
-# A controller that sets item and tag to those of the cursor
-.controller 'MindtaggerTaskCursorFollowCtrl', ($scope) ->
-    $scope.$watch 'MindtaggerTask.cursor.index', (cursorIndex) ->
-        cursor = $scope.MindtaggerTask.cursor
-        $scope.item = cursor.item
-        $scope.tag = cursor.tag
 
 .service 'MindtaggerTask', ($http, $q, $modal, $window, $timeout) ->
   class MindtaggerTask
@@ -269,6 +237,64 @@ angular.module 'mindbenderApp.mindtagger', [
                         else " progress-bar-striped"
                     }"
 
+
+.service "localStorageState", ->
+    (key, $scope, exprs) ->
+        console.log "localStorageState loading #{key}", localStorage[key]
+        lastState = (try JSON.parse localStorage[key]) ? {}
+        lastState.startWatching = ->
+            $scope.$watchGroup exprs, (values) ->
+                try localStorage[key] = JSON.stringify (_.object exprs, values)
+        lastState
+
+.service 'overrideDefaultEventWith', ->
+    (fn) -> (event, args...) -> do event.preventDefault; fn event, args...
+
+.directive 'mindtaggerTaskKeepsCursorVisible', ($timeout) ->
+    restrict: 'A'
+    controller: ($scope, $element) ->
+        $scope.$watch 'MindtaggerTask.cursor.index', (newIndex) ->
+            return unless newIndex?
+            $timeout ->
+                if $scope.MindtaggerTask?.cursor?.mayNeedScroll
+                    cursorItem = $element.find(".mindtagger-item").eq(newIndex)
+                    cursorItem.offsetParent()?.scrollTo cursorItem.offset()?.top - 100
+                delete $scope.MindtaggerTask?.cursor?.mayNeedScroll
+
+# A factory for directive controllers that routes registered hotkey events to the item under cursor
+.service 'MindtaggerTaskHotkeysDemuxCtrl', (hotkeys, overrideDefaultEventWith) ->
+    class MindtaggerTaskHotkeysDemuxCtrl
+        constructor: (@hotkeys) ->
+            @numConnected = 0
+            @$scope = null
+        routeTo: (@$scope) =>
+            # setter
+        attach: ($scope) =>
+            return unless $scope?
+            $scope.$on "$destroy", => @detach $scope
+            # route to the item while the cursor points to it
+            if $scope.MindtaggerTask? and $scope.item?
+                $scope.$watch =>
+                        $scope.MindtaggerTask.cursor.item is $scope.item
+                    , (isCursorOnTheItem) =>
+                        @routeTo $scope if isCursorOnTheItem
+            if @numConnected++ == 0
+                for {combo,description,action} in @hotkeys
+                    hotkeys.add {
+                        combo
+                        description
+                        callback: do (action) => (overrideDefaultEventWith => @$scope?.$eval action)
+                    }
+        detach: ($scope) =>
+            if --@numConnected == 0
+                hotkeys.del combo for {combo} in @hotkeys
+
+# A controller that sets item and tag to those of the cursor
+.controller 'MindtaggerTaskCursorFollowCtrl', ($scope) ->
+    $scope.$watch 'MindtaggerTask.cursor.index', (cursorIndex) ->
+        cursor = $scope.MindtaggerTask.cursor
+        $scope.item = cursor.item
+        $scope.tag = cursor.tag
 
 
 .directive 'mindtagger', ($compile) ->
