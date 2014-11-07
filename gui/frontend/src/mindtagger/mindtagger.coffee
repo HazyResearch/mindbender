@@ -12,13 +12,14 @@ angular.module 'mindbenderApp.mindtagger', [
         templateUrl: 'mindtagger/task.html',
         controller: 'MindtaggerTaskCtrl'
 
-.controller 'MindtaggerTaskListCtrl', ($scope, $http, $location) ->
+.controller 'MindtaggerTaskListCtrl', ($scope, $http, $location, localStorageState) ->
     $scope.tasks ?= []
     $http.get "/api/mindtagger/"
         .success (tasks) ->
             $scope.tasks = tasks
             if $location.path() is "/mindtagger" and tasks?.length > 0
-                $location.path "/mindtagger/#{tasks[0].name}"
+                savedState = localStorageState "MindtaggerTask", $scope, [ "MindtaggerTask.name" ], no
+                $location.path "/mindtagger/#{savedState["MindtaggerTask.name"] ? tasks[0].name}"
 
 
 .controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location, $window, hotkeys, overrideDefaultEventWith, localStorageState) ->
@@ -27,7 +28,7 @@ angular.module 'mindbenderApp.mindtagger', [
         "MindtaggerTask.currentPage"
         "MindtaggerTask.itemsPerPage"
         "MindtaggerTask.cursor.index"
-    ]
+    ], no
     # make sure the search includes the required parameters
     search = $location.search()
     unless search.p? and search.s?
@@ -48,6 +49,8 @@ angular.module 'mindbenderApp.mindtagger', [
         .finally ->
             do $scope.$digest
     do savedState.startWatching
+    # remember the last task
+    localStorageState "MindtaggerTask", $scope, [ "MindtaggerTask.name" ]
 
     # TODO replace with $watch (probably with a Ctrl?)
     $scope.commit = (item, tag) ->
@@ -239,12 +242,13 @@ angular.module 'mindbenderApp.mindtagger', [
 
 
 .service "localStorageState", ->
-    (key, $scope, exprs) ->
+    (key, $scope, exprs, autoWatch = yes) ->
         console.log "localStorageState loading #{key}", localStorage[key]
         lastState = (try JSON.parse localStorage[key]) ? {}
         lastState.startWatching = ->
             $scope.$watchGroup exprs, (values) ->
                 try localStorage[key] = JSON.stringify (_.object exprs, values)
+        do lastState.startWatching if autoWatch
         lastState
 
 .service 'overrideDefaultEventWith', ->
