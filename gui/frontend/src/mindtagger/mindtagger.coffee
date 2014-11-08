@@ -2,6 +2,7 @@ angular.module 'mindbenderApp.mindtagger', [
     'ui.bootstrap'
     'mindbenderApp.mindtagger.wordArray'
     'mindbenderApp.mindtagger.arrayParsers'
+    'mindbenderApp.mindtagger.tags.valueSet'
 ]
 
 .config ($routeProvider) ->
@@ -339,45 +340,6 @@ angular.module 'mindbenderApp.mindtagger', [
     controller: ($scope, $element, $attrs) ->
         $scope.$watch $attrs.withValue, (newValue) ->
             $scope.tagValue = newValue
-
-.directive 'mindtaggerValueSetTag', ($parse, $interpolate, MindtaggerTaskHotkeysDemuxCtrl) ->
-    hotkeysDemux = new MindtaggerTaskHotkeysDemuxCtrl [
-        { combo: "enter", description: "Toggle selection in the current tag's value set", action: "MindtaggerValueSetTag.toggle(currentValue); commit(item,tag)" }
-    ]
-    restrict: 'A', transclude: true, templateUrl: "mindtagger/tags-value-set.html"
-    controller: ($scope, $element, $attrs) ->
-        hotkeysDemux.attach $scope
-        theTag =
-        $scope.MindtaggerValueSetTag =
-            withValue: null
-            name: null
-            values: null
-            contains: (value, set = theTag.values) ->
-                if value? and set?
-                    for v in set when angular.equals(value, v)
-                        return yes
-                no
-            toggle: (value) ->
-                return unless value?
-                set = theTag.values ? []
-                newSet = (v for v in set when not angular.equals(value, v))
-                newSet.push value if newSet.length == set.length
-                theTag.values = newSet
-                $scope.$eval "tag[MindtaggerValueSetTag.name] = MindtaggerValueSetTag.values"
-        # current tag name and values
-        $scope.$watch $attrs.mindtaggerValueSetTag,      (newName)   -> theTag.name = newName
-        $scope.$watch "tag[MindtaggerValueSetTag.name]", (newValues) -> theTag.values = newValues
-        $scope.$watch "MindtaggerValueSetTag.values",    (newValues) ->
-            $scope.$eval "tag[MindtaggerValueSetTag.name] = MindtaggerValueSetTag.values"
-        # watcher and setter for currentValue
-        $scope.$watch $attrs.withValue, (newValue) -> theTag.withValue = newValue
-        currentValueModel = $parse $attrs.withValue
-        $scope.$watch "MindtaggerValueSetTag.withValue", (newValue) -> currentValueModel.assign $scope, newValue
-        # value renderer
-        renderEachValueExp = if $attrs.renderEachValue then $interpolate $attrs.renderEachValue
-        $scope.renderValue = (value) -> (renderEachValueExp? (_.extend {value}, $scope)) ? value
-        # equality check for complex values
-        $scope.equals = angular.equals
 
 .directive 'mindtaggerNoteTags', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/tags-note.html"

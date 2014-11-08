@@ -30,13 +30,13 @@
   <!-- button to add/remove current value to the set -->
   <button type="button" class="btn"
     ng-class="MindtaggerValueSetTag.withValue == null ? 'btn-default disabled' :
-              MindtaggerValueSetTag.contains(MindtaggerValueSetTag.withValue) ? 'btn-danger' : 'btn-primary'"
-    ng-click="MindtaggerValueSetTag.toggle(MindtaggerValueSetTag.withValue); commit(item,tag)">
-    <span ng-if="!MindtaggerValueSetTag.contains(MindtaggerValueSetTag.withValue)"
+              MindtaggerValueSetTag.contains() ? 'btn-danger' : 'btn-primary'"
+    ng-click="MindtaggerValueSetTag.toggle(); commit(item,tag)">
+    <span ng-if="!MindtaggerValueSetTag.contains()"
       title="Add value {{renderValue(MindtaggerValueSetTag.withValue)}} to {{MindtaggerValueSetTag.name}}">
       <i class="fa fa-plus"></i>
     </span>
-    <span ng-if="MindtaggerValueSetTag.contains(MindtaggerValueSetTag.withValue)"
+    <span ng-if="MindtaggerValueSetTag.contains()"
       title="Remove value {{renderValue(MindtaggerValueSetTag.withValue)}} from {{MindtaggerValueSetTag.name}}">
       <i class="fa fa-remove"></i>
     </span>
