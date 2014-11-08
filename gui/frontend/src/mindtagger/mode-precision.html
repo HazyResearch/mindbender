@@ -1,4 +1,5 @@
-<div ng-init="
+<div ng-multi-transclude-controller
+    ng-init="
     MindtaggerTask.defineTags({
         is_correct: {
             type: 'categorical',
@@ -38,7 +39,7 @@
     </li>
   </ul>
 
-  <div mb-transclude="[for-mindtagger-navbar]"></div>
+  <div ng-multi-transclude="navbar"></div>
 
 </div>
 
@@ -50,7 +51,7 @@
   ng-mousedown="MindtaggerTask.moveCursorTo($index, false)">
     <div class="panel-body">
       <big>
-        <div mb-transclude="[for-each-mindtagger-item]"></div>
+        <div ng-multi-transclude="each-item"></div>
       </big>
     </div>
 
@@ -62,13 +63,13 @@
       </span>
 
       <!-- custom tagging UI elements -->
-      <span mb-transclude="[for-mindtagger-tags]"></span>
+      <span ng-multi-transclude="tags"></span>
     </div>
 </div>
 </section>
 
 <div mindtagger-pagination>
-    <div mb-transclude="[for-mindtagger-pagination]"></div>
+    <div ng-multi-transclude="pagination"></div>
 </div>
 
 </div>

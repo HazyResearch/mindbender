@@ -41,6 +41,7 @@ bower_components/jquery.scrollTo/jquery.scrollTo.js
 
 bower_components/angular/angular.js
 bower_components/angular-route/angular-route.js
+bower_components/ng-multi-transclude/src/multi-transclude.js
 bower_components/angular-bootstrap/ui-bootstrap.js
 bower_components/angular-bootstrap/ui-bootstrap-tpls.js
 bower_components/angular-hotkeys/build/hotkeys.js

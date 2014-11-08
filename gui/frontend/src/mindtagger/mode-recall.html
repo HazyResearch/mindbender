@@ -1,11 +1,12 @@
-<div ng-init="
+<div ng-multi-transclude-controller
+    ng-init="
     MindtaggerTask.itemsPerPage = 50; 'XXX remove after moving to group-based pagination';
     MindtaggerTask.defineTags({
     })
 ">
 
 <div mindtagger-navbar>
-  <div mb-transclude="[for-mindtagger-navbar]"></div>
+  <div ng-multi-transclude="navbar"></div>
 
 </div>
 
@@ -16,7 +17,7 @@
   ng-class="$index == MindtaggerTask.cursor.index ? 'mindtagger-cursor-item' : 'text-muted'"
   ng-init="tag = MindtaggerTask.tagOf(item)"
   ng-mousedown="MindtaggerTask.moveCursorTo($index, false)">
-  <span mb-transclude="[for-each-mindtagger-item]"></span>
+  <span ng-multi-transclude="each-item"></span>
 </span>
 
 </section>
@@ -24,10 +25,10 @@
 <div mindtagger-pagination>
   <!-- custom tagging UI elements -->
   <span ng-controller="MindtaggerTaskCursorFollowCtrl">
-    <span mb-transclude="[for-mindtagger-tags]"></span>
+    <span ng-multi-transclude="tags"></span>
   </span>
 
-  <span mb-transclude="[for-mindtagger-pagination]"></span>
+  <span ng-multi-transclude="pagination"></span>
 </div>
 
 </div>

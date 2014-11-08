@@ -34,22 +34,18 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         indexArrays: '='
     compile: (tElement, tAttrs) ->
         arrayFormat = tAttrs.arrayFormat
-        style = tElement.attr("style")
+        style = tAttrs.withStyle
         className = "mindtagger-highlight-words-#{classNameSeq++}"
         ($scope, $element, $attrs) ->
             # add a new stylesheet
             mindtaggerCreateStylesheet(""".mindtagger-word.#{className} { #{style} }""")
                 .appendTo($element.closest("body"))
-            # remove style
-            $element.attr("style", null)
-            thingsToWatch = ->
-                JSON.stringify [
-                    $scope.from, $scope.to
-                    $scope.indexArray
-                    $scope.indexArrays
-                    $element.find(".mindtagger-word").length
-                ]
-            $scope.$watch thingsToWatch, ->
+            $scope.$watchGroup [
+                    "from", "to"
+                    "indexArray"
+                    "indexArrays"
+                    -> $element.find(".mindtagger-word").length
+                ], ->
                 words = $element.find(".mindtagger-word")
                 wordsToHighlight =
                     if $scope.from? and $scope.to? and 0 <= +$scope.from <= +$scope.to < words.length

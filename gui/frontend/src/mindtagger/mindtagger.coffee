@@ -1,5 +1,6 @@
 angular.module 'mindbenderApp.mindtagger', [
     'ui.bootstrap'
+    'multi-transclude'
     'mindbenderApp.mindtagger.wordArray'
     'mindbenderApp.mindtagger.arrayParsers'
     'mindbenderApp.mindtagger.tags.valueSet'
@@ -301,31 +302,9 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.item = cursor.item
         $scope.tag = cursor.tag
 
-
 .directive 'mindtagger', ($compile) ->
-    restrict: 'E', transclude: true, priority: 2000
+    restrict: 'E', transclude: true
     templateUrl: ($element, $attrs) -> "mindtagger/mode-#{$attrs.mode}.html"
-    compile: (tElement, tAttrs) ->
-        # Keep a clone of the template element so we can fill in the
-        # mb-transclude selectors as we link later.
-        templateToExpand = tElement.clone()
-        ($scope, $element, $attrs, controller, $transclude) ->
-            $transclude (clone, scope) ->
-                # Fill the elements with mb-transclude selectors by finding
-                # them in the clone, which is the element the directive is
-                # originally used on.
-                t = templateToExpand.clone()
-                t.find("[mb-transclude]").each ->
-                    container = $ @
-                    selector = container.attr("mb-transclude")
-                    container.empty()
-                    clone.find(selector).addBack(selector).clone().appendTo(container)
-                # Replace the element on DOM by compiling the whole expanded
-                # template again.
-                $element.empty()
-                $element.append $compile(t.children())(scope)
-            $element.on "keyup", (event) ->
-                console.log event.keyCode
 
 .directive 'mindtaggerNavbar', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/navbar.html"

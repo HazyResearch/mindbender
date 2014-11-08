@@ -35,8 +35,7 @@ angular.module 'mindbenderApp.mindtagger.tags.valueSet', [
         currentValueModel = $parse $attrs.withValue
         $scope.$watch "MindtaggerValueSetTag.withValue", (newValue) -> currentValueModel.assign $scope, newValue
         # value renderer
-        renderEachValueExp = if $attrs.renderEachValue then $interpolate $attrs.renderEachValue
-        $scope.renderValue = (value) -> (renderEachValueExp? (_.extend {value}, $scope)) ? value
+        $scope.renderValue = (value) -> ($scope.$eval $attrs.renderEachValue, {value}) ? value
         # equality check for complex values
         $scope.equals = angular.equals
 
