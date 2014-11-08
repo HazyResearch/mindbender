@@ -359,6 +359,7 @@ angular.module 'mindbenderApp.mindtagger', [
                 for v in tag[tagName] when jsonTagValue is (JSON.stringify v)
                     return yes
             no
+        $scope.equals = angular.equals
         $scope.setTheValue = (tagValue) ->
             tagValueModel.assign $scope, tagValue
             $timeout -> $scope.$digest()
