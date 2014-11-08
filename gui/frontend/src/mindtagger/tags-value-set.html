@@ -5,8 +5,8 @@
   <!-- dropup button for choosing the tag -->
   <span class="btn-group dropup">
     <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-      <i class="fa fa-tag"></i> {{tagName}}
-      <span class="badge" ng-if="tag[tagName].length > 0">{{tag[tagName].length}}</span>
+      <i class="fa fa-tag"></i> {{MindtaggerValueSetTag.name}}
+      <span class="badge" ng-if="MindtaggerValueSetTag.values.length > 0">{{MindtaggerValueSetTag.values.length}}</span>
       <span class="caret"></span>
     </button>
     <!-- dropdown for selecting other "set"-type tags -->
@@ -14,30 +14,30 @@
       <!-- TODO allow to define new 'set'-type tags via modal -->
       <li class="disabled"><a><span class="text-primary"><i class="fa fa-plus"></i> Create a new tag</span>
       </a></li>
-      <li ng-repeat="(name,tagSchema) in MindtaggerTask.schema.tags"
-        ng-if="tagSchema.type == 'set' && name != tagName"><a ng-click="$parent.$parent.tagName = name">
-          <i class="fa fa-tag"></i> {{name}}
-          <span class="badge">{{tag[name].length}}</span>
+      <li ng-repeat="(tagName,tagSchema) in MindtaggerTask.schema.tags"
+        ng-if="tagSchema.type == 'set' && tagName != MindtaggerValueSetTag.name"><a ng-click="MindtaggerValueSetTag.name = tagName">
+          <i class="fa fa-tag"></i> {{tagName}}
+          <span class="badge" ng-if="tag[tagName].length > 0">{{tag[tagName].length}}</span>
       </a></li>
       <li class="divider"></li>
-      <li ng-if="tag[tagName].length > 0"><a ng-click="tag[tagName] = []; commit(item,tag)">
+      <li ng-if="MindtaggerValueSetTag.values.length > 0"><a ng-click="MindtaggerValueSetTag.values = []; commit(item,tag)">
           <span class="text-danger">
-            <i class="fa fa-trash"></i> Remove all <span class="badge">{{tag[tagName].length}}</span> values
+            <i class="fa fa-trash"></i> Remove all <span class="badge">{{MindtaggerValueSetTag.values.length}}</span> values
           </span>
       </a></li>
     </ul>
   </span>
   <!-- button to add/remove current value to the set -->
   <button type="button" class="btn"
-    ng-class="tagValue == null ? 'btn-default disabled' :
-              containsValueInSet(tag, tagName, tagValue) ? 'btn-danger' : 'btn-primary'"
-    ng-click="toggleValueFromSet(tag, tagName, tagValue); commit(item,tag)">
-    <span ng-if="!containsValueInSet(tag, tagName, tagValue)"
-      title="Add value {{renderValueOfSet(tagValue)}} to {{tagName}}">
+    ng-class="MindtaggerValueSetTag.withValue == null ? 'btn-default disabled' :
+              MindtaggerValueSetTag.contains(MindtaggerValueSetTag.withValue) ? 'btn-danger' : 'btn-primary'"
+    ng-click="MindtaggerValueSetTag.toggle(MindtaggerValueSetTag.withValue); commit(item,tag)">
+    <span ng-if="!MindtaggerValueSetTag.contains(MindtaggerValueSetTag.withValue)"
+      title="Add value {{renderValue(MindtaggerValueSetTag.withValue)}} to {{MindtaggerValueSetTag.name}}">
       <i class="fa fa-plus"></i>
     </span>
-    <span ng-if="containsValueInSet(tag, tagName, tagValue)"
-      title="Remove value {{renderValueOfSet(tagValue)}} from {{tagName}}">
+    <span ng-if="MindtaggerValueSetTag.contains(MindtaggerValueSetTag.withValue)"
+      title="Remove value {{renderValue(MindtaggerValueSetTag.withValue)}} from {{MindtaggerValueSetTag.name}}">
       <i class="fa fa-remove"></i>
     </span>
   </button>
@@ -45,11 +45,11 @@
   <!-- TODO clear all button? -->
 </span>
 
-<span class="btn-group" ng-repeat="value in tag[tagName]">
+<span class="btn-group" ng-repeat="value in MindtaggerValueSetTag.values">
   <!-- button for each value -->
   <button class="btn btn-default btn-xs"
-    ng-class="equals(tagValue, value) ? 'active' : ''"
-    ng-click="setTheValue(value)">{{renderValueOfSet(value)}}</button>
+    ng-class="equals(MindtaggerValueSetTag.withValue, value) ? 'active' : ''"
+    ng-click="MindtaggerValueSetTag.withValue = value">{{renderValue(value)}}</button>
 </span>
 
 </div>
