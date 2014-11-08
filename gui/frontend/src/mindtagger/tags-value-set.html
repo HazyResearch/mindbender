@@ -15,7 +15,7 @@
       <li class="disabled"><a><span class="text-primary"><i class="fa fa-plus"></i> Create a new tag</span>
       </a></li>
       <li ng-repeat="(name,tagSchema) in MindtaggerTask.schema.tags"
-        ng-if="tagSchema.type == 'set' && name != tagName"><a ng-click="tagName = name">
+        ng-if="tagSchema.type == 'set' && name != tagName"><a ng-click="$parent.$parent.tagName = name">
           <i class="fa fa-tag"></i> {{name}}
           <span class="badge">{{tag[name].length}}</span>
       </a></li>

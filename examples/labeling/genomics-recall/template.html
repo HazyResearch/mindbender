@@ -2,7 +2,9 @@
 
   <span for-each-mindtagger-item>
       <!-- TODO use cursor.selection instead of item -->
-      <span mindtagger-highlight-words index-arrays="tag.more_mentions" style="background-color: cyan;">
+      <span mindtagger-highlight-words index-arrays="tag.more_phenotypes" style="background-color: magenta;">
+      <span mindtagger-highlight-words index-arrays="tag.more_diseases" style="background-color: green;">
+      <span mindtagger-highlight-words index-arrays="tag.more_genes" style="background-color: cyan;">
       <span mindtagger-highlight-words index-array="item.selection" style="border-bottom: 2px solid;">
       <span mindtagger-selectable-words index-array="item.selection">
       <span mindtagger-highlight-words index-array="item.positions" array-format="postgres" style="background-color: yellow;">
@@ -11,17 +13,19 @@
       </span>
       </span>
       </span>
+      </span>
+      </span>
   </span>
 
   <span for-mindtagger-tags>
       <div ng-init="
-        MindtaggerTask.defineTags({
-            more_mentions: {
-                type: 'set'
-            }
+        MindtaggerTask.defineTags(
+        { more_genes:      { type: 'set' }
+        , more_phenotypes: { type: 'set' }
+        , more_diseases:   { type: 'set' }
         })
         ">
-        <span mindtagger-value-set-tag="'more_mentions'" with-value="item.selection"
+        <span mindtagger-value-set-tag="'more_genes'" with-value="item.selection"
             render-each-value="{{item.words | filterArrayByIndexes:value:'postgres'}}"></span>
     </div>
   </span>

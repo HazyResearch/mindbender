@@ -340,9 +340,14 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.$watch $attrs.withValue, (newValue) ->
             $scope.tagValue = newValue
 
-.directive 'mindtaggerValueSetTag', ($parse, $interpolate, hotkeys) ->
+.directive 'mindtaggerValueSetTag', ($parse, $interpolate, MindtaggerTaskHotkeysDemuxCtrl) ->
+    hotkeysDemux = new MindtaggerTaskHotkeysDemuxCtrl [
+        { combo: "enter", description: "Toggle selection in the current tag's value set", action: "toggleValueFromSet(tag, tagName, tagValue); commit(item,tag)" }
+    ]
+
     restrict: 'A', transclude: true, templateUrl: "mindtagger/tags-value-set.html"
     controller: ($scope, $element, $attrs) ->
+        hotkeysDemux.attach $scope
         $scope.$watch $attrs.mindtaggerValueSetTag, (newValue) -> $scope.tagName = newValue
         tagValueModel = $parse $attrs.withValue
         $scope.$watch $attrs.withValue, (newValue) -> $scope.tagValue = newValue
@@ -379,9 +384,6 @@ angular.module 'mindbenderApp.mindtagger', [
                 (value) -> renderEachValueExp (_.extend {value}, $scope)
             else
                 (value) -> value
-        hotkeys.bindTo $scope
-            .add combo: "enter", description: "toggle value in set", callback: ->
-                $scope.$eval "toggleValueFromSet(tag, tagName, tagValue); commit(item,tag)"
 
 .directive 'mindtaggerNoteTags', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/tags-note.html"
