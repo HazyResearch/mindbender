@@ -4,11 +4,10 @@
     <strong>{{item.mention_text}}</strong> appeared in:
     <blockquote>
       <span class="text-muted">{{item.sentences_before | concatArray:'postgres'}}</span>
-      <span mindtagger-highlight-words index-array="item.mention_pos" array-format="postgres" with-style="text-decoration: underline;">
-      <span mindtagger-highlight-words index-array="item.mention_pos" array-format="postgres" with-style="background-color: yellow;">
-          <big mindtagger-word-array="item.words" array-format="postgres"></big>
-      </span>
-      </span>
+          <big mindtagger-word-array="item.words" array-format="postgres">
+              <mindtagger-highlight-words index-array="item.mention_pos" array-format="postgres" with-style="background-color: yellow;"/>
+              <mindtagger-highlight-words index-array="item.mention_pos" array-format="postgres" with-style="text-decoration: underline;"/>
+          </big>
       <span class="text-muted">{{item.sentences_after | concatArray:'postgres'}}</span>
     </blockquote>
 

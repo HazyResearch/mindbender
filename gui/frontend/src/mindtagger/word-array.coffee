@@ -12,9 +12,22 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         <span class="mindtagger-word-container"
             ng-repeat="word in mindtaggerWordArray | parsedArray:arrayFormat track by $index">
             <span class="mindtagger-word">{{word}}</span>
-            <span ng-transclude></span>
         </span>
+        <span ng-transclude></span>
     """
+    controller: ($scope, $element, $attrs, $filter) ->
+        console.log "mindtaggerWordArray", $element
+        @$element = $element
+        @getWordElements = =>
+            @$element.find(".mindtagger-word")
+        $scope.$watchGroup [
+                => $scope.mindtaggerWordArray
+                => $scope.arrayFormat
+            ], ([
+                newArray
+                newFormat
+            ]) =>
+                @wordArray = ($filter "parsedArray") newArray, newFormat
 
 .service 'mindtaggerCreateStylesheet', ->
     stylesheetSeq = 0
@@ -32,21 +45,25 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         from: '=', to: '='
         indexArray: '='
         indexArrays: '='
+    require: [
+        '^mindtaggerWordArray'
+    ]
     compile: (tElement, tAttrs) ->
         arrayFormat = tAttrs.arrayFormat
         style = tAttrs.withStyle
         className = "mindtagger-highlight-words-#{classNameSeq++}"
-        ($scope, $element, $attrs) ->
+        ($scope, $element, $attrs, [mindtaggerWordArrayCtrl]) ->
             # add a new stylesheet
+            console.log "mindtaggerHighlightWords link", className, mindtaggerWordArrayCtrl
             mindtaggerCreateStylesheet(""".mindtagger-word.#{className} { #{style} }""")
                 .appendTo($element.closest("body"))
             $scope.$watchGroup [
-                    "from", "to"
-                    "indexArray"
-                    "indexArrays"
-                    -> $element.find(".mindtagger-word").length
-                ], ->
-                words = $element.find(".mindtagger-word")
+                "from", "to"
+                "indexArray"
+                "indexArrays"
+                -> mindtaggerWordArrayCtrl.wordArray
+            ], ->
+                words = mindtaggerWordArrayCtrl.getWordElements()
                 wordsToHighlight =
                     if $scope.from? and $scope.to? and 0 <= +$scope.from <= +$scope.to < words.length
                         words.slice +$scope.from-1, +$scope.to
