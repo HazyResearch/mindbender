@@ -82,7 +82,9 @@
         <h4 class="modal-title" id="exportModalLabel">Export Tags</h4>
       </div>
       <div class="modal-body">
-        <form class="form-horizontal" role="form">
+        <form class="form-horizontal" role="form"
+            ng-submit="MindtaggerTask.export(exportFormat, exportTableName)"
+            onsubmit="$('#export-modal').modal('hide');">
           <div class="form-group">
             <label for="export-attrs" class="col-sm-2 control-label">Attributes to export</label>
             <div class="col-sm-10">
@@ -115,20 +117,29 @@
           </div>
           <div class="form-group">
             <label for="export-format" class="col-sm-2 control-label">Format</label>
-            <div class="col-sm-10" ng-init="exportFormat = 'sql'">
+            <div class="col-sm-10" ng-init="exportFormat = 'update.sql'">
               <select id="export-format" class="form-control" ng-model="exportFormat">
-                <option>sql</option>
+                <option>update.sql</option>
+                <option>insert.sql</option>
                 <option>json</option>
                 <option>tsv</option>
                 <option>csv</option>
               </select>
             </div>
           </div>
+          <div class="form-group" ng-if="exportFormat == 'update.sql' || exportFormat == 'insert.sql'">
+            <label for="export-table-name" class="col-sm-2 control-label">Table name</label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" id="export-table-name"
+                ng-model="$parent.exportTableName"
+                placeholder="Specify table name to use for sql formats">
+            </div>
+          </div>
         </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" ng-click="MindtaggerTask.export(exportFormat)">Download</button>
+        <button type="button" class="btn btn-primary" ng-click="MindtaggerTask.export(exportFormat, exportTableName)">Download</button>
       </div>
     </div>
   </div>

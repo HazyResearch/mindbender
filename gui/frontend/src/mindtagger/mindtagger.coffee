@@ -256,14 +256,14 @@ angular.module 'mindbenderApp.mindtagger', [
     addTagToCursorAction: (name, value) =>
         (event) => @addTagToCursor name, value
 
-    export: (format) =>
+    export: (format, tableName = "") =>
         $window.location.href = "/api/mindtagger/#{@name}/tags.#{format
-        }?table=#{
-            "" # TODO allow table name to be customized
+        }?tags=#{
+            encodeURIComponent ((tagName for tagName,tagSchema of @schema.tags when tagSchema.shouldExport).join ",")
         }&attrs=#{
             encodeURIComponent ((attrName for attrName,attrSchema of @schema.items when attrSchema.shouldExport).join ",")
-        }&tags=#{
-            encodeURIComponent ((tagName for tagName,tagSchema of @schema.tags when tagSchema.shouldExport).join ",")
+        }&table=#{
+            tableName
         }"
 
 

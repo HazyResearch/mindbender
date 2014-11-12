@@ -56,6 +56,9 @@ server.listen (app.get "port"), ->
 class MindbenderUtils
     @escapeSqlString: (s) ->
         s?.replace /'/g, "''"
+    @escapeSqlName: (n) ->
+        # use double quote to escape SQL names
+        "\"#{n?.replace /"/g, "\"\""}\""
     @asSqlLiteral: (value) ->
         if value?
             switch typeof value
@@ -84,7 +87,7 @@ class MindbenderUtils
     @convertValues: (array, from, to) ->
         if array?
             for row in array
-                row[key] = to for key,value of row when value is from
+                row[key] = to for key,value of row when (from? and value is from) or (not value? and not from?)
             array
     @deserializeNullStrings: (array) -> MindbenderUtils.convertValues array, "\\N", null
     @serializeNulls:         (array) -> MindbenderUtils.convertValues array, null, "\\N"
@@ -435,14 +438,14 @@ app.post "/api/mindtagger/:task/items", (req, res) ->
             res.json task.schema
 
 # set up APIs for exporting
-app.get "/api/mindtagger/:task/tags.:format", (req, res) ->
-    format = req.param "format"
+app.get ///^ /api/mindtagger/([^/]+)/tags\.(.*) $///, (req, res) ->
+    [taskName, format] = req.params
     attrsToInclude = req.param("attrs")?.split(/\s*,\s*/)
     tagsToInclude = req.param("tags")?.split(/\s*,\s*/)
     unless attrsToInclude?.length > 0
         return res.status 400
             .send "Bad request: no attrs specified"
-    withTask (req.param "task"), req, res, (task, taskName) ->
+    withTask (taskName), req, res, (task, taskName) ->
         task.getItemsWithTags (err, taggedItems) ->
             if err
                 return res.status 500
@@ -474,26 +477,43 @@ app.get "/api/mindtagger/:task/tags.:format", (req, res) ->
                 taskName} #{tagNames.join "-"} by #{attrsToInclude.join "-"} #{
                     new Date().toISOString()}.#{format}"
             switch format
-                when "sql"
+                when "update.sql", "insert.sql"
                     tableName = req.param "table"
                     unless tableName?.length > 0  # use default if table name isn't specified
                         tableName = "tags_#{taskName}_#{tagNames.join "_"}"
-                    # TODO escape quoted columnNames?
-                    res.send """
-                        DROP TABLE "#{tableName}";
-                        CREATE TABLE "#{tableName}"(\n#{("\"#{c}\" TEXT" for c in columnNames).join ",\n"}
-                        );
-                        INSERT INTO "#{tableName}"(#{(("\"#{c}\"" for c in columnNames).join ", ")}) VALUES
-                        #{(
-                            for row in rows
-                                "(#{(MindbenderUtils.asSqlLiteral row[c] for c in columnNames).join ", "})"
-                        ).join ",\n"
-                        };
-                        """
+                    sqlTableName = MindbenderUtils.escapeSqlName tableName
+                    switch format
+                        when "update.sql"
+                            sqlTagColumnNames = (MindbenderUtils.escapeSqlName c for c in tagNames).join ", "
+                            res.send (for row in rows
+                                """
+                                UPDATE #{sqlTableName} SET (#{sqlTagColumnNames}) = (#{
+                                    (MindbenderUtils.asSqlLiteral row[c] for c in tagNames).join ", "
+                                })\tWHERE #{(
+                                    "#{MindbenderUtils.escapeSqlName c} = #{
+                                        MindbenderUtils.asSqlLiteral row[c]}" for c in attrsToInclude
+                                ).join "\tAND "};
+                                """
+                            ).join "\n"
+                        when "insert.sql"
+                            res.send """
+                                DROP TABLE IF EXISTS #{sqlTableName};
+                                CREATE TABLE #{sqlTableName}
+                                ( #{("#{MindbenderUtils.escapeSqlName c} TEXT" for c in columnNames).join "\n, "}
+                                );
+                                INSERT INTO #{sqlTableName}
+                                (#{((MindbenderUtils.escapeSqlName c for c in columnNames).join ", ")})
+                                VALUES
+                                #{(
+                                    for row in rows
+                                        "(#{(MindbenderUtils.asSqlLiteral row[c] for c in columnNames).join ", "})"
+                                ).join ",\n"
+                                };
+                                """
                 when "tsv"
-                    res.send TSV.stringify rows
+                    res.send TSV.stringify (MindbenderUtils.serializeNulls rows)
                 when "csv"
-                    csv.stringify rows, {
+                    csv.stringify (MindbenderUtils.serializeNulls rows), {
                         header: yes
                         columns: columnNames
                     }, (err, formatted) ->
