@@ -42,7 +42,16 @@
 
 </div>
 
-<section class="row">
+<section class="row"
+hotkey="{
+1: MindtaggerTask.addTagToCursorAction('is_correct',  true),
+2: MindtaggerTask.addTagToCursorAction('is_correct', false),
+3: MindtaggerTask.addTagToCursorAction('is_correct',  null)
+}" hotkey-description="{
+1: 'Mark cursor item as correct',
+2: 'Mark cursor item as incorrect',
+3: 'Unmark cursor item'
+}">
 <!-- Rendering items -->
 <div class="panel panel-default mindtagger-item" ng-repeat="item in MindtaggerTask.items"
   ng-class="$index == MindtaggerTask.cursor.index ? 'mindtagger-cursor-item panel-primary' : 'panel-default'"
@@ -57,7 +66,7 @@
     <div class="panel-footer">
       <!-- correct/undecidable/incorrect tags for precision labeling -->
       <span class="btn-group">
-        <label uncheckable btn-radio="true"  ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && !tag.is_correct ? 'btn-default' : 'btn-success'"><i class="glyphicon glyphicon-ok"></i></label>
+          <label uncheckable btn-radio="true"  ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && !tag.is_correct ? 'btn-default' : 'btn-success'"><i class="glyphicon glyphicon-ok"></i></label>
         <label uncheckable btn-radio="false" ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null &&  tag.is_correct ? 'btn-default' : 'btn-danger' "><i class="glyphicon glyphicon-remove"></i></label>
       </span>
 

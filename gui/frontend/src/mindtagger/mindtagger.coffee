@@ -1,5 +1,6 @@
 angular.module 'mindbenderApp.mindtagger', [
     'ui.bootstrap'
+    'cfp.hotkeys'
     'mindbenderApp.mindtagger.wordArray'
     'mindbenderApp.mindtagger.arrayParsers'
     'mindbenderApp.mindtagger.tags.valueSet'
@@ -223,11 +224,9 @@ angular.module 'mindbenderApp.mindtagger', [
                 @cursorInitIndex = 0
         else
             @moveCursorTo newIndex
-            
 
     # create/add tag
-    addTagToCursor: (args...) => @addTagTo @cursor.index, args...
-    addTagTo: (item, name, type = 'binary', value = true) =>
+    addTagTo: (item, name, value, type = 'binary') =>
         console.log "adding tag to item #{@keyFor item}", name, type, value
         index = @indexOf item
         tag = (@tags[index] ?= {})
@@ -252,6 +251,10 @@ angular.module 'mindbenderApp.mindtagger', [
                 # prevent further changes to the UI with an error message
                 $modal.open templateUrl: "mindtagger/commit-error.html"
                     .result.finally => do $window.location.reload
+    # shorthands for manipulating tag of cursor item
+    addTagToCursor: (args...) => @addTagTo @cursor.index, args...
+    addTagToCursorAction: (name, value) =>
+        (event) => @addTagToCursor name, value
 
     export: (format) =>
         $window.location.href = "/api/mindtagger/#{@name}/tags.#{format

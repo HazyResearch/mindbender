@@ -1,7 +1,6 @@
 # Declare app level module which depends on views, and components
 angular.module 'mindbenderApp', [
     'ngRoute'
-    'cfp.hotkeys'
     'mindbenderApp.mindtagger'
 ]
 .config ($routeProvider) ->
