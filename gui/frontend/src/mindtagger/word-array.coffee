@@ -16,13 +16,12 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         <span ng-transclude></span>
     """
     controller: ($scope, $element, $attrs, $filter) ->
-        console.log "mindtaggerWordArray", $element
         @$element = $element
         @getWordElements = =>
             @$element.find(".mindtagger-word")
         $scope.$watchGroup [
-                => $scope.mindtaggerWordArray
-                => $scope.arrayFormat
+                -> $scope.mindtaggerWordArray
+                -> $scope.arrayFormat
             ], ([
                 newArray
                 newFormat
@@ -52,18 +51,19 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         arrayFormat = tAttrs.arrayFormat
         style = tAttrs.withStyle
         className = "mindtagger-highlight-words-#{classNameSeq++}"
-        ($scope, $element, $attrs, [mindtaggerWordArrayCtrl]) ->
+        ($scope, $element, $attrs, [
+            mindtaggerWordArray
+        ]) ->
             # add a new stylesheet
-            console.log "mindtaggerHighlightWords link", className, mindtaggerWordArrayCtrl
             mindtaggerCreateStylesheet(""".mindtagger-word.#{className} { #{style} }""")
                 .appendTo($element.closest("body"))
             $scope.$watchGroup [
                 "from", "to"
                 "indexArray"
                 "indexArrays"
-                -> mindtaggerWordArrayCtrl.wordArray
+                -> mindtaggerWordArray.wordArray
             ], ->
-                words = mindtaggerWordArrayCtrl.getWordElements()
+                words = mindtaggerWordArray.getWordElements()
                 wordsToHighlight =
                     if $scope.from? and $scope.to? and 0 <= +$scope.from <= +$scope.to < words.length
                         words.slice +$scope.from-1, +$scope.to
@@ -94,7 +94,12 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
     ]
 
     restrict: 'A'
-    controller: ($scope, $element, $attrs) ->
+    require: [
+        '^mindtaggerWordArray'
+    ]
+    link: ($scope, $element, $attrs, [
+        mindtaggerWordArray
+    ]) ->
         hotkeysDemux.attach $scope
         indexArrayModel = $parse $attrs.indexArray
         updateIndexArray = (indexArray) ->
@@ -107,8 +112,8 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         isModifyingSelection = (event) -> event.metaKey or event.ctrlKey
         findWordFor = (el) ->
             $(el).closest(".mindtagger-word-container").find(".mindtagger-word")
-        $element.on "mouseup", (event) ->
-            words = $element.find(".mindtagger-word")
+        mindtaggerWordArray.$element.on "mouseup", (event) ->
+            words = mindtaggerWordArray.getWordElements()
             sel = getSelection()
             if sel.baseNode is sel.extentNode and sel.baseOffset == sel.extentOffset
                 # if selection is empty, this must be a normal click
@@ -145,7 +150,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         # keyboard shortcuts handlers
         $scope.moveIndexArrayBy = (incr = 0) ->
             return if incr == 0
-            numWords = $element.find(".mindtagger-word").length
+            numWords = mindtaggerWordArray.wordArray.length
             indexArray = indexArrayModel $scope
             if indexArray?.length > 0
                 for i in indexArray
@@ -159,7 +164,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
             indexArray = indexArrayModel $scope
             return unless indexArray?.length > 0
             return if dir < 0 and indexArray?.length + dir <= 0
-            numWords = $element.find(".mindtagger-word").length
+            numWords = mindtaggerWordArray.wordArray.length
             leftmostIndex = Math.min indexArray...
             rightmostIndex = Math.max indexArray...
             indexArray =
