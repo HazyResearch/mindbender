@@ -7,7 +7,7 @@ MindBender for iterative knowledge base development with [DeepDive][].
 ```
 make polish
 
-@prefix@/bin/mindbender tagger examples/genomics/mindtagger.conf
+./examples/labeling/start-mindtagger.sh
 
 @prefix@/bin/mindbender compile  examples/genomics-application.mb  examples/genomics-application.deepdive
 @prefix@/bin/mindbender compile  examples/spouse-example.mb        examples/spouse-example.deepdive
