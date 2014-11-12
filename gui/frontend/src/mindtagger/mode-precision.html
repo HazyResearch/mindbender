@@ -25,10 +25,9 @@
               ng-repeat="(value, frequency) in tagSchema.frequency"
               tooltip="{{value}}: {{frequency}}/{{MindtaggerTask.itemsCount}}"
               tooltip-animation="false" tooltip-trigger="mouseenter" tooltip-append-to-body="ul"
-              ng-class="$utils.progressBarClassForValue(value, $index)"
-              aria-valuenow="{{100 * frequency / MindtaggerTask.itemsCount}}" aria-valuemin="0" aria-valuemax="100"
-              style="width:  {{100 * frequency / MindtaggerTask.itemsCount}}%">
-              <span>{{frequency}}</span>
+              ng-class="MindtaggerUtils.progressBarClassForValue(value, $index)"
+              aria-valuenow="{{100 * frequency / MindtaggerTask.itemsCount | number:1}}" aria-valuemin="0" aria-valuemax="100"
+              style="width:  {{100 * frequency / MindtaggerTask.itemsCount | number:1}}%;">
             </div>
           </div>
         </a></li>

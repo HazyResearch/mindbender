@@ -32,9 +32,10 @@ angular.module 'mindbenderApp.mindtagger', [
     $templateRequest, $templateCache, $document, $compile, # for per-task template handling
 ) ->
     templateUrl: "mindtagger/task.html"
-    controller: ($scope, $element, $attrs, MindtaggerTask,
+    controller: ($scope, $element, $attrs, MindtaggerTask, MindtaggerUtils
             $modal, $location, $timeout, $window,
             hotkeys, overrideDefaultEventWith, localStorageState) ->
+        $scope.MindtaggerUtils = MindtaggerUtils
         $scope.taskName =
         @name = $attrs.mindtaggerTask
         # load current page and cursor position saved in localStorage
