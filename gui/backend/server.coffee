@@ -86,7 +86,7 @@ class MindbenderUtils
         try
             switch path.extname fName
                 when ".tsv"
-                    fs.readFile fName, (err, data) -> next err, try (TSV.parse String data)
+                    fs.readFile fName, (err, data) -> next err, try (TSV.parse (String data).replace /[\r\n]+$/g, "")
                 when ".json"
                     fs.readFile fName, (err, data) -> next err, try (JSON.parse String data)
                 else # when ".csv"
