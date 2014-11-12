@@ -81,14 +81,23 @@ class MindbenderUtils
     @CSV_OPTIONS:
         columns: yes
         header: yes
+    @convertValues: (array, from, to) ->
+        if array?
+            for row in array
+                row[key] = to for key,value of row when value is from
+            array
+    @deserializeNullStrings: (array) -> MindbenderUtils.convertValues array, "\\N", null
+    @serializeNulls:         (array) -> MindbenderUtils.convertValues array, null, "\\N"
     @loadDataFile: (fName, next) ->
         util.log "loading #{fName}"
         try
             switch path.extname fName
-                when ".tsv"
-                    fs.readFile fName, (err, data) -> next err, try (TSV.parse (String data).replace /[\r\n]+$/g, "")
                 when ".json"
                     fs.readFile fName, (err, data) -> next err, try (JSON.parse String data)
+                when ".tsv"
+                    fs.readFile fName, (err, data) -> next err,
+                        MindbenderUtils.deserializeNullStrings (
+                            try (TSV.parse (String data).replace /[\r\n]+$/g, ""))
                 else # when ".csv"
                     parser = csv.parse (_.clone MindbenderUtils.CSV_OPTIONS)
                     output = []
@@ -97,7 +106,7 @@ class MindbenderUtils
                             output.push record
                     parser.on "error", next
                     parser.on "finish", ->
-                        next null, output
+                        next null, MindbenderUtils.deserializeNullStrings output
                     (fs.createReadStream fName)
                         .pipe parser
         catch err
@@ -112,10 +121,10 @@ class MindbenderUtils
         try
             util.log "writing #{fName}"
             switch path.extname fName
-                when ".tsv"
-                    fs.writeFile fName, (TSV.stringify array), next
                 when ".json"
                     fs.writeFile fName, (JSON.stringify array, null, 1), next
+                when ".tsv"
+                    fs.writeFile fName, (TSV.stringify (MindbenderUtils.serializeNulls array)), next
                 else # when ".csv"
                     # find out the columns first
                     columns = MindbenderUtils.findAllKeys objs
@@ -125,6 +134,7 @@ class MindbenderUtils
                             rowProcessed = {}
                             rowProcessed[col] = String val for col,val of row
                             rowProcessed
+                    arrayProcessed = MindbenderUtils.serializeNulls arrayProcessed
                     # write CSV
                     csv.stringify arrayProcessed, {
                         header: yes
