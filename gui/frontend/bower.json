@@ -13,7 +13,6 @@
     "angular-route": "1.3.x",
     "angular-loader": "1.3.x",
     "angular-mocks": "~1.3.x",
-    "ng-multi-transclude": "netj/ng-multi-transclude#compile-link-block-to-correct-scope",
     "angular-bootstrap": "0.11.2",
     "angular-hotkeys": "chieffancypants/angular-hotkeys#1.4.5",
     "bootstrap": "3.2.0",

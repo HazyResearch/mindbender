@@ -1,23 +1,18 @@
 <mindtagger mode="recall">
 
-  <ng-template name="each-item">
+  <template for="each-item">
       <!-- TODO use cursor.selection instead of item -->
-      <span mindtagger-highlight-words index-arrays="tag.more_phenotypes" with-style="background-color: magenta;">
-      <span mindtagger-highlight-words index-arrays="tag.more_diseases" with-style="background-color: green;">
-      <span mindtagger-highlight-words index-arrays="tag.more_genes" with-style="background-color: cyan;">
-      <span mindtagger-highlight-words index-array="item.selection" with-style="border-bottom: 2px solid;">
-      <span mindtagger-selectable-words index-array="item.selection">
-      <span mindtagger-highlight-words index-array="item.positions" array-format="postgres" with-style="background-color: yellow;">
-          <big mindtagger-word-array="item.words" array-format="postgres"></big>
-      </span>
-      </span>
-      </span>
-      </span>
-      </span>
-      </span>
-  </ng-template>
+      <big mindtagger-word-array="item.words" array-format="postgres">
+          <span mindtagger-highlight-words index-arrays="tag.more_phenotypes" with-style="background-color: magenta;"></span>
+          <span mindtagger-highlight-words index-arrays="tag.more_diseases" with-style="background-color: green;"></span>
+          <span mindtagger-highlight-words index-arrays="tag.more_genes" with-style="background-color: cyan;"></span>
+          <span mindtagger-highlight-words index-array="item.selection" with-style="border-bottom: 2px solid;"></span>
+          <span mindtagger-selectable-words index-array="item.selection"></span>
+          <span mindtagger-highlight-words index-array="item.positions" array-format="postgres" with-style="background-color: yellow;"></span>
+      </big>
+  </template>
 
-  <ng-template name="tags">
+  <template for="tags">
       <div ng-init="
         MindtaggerTask.defineTags(
         { more_genes:      { type: 'set' }
@@ -28,6 +23,6 @@
         <span mindtagger-value-set-tag="'more_genes'" with-value="item.selection"
             render-each-value="item.words | filterArrayByIndexes:value:'postgres'"></span>
     </div>
-  </ng-template>
+  </template>
 
 </mindtagger>

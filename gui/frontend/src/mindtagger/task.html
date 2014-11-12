@@ -1,11 +1,3 @@
-<div ng-include="'mindtagger/tasks/' + MindtaggerTask.name + '/template.html'"
-  mindtagger-task-keeps-cursor-visible
-  >
-    <div class="alert alert-danger">
-        Task <strong>{{MindtaggerTask.name}}</strong> not found!
-    </div>
-</div>
-
 <section class="row">
 <div ng-if="!MindtaggerTask.items" class="alert alert-block alert-info text-center col-md-offset-4 col-md-4" style="margin-top: 20%;">
   <h4>Loading items...</h4>
@@ -54,6 +46,20 @@
   $("#add-tag-modal").on("shown.bs.modal", function(e) { $(this).find("input:visible:first").focus(); });
 </script>
 
+<!-- Error modal when loading the task fails -->
+<script type="text/ng-template" id="mindtagger/load-error.html">
+  <div class="modal-header text-danger">
+    <h3 class="modal-title">Task Not Found!</h3>
+  </div>
+  <div class="modal-body text-danger">
+    There is no such task named "<strong>{{taskName}}</strong>" known to Mindtagger.
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-danger" ng-click="$close()">Open Another Task</button>
+  </div>
+</script>
+
+<!-- Error modal when commiting tag fails -->
 <script type="text/ng-template" id="mindtagger/commit-error.html">
   <div class="modal-header text-danger">
     <h3 class="modal-title">Error Saving Tag</h3>

@@ -1,6 +1,6 @@
 <mindtagger mode="precision">
 
-  <ng-template name="each-item">
+  <template for="each-item">
     <strong>{{item.mention_text}}</strong> appeared in:
     <blockquote>
       <span class="text-muted">{{item.sentences_before | concatArray:'postgres'}}</span>
@@ -12,11 +12,11 @@
     </blockquote>
 
     <div mindtagger-item-details></div>
-  </ng-template>
+  </template>
 
-  <ng-template name="tags">
+  <template for="tags">
     <span mindtagger-adhoc-tags></span>
     <span mindtagger-note-tags></span>
-  </ng-template>
+  </template>
 
 </mindtagger>

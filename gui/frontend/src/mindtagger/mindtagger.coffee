@@ -1,6 +1,5 @@
 angular.module 'mindbenderApp.mindtagger', [
     'ui.bootstrap'
-    'multi-transclude'
     'mindbenderApp.mindtagger.wordArray'
     'mindbenderApp.mindtagger.arrayParsers'
     'mindbenderApp.mindtagger.tags.valueSet'
@@ -8,11 +7,11 @@ angular.module 'mindbenderApp.mindtagger', [
 
 .config ($routeProvider) ->
     $routeProvider.when '/mindtagger',
-        templateUrl: 'mindtagger/tasklist.html',
+        templateUrl: 'mindtagger/tasklist.html'
         controller: 'MindtaggerTaskListCtrl'
     $routeProvider.when '/mindtagger/:task',
-        templateUrl: 'mindtagger/task.html',
-        controller: 'MindtaggerTaskCtrl'
+        template: ({task}) -> """<div mindtagger-task="#{task}" mindtagger-task-keeps-cursor-visible></div>"""
+        # TODO reloadOnSearch: no
 
 .controller 'MindtaggerTaskListCtrl', ($scope, $http, $location, localStorageState) ->
     $scope.tasks ?= []
@@ -20,62 +19,102 @@ angular.module 'mindbenderApp.mindtagger', [
         .success (tasks) ->
             $scope.tasks = tasks
             if $location.path() is "/mindtagger" and tasks?.length > 0
-                savedState = localStorageState "MindtaggerTask", $scope, [ "MindtaggerTask.name" ], no
-                $location.path "/mindtagger/#{savedState["MindtaggerTask.name"] ? tasks[0].name}"
+                index = $location.search().index
+                if index?
+                    $location.path "/mindtagger/#{tasks[+index].name}"
+                else
+                    savedState = localStorageState "MindtaggerTask", $scope, [ "MindtaggerTask.name" ], no
+                    $location.path "/mindtagger/#{savedState["MindtaggerTask.name"] ? tasks[0].name}"
 
 
-.controller 'MindtaggerTaskCtrl', ($scope, $routeParams, MindtaggerTask, $timeout, $location, $window, hotkeys, overrideDefaultEventWith, localStorageState) ->
-    # load current page and cursor position saved in localStorage
-    savedState = localStorageState "MindtaggerTask_#{$routeParams.task}", $scope, [
-        "MindtaggerTask.currentPage"
-        "MindtaggerTask.itemsPerPage"
-        "MindtaggerTask.cursor.index"
-    ], no
-    # make sure the search includes the required parameters
-    search = $location.search()
-    unless search.p? and search.s?
-        $location.search "p", savedState["MindtaggerTask.currentPage"]  ? 1
-        $location.search "s", savedState["MindtaggerTask.itemsPerPage"] ? 10
-        return
-    # initialize or load task
-    $scope.MindtaggerTask =
-    task = MindtaggerTask.forName $routeParams.task,
-        currentPage:  +$location.search().p
-        itemsPerPage: +$location.search().s
-        $scope: $scope
-    task.cursorInitIndex ?= savedState["MindtaggerTask.cursor.index"]
-    task.load()
-        .catch (err) ->
-            console.error "#{MindtaggerTask.name} not found"
-            $location.path "/mindtagger"
-        .finally ->
-            do $scope.$digest
-    do savedState.startWatching
-    # remember the last task
-    localStorageState "MindtaggerTask", $scope, [ "MindtaggerTask.name" ]
+.directive 'mindtaggerTask', (
+    $templateRequest, $templateCache, $document, $compile, # for per-task template handling
+) ->
+    templateUrl: "mindtagger/task.html"
+    controller: ($scope, $element, $attrs, MindtaggerTask,
+            $modal, $location, $timeout, $window,
+            hotkeys, overrideDefaultEventWith, localStorageState) ->
+        $scope.taskName =
+        @name = $attrs.mindtaggerTask
+        # load current page and cursor position saved in localStorage
+        savedState = localStorageState "MindtaggerTask_#{@name}", $scope, [
+            "MindtaggerTask.currentPage"
+            "MindtaggerTask.itemsPerPage"
+            "MindtaggerTask.cursor.index"
+        ], no
+        # make sure the search includes the required parameters
+        search = $location.search()
+        unless search.p? and search.s?
+            $location.search "p", savedState["MindtaggerTask.currentPage"]  ? 1
+            $location.search "s", savedState["MindtaggerTask.itemsPerPage"] ? 10
+            return
+        # initialize or load task
+        $scope.MindtaggerTask =
+        task = MindtaggerTask.forName @name,
+            currentPage:  +$location.search().p
+            itemsPerPage: +$location.search().s
+            $scope: $scope
+        task.cursorInitIndex ?= savedState["MindtaggerTask.cursor.index"]
+        task.load()
+            .catch (err) =>
+                console.error "#{MindtaggerTask.name} not found"
+                $modal.open templateUrl: "mindtagger/load-error.html", scope: $scope
+                    .result.finally => $location.path("/mindtagger").search(index: 0)
+            .finally ->
+                do $scope.$digest
+        do savedState.startWatching
+        # remember the last task
+        localStorageState "MindtaggerTask", $scope, [ "MindtaggerTask.name" ]
 
-    # TODO replace with $watch (probably with a Ctrl?)
-    $scope.commit = (item, tag) ->
-        $timeout -> task.commitTagsOf item
-    # pagination
-    $scope.$watch ->
-            $scope.MindtaggerTask.currentPage
-        , (newPage) ->
-            $location.search "p", newPage
-            task.moveCursorTo 0 unless task.cursorInitIndex?
-    $scope.$watch ->
-            $scope.MindtaggerTask.itemsPerPage
-        , (newPageSize) ->
-            $location.search "s", newPageSize
-            task.moveCursorTo 0 unless task.cursorInitIndex?
+        # TODO replace with $watch (probably with a Ctrl?)
+        $scope.commit = (item, tag) ->
+            $timeout -> task.commitTagsOf item
+        # pagination
+        $scope.$watch ->
+                $scope.MindtaggerTask.currentPage
+            , (newPage) ->
+                $location.search "p", newPage
+                task.moveCursorTo 0 unless task.cursorInitIndex?
+        $scope.$watch ->
+                $scope.MindtaggerTask.itemsPerPage
+            , (newPageSize) ->
+                $location.search "s", newPageSize
+                task.moveCursorTo 0 unless task.cursorInitIndex?
 
-    $scope.keys = (obj) -> key for key of obj
+        $scope.keys = (obj) -> key for key of obj
 
-    # map keyboard events
-    hotkeys.bindTo $scope
-        .add combo: "up",   description: "Move cursor to previous item", callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy -1)
-        .add combo: "down", description: "Move cursor to next item",     callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy +1)
+        # map keyboard events
+        hotkeys.bindTo $scope
+            .add combo: "up",   description: "Move cursor to previous item", callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy -1)
+            .add combo: "down", description: "Move cursor to next item",     callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy +1)
 
+    link: ($scope, $element, $attrs) ->
+        # load Mindtagger per-task template
+        $templateRequest "mindtagger/tasks/#{$attrs.mindtaggerTask}/template.html"
+            .then (template) ->
+                # parse mindtagger template fragments (template[for=...]) from it
+                parsedTemplate =
+                    $($.parseHTML template, $document[0])
+                        # TODO keep a list of valid template names and put all of them in $templateCache
+                        .find("template")
+                            .each (i, t) ->
+                                $t = $(t)
+                                $templateCache.put "mindtagger/tasks/#{$attrs.mindtaggerTask
+                                    }/template-#{$t.attr("for")}.html", $t.html()
+                            .remove()
+                        .end()
+                $element.prepend (($compile parsedTemplate) $scope)
+            .catch ->
+                # TODO use default template?
+
+# a shorthand for inserting a named fragment of the Mindtagger task specific template
+.directive 'mindtaggerInsertTemplate', ->
+    template: (tElement, tAttrs) -> """
+        <ng-include src="'mindtagger/tasks/'+ MindtaggerTask.name +
+            '/template-#{tAttrs.mindtaggerInsertTemplate}.html'"></ng-include>
+        """
+
+# TODO fold this into mindtaggerTask directive's controller
 .service 'MindtaggerTask', ($http, $q, $modal, $window, $timeout) ->
   class MindtaggerTask
     @allTasks: {}
@@ -107,6 +146,7 @@ angular.module 'mindbenderApp.mindtagger', [
 
     load: =>
         $q.all [
+            # TODO consider using $resource instead
             ( $http.get "/api/mindtagger/#{@name}/schema"
                 .success ({schema}) =>
                     @updateSchema schema
@@ -222,7 +262,6 @@ angular.module 'mindbenderApp.mindtagger', [
         }&tags=#{
             encodeURIComponent ((tagName for tagName,tagSchema of @schema.tags when tagSchema.shouldExport).join ",")
         }"
-
 
 
 .service 'MindtaggerUtils', (parsedArrayFilter) ->
