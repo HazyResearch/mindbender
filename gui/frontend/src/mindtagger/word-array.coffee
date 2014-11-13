@@ -65,8 +65,9 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
             ], ->
                 words = mindtaggerWordArray.getWordElements()
                 wordsToHighlight =
-                    if $scope.from? and $scope.to? and 0 <= +$scope.from <= +$scope.to < words.length
-                        words.slice +$scope.from-1, +$scope.to
+                    if $scope.from? and $scope.to?
+                        if 0 <= +$scope.from <= +$scope.to < words.length
+                            words.slice +$scope.from, +$scope.to + 1
                     else
                         indexes =
                             if $scope.indexArray?.length > 0
