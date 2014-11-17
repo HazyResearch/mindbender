@@ -5,6 +5,7 @@
 
 .build
 /@prefix@
+/.github-release-assets
 /*.app
 /mindbender-*.tar.gz
 /mindbender-*.sh
