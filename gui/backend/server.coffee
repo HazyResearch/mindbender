@@ -84,6 +84,7 @@ class MindbenderUtils
     @CSV_OPTIONS:
         columns: yes
         header: yes
+        auto_parse: yes
     @convertValues: (array, from, to) ->
         if array?
             for row in array
