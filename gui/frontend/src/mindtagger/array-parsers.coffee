@@ -9,7 +9,6 @@ angular.module 'mindbenderApp.mindtagger.arrayParsers', [
         csvLikeText = m[1]
         # convert backslash escapes to standard CSV escapes
         csvText = csvLikeText
-            .replace /\\(.)/g, "$1"
             .replace /\\(.)/g, (m, c) ->
                 switch c
                     when '"'

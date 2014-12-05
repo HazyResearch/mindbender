@@ -99,6 +99,34 @@ class MindbenderUtils
             array
     @deserializeNullStrings: (array) -> MindbenderUtils.convertValues array, "\\N", null
     @serializeNulls:         (array) -> MindbenderUtils.convertValues array, null, "\\N"
+    @unescapeBackslashes: (array) ->
+        if array?
+            for row in array
+                for key,value of row when "string" is typeof value
+                    row[key] = value
+                        .replace /\\(.)/g, (m, c) ->
+                            switch c
+                                when "t"
+                                    "\t"
+                                when "n"
+                                    "\n"
+                                else
+                                    c
+            array
+    @escapeWithBackslashes: (array) ->
+        if array?
+            for row in array
+                for key,value of row when "string" is typeof value
+                    row[key] = value
+                        .replace /([\t\n\\])/g, (m, c) ->
+                            switch c
+                                when "\t"
+                                    "\\t"
+                                when "\n"
+                                    "\\n"
+                                else
+                                    "\\#{c}"
+            array
     @loadDataFile: (fName, next) ->
         util.log "loading #{fName}"
         try
@@ -107,8 +135,10 @@ class MindbenderUtils
                     fs.readFile fName, (err, data) -> next err, try (JSON.parse String data)
                 when ".tsv"
                     fs.readFile fName, (err, data) -> next err,
-                        MindbenderUtils.deserializeNullStrings (
-                            try (TSV.parse (String data).replace /[\r\n]+$/g, ""))
+                      MindbenderUtils.unescapeBackslashes (
+                          MindbenderUtils.deserializeNullStrings (
+                              try (TSV.parse (String data).replace /[\r\n]+$/g, ""))
+                      )
                 else # when ".csv"
                     parser = csv.parse (_.clone MindbenderUtils.CSV_OPTIONS)
                     output = []
@@ -135,7 +165,9 @@ class MindbenderUtils
                 when ".json"
                     fs.writeFile fName, (JSON.stringify array, null, 1), next
                 when ".tsv"
-                    fs.writeFile fName, (TSV.stringify (MindbenderUtils.serializeNulls array)), next
+                    fs.writeFile fName, (TSV.stringify (
+                        MindbenderUtils.serializeNulls (
+                            MindbenderUtils.escapeWithBackslashes array))), next
                 else # when ".csv"
                     # find out the columns first
                     columns = MindbenderUtils.findAllKeys objs
