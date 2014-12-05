@@ -1,7 +1,7 @@
 mindbender: {
   artifacts: {
     ################################################################
-    Entity_temporal : {
+    Entity_temporal: {
       from: { s: Sentence }
       using: {
         zlib: python('/udf/z-lib.py')
@@ -24,7 +24,7 @@ mindbender: {
       }
     }
     ################################################################
-    Entity_formation_local : {  # Similar to Entity_temporal
+    Entity_formation_local: {  # Similar to Entity_temporal
       from: { s: Sentence }
       using: {
         zlib: python('/udf/z-lib.py')
@@ -32,7 +32,7 @@ mindbender: {
       }
       let: {
         all_phrases: zlib.get_all_phrases_in_sentence(s.words, 5)
-        res: zext.main (s.words, s.ners, s.lemmas, all_phrases)
+        res: zext.main(s.words, s.ners, s.lemmas, all_phrases)
       }
       return: {
         from: { r: res }
@@ -47,16 +47,21 @@ mindbender: {
       }
     }
 
-    # NOTE: This artifact is not in an original appl.conf!
     # TODO: We should be able to make a table using "GROUP BY".
+    # SOLN: For now, I use an additional keyword "groupby".
+    # Q: Where should we put "groupby"? Outside or inside "return" block?
+    # Q: Should we allow func call (such python func or agg func) inside "return" block?
+    # (NOTE: This artifact is not in an original appl.conf!)
     Entity_formation_gp: {
-      from: { e: Entity_formation_local }
-      return: {
-        groupby:  e...docid                     ########## HERE!
-        return: { entity_objs : array_agg(e) }  ########## HERE!
-      }
+      from:    { e: Entity_formation_local }
+      groupby: { e...docid }          ########## HERE!
+      let:     { res: array_agg(e) }  ########## HERE!
+      return:  { entity_objs : res :: Entity_formation_local[] }
     }
 
+    # TODO: We should be able to pass to a python function a user-created array of values
+    # SOLN: For now, I express it as "a.b[].c" in order to get an array of c's
+    #       each of which belongs to each element of b.
     Entity_formation_global: {
       from: {
         s: Sentence
@@ -67,9 +72,9 @@ mindbender: {
         zlib: python('/udf/z-lib.py')
         zext: python('/udf/z-ext_formation_global.py')
       }
-      let:   {
+      let: {
         all_phrases: zlib.get_all_phrases_in_sentence(s.words, 5)
-        dicts: zext.aux(e_gp...entities, e_gp...types)
+        dicts: zext.aux(e_gp.entity_objs[].entity, e_gp.entity_objs[].type)  ########## HERE!
         res: zext.main(s.words, s.lemmas, all_phrases,
                        dicts.good_names, dicts.local_entities, dicts.local_entity_types)
       }
@@ -86,15 +91,20 @@ mindbender: {
       }
     }
 
-    # NOTE: This artifact is not in an original appl.conf!
+    # NOTE: This artifact is not in an original appl.conf! (It is a table created by a nested SQL query.)
     # TODO: We should be able to insert new rows into a previously created table.
-    # For now, we make an additional artifact that merges two tables (= local and global ones).
+    # SOLN: For now, we make an additional artifact that merges two tables (= local and global ones).
+    # Q: Isn't this solution satisfactory?
     Entity_formation: {
       from: {
         e_local:  Entity_formation_local
         e_global: Entity_formation_global
       }
       return: [
+        # NOTE:
+        #   Here "content" has a type "Entity_formation_local + Entity_formation_global" (which is sum type).
+        #   However, it is a really restricted form of sum type
+        #   because "Entity_formation_local" and "..._global" have exactly the same fields with the same types.
         { return: { content : e_local  :: Entity_formation_local  } }
         { return: { content : e_global :: Entity_formation_global } }
       ]
@@ -109,6 +119,20 @@ mindbender: {
         e_loc: Entity_location
       }
       return: [
+        # NOTE:
+        #   Here "entity_obj" has a type "Entity_formation + ... + Entity_location" (which is sum type).
+        #   It is also a restricted form of sum type but not much restricted as "Entity_formation.content"
+        #   because "Entity_formation", ..., "Entity_location" have the same fields but with different types
+        #   (For example, "entity_obj.content" can have type "Entity_formation_local + Entity_formation_global"
+        #    or type "Entity_location_local + Entity_formation_global".)
+        #   However, the types of corresponding "leaf" fields are the same.
+        #   (For example, "entity_obj.content.s.docid" always has type "text".)
+        # CONCLUSION: 
+        #   From PaleoDB example, we see that only restricted form of sum type is necessary.
+        #   In other words, I think that allowing such sum types that
+        #   each type constituting the sum type has exactly the same fields  with the same types
+        #   (only for "leaf" fields) is enough to implement most DeepDive applications.
+        #   Moreover, sum type is used only when we merge several tables (that have exactly the same structure).
         { return: {
             type       : 'FORMATION' :: text
             entity_obj : e_for       :: Entity_formation
@@ -128,17 +152,16 @@ mindbender: {
       ]
     }
     
-    # NOTE: This artifact is not in an original appl.conf!
-    # TODO: We should be able to make a table using "GROUP BY".
+    # (TODO: We should be able to make a table using "GROUP BY".)
+    # (NOTE: This artifact is not in an original appl.conf!)
     Entity_gp: {
-      from: { e: Entity }
-      return: {
-        groupby:  e...docid                                ########## HERE!
-        return: { entity_objs : array_agg(e) :: Entity[]}  ########## HERE!
-      }
+      from:    { e: Entity }
+      groupby: { e...docid }                      ########## HERE!
+      let:     { res: array_agg(e) }              ########## HERE!
+      return:  { entity_objs : res :: Entity[] }
     }
 
-    # TODO: We should be able to pass to a python function a user-created array of values
+    # (TODO: We should be able to pass to a python function a user-created array of values.)
     Relation_candidate: {
       from: {
         s: Sentence
@@ -171,14 +194,11 @@ mindbender: {
     ################################################################
     Relation_formationtemporal: {
       # TODO: How to express "SELECT DISTINCT" in our syntax?
-      from: { rel: Relation_candidate }
+      # SOLN: For now, we use the keyword "fromdistinct" instead of "from".
+      fromdistinct:  { rel: Relation_candidate }  ######### HERE!
       where: [ rel.type = 'FORMATIONINTERVAL' ]
-      using: {
-        zsup: python('/udf/z-supervise_formationtemporal.py')
-      }
-      let: {
-        res: zsup.main(rel.e1...entity, rel.e2...entity)
-      }
+      using: { zsup: python('/udf/z-supervise_formationtemporal.py') }
+      let:   { res: zsup.main(rel.e1...entity, rel.e2...entity) }
       return: {
         rel        : rel :: Relation_candidate
         is_correct : res :: boolean
