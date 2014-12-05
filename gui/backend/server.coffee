@@ -48,9 +48,16 @@ app.use express.static "#{__dirname}/files"
 if "development" == app.get "env"
     app.use errorHandler()
 
+# process-wide exception handler
+process.on "uncaughtException", (err) ->
+    if err.errno is "EADDRINUSE"
+        console.error "Port #{MINDBENDER_PORT} is already in use. To specify an alternative port, set PORT environment, e.g., PORT=12345"
+        process.exit 2
+    else
+        throw err
+
 server.listen (app.get "port"), ->
     util.log "MindBender GUI started at http://#{os.hostname()}:#{MINDBENDER_PORT}/"
-
 
 ## MindBender backend services
 class MindbenderUtils
