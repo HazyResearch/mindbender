@@ -2,40 +2,17 @@ mindbender: {
   artifacts: {
     ################################################################
     Entity_temporal: {
-      from: { s: Sentence }
+      for: { s: Sentence }
       using: {
-        zlib: python('/udf/z-lib.py')
-        zext: python('/udf/z-ext_temporal_local.py')
+        zlib: python('udf/z-lib.py')
+        UdfTemporalLocal: python('udf/z-ext_temporal_local.py')
       }
       let: {
         all_phrases: zlib.get_all_phrases_in_sentence(s.words, 3)
-        res: zext.main (s.words, all_phrases)
+        res: UdfTemporalLocal.main (s.words, all_phrases)
       }
       return: {
-        from: { r: res }
-        return: {
-          sent       : s            :: Sentence
-          start      : r.start      :: bigint
-          end        : r.end        :: bigint
-          type       : r.type       :: text
-          entity     : r.entity     :: text
-          is_correct : r.is_correct :: boolean
-        }
-      }
-    }
-    ################################################################
-    Entity_formation_local: {  # Similar to Entity_temporal
-      from: { s: Sentence }
-      using: {
-        zlib: python('/udf/z-lib.py')
-        zext: python('/udf/z-ext_formation_local.py')
-      }
-      let: {
-        all_phrases: zlib.get_all_phrases_in_sentence(s.words, 5)
-        res: zext.main(s.words, s.ners, s.lemmas, all_phrases)
-      }
-      return: {
-        from: { r: res }
+        for: { r: res }
         return: {
           sent       : s            :: Sentence
           start      : r.start      :: bigint
@@ -47,39 +24,57 @@ mindbender: {
       }
     }
 
-    # TODO: We should be able to make a table using "GROUP BY".
-    # SOLN: For now, I use an additional keyword "groupby".
-    # Q: Where should we put "groupby"? Outside or inside "return" block?
-    # Q: Should we allow func call (such python func or agg func) inside "return" block?
-    # (NOTE: This artifact is not in an original appl.conf!)
-    Entity_formation_gp: {
-      from:    { e: Entity_formation_local }
-      groupby: { e...docid }          ########## HERE!
-      let:     { res: array_agg(e) }  ########## HERE!
-      return:  { entity_objs : res :: Entity_formation_local[] }
+    ################################################################
+    Entity_formation_local: {  # Similar to Entity_temporal
+      for: { s: Sentence }
+      using: {
+        zlib: python('udf/z-lib.py')
+        UdfFormationLocal: python('udf/z-ext_formation_local.py')
+      }
+      let: {
+        all_phrases: zlib.get_all_phrases_in_sentence(s.words, 5)
+        res: UdfFormationLocal.main(s.words, s.ners, s.lemmas, all_phrases)
+      }
+      return: {
+        for: { r: res }
+        return: {
+          sent       : s            :: Sentence
+          start      : r.start      :: bigint
+          end        : r.end        :: bigint
+          type       : r.type       :: text
+          entity     : r.entity     :: text
+          is_correct : r.is_correct :: boolean
+        }
+      }
     }
 
     # TODO: We should be able to pass to a python function a user-created array of values
-    # SOLN: For now, I express it as "a.b[].c" in order to get an array of c's
+    # SOLN: For now, we can express it as "c for {c} in a.b" in order to get an array of c's
     #       each of which belongs to each element of b.
     Entity_formation_global: {
-      from: {
-        s: Sentence
-        e_gp: Entity_formation_gp
-      }
-      where: [ s.docid = e_gp...docid ]
+      for: { s: Sentence }
       using: {
-        zlib: python('/udf/z-lib.py')
-        zext: python('/udf/z-ext_formation_global.py')
+        zlib: python('udf/z-lib.py')
+        UdfFormationGlobal: python('udf/z-ext_formation_global.py')
       }
       let: {
         all_phrases: zlib.get_all_phrases_in_sentence(s.words, 5)
-        dicts: zext.aux(e_gp.entity_objs[].entity, e_gp.entity_objs[].type)  ########## HERE!
-        res: zext.main(s.words, s.lemmas, all_phrases,
+        entitiesWithTypes: {
+          for: { e: Entity_formation_local }
+          where: [ e...docid = s.docid ]
+          return: {
+            entity: e.entity
+            type: e.type
+          }
+        }
+        dicts: UdfFormationGlobal.aux( entitiesWithTypes )
+        # Alternatively, we could allow a one-liner expr as function call argument. TODO decide which is better
+        #dicts: UdfFormationGlobal.aux( {entity:e.entity, type:e.type} for e in Entity_formation_local when e...docid = s.docid )  ########## HERE!
+        res: UdfFormationGlobal.main(s.words, s.lemmas, all_phrases,
                        dicts.good_names, dicts.local_entities, dicts.local_entity_types)
       }
       return: {
-        from: { r: res }
+        for: { r: res }
         return: {
           sent       : s            :: Sentence
           start      : r.start      :: bigint
@@ -91,36 +86,11 @@ mindbender: {
       }
     }
 
-    # NOTE: This artifact is not in an original appl.conf! (It is a table created by a nested SQL query.)
-    # TODO: We should be able to insert new rows into a previously created table.
-    # SOLN: For now, we make an additional artifact that merges two tables (= local and global ones).
-    # Q: Isn't this solution satisfactory?
-    Entity_formation: {
-      from: {
-        e_local:  Entity_formation_local
-        e_global: Entity_formation_global
-      }
-      return: [
-        # NOTE:
-        #   Here "content" has a type "Entity_formation_local + Entity_formation_global" (which is sum type).
-        #   However, it is a really restricted form of sum type
-        #   because "Entity_formation_local" and "..._global" have exactly the same fields with the same types.
-        { return: { content : e_local  :: Entity_formation_local  } }
-        { return: { content : e_global :: Entity_formation_global } }
-      ]
-    }
     ################################################################
     # NOTE: This artifact is not in an original appl.conf!
-    Entity: {
-      from: {
-        e_for: Entity_formation
-        e_tem: Entity_temporal
-        e_tax: Entity_taxon
-        e_loc: Entity_location
-      }
-      return: [
+    Entity: [
         # NOTE:
-        #   Here "entity_obj" has a type "Entity_formation + ... + Entity_location" (which is sum type).
+        #   Here "entity_obj" has a type "Entity_formation_local + ... + Entity_location" (which is sum type).
         #   It is also a restricted form of sum type but not much restricted as "Entity_formation.content"
         #   because "Entity_formation", ..., "Entity_location" have the same fields but with different types
         #   (For example, "entity_obj.content" can have type "Entity_formation_local + Entity_formation_global"
@@ -133,56 +103,64 @@ mindbender: {
         #   each type constituting the sum type has exactly the same fields  with the same types
         #   (only for "leaf" fields) is enough to implement most DeepDive applications.
         #   Moreover, sum type is used only when we merge several tables (that have exactly the same structure).
-        { return: {
+        {
+          for: { e_for: Entity_formation_local }
+          return: {
             type       : 'FORMATION' :: text
-            entity_obj : e_for       :: Entity_formation
+            entity_obj : e_for       :: Entity_formation_local
           } }
-        { return: {
+        {
+          for: { e_for: Entity_formation_global }
+          return: {
+            type       : 'FORMATION' :: text
+            entity_obj : e_for       :: Entity_formation_global
+          } }
+        {
+          for: { e_tem: Entity_temporal }
+          return: {
             type       : 'INTERVAL'  :: text
             entity_obj : e_tem       :: Entity_temporal
           } }
-        { return: {
+        {
+          for: { e_tax: Entity_taxon }
+          return: {
             type       : 'TAXON-' || e_tax...type :: text
             entity_obj : e_tax       :: Entity_taxon
           } }
-        { return: {
+        {
+          for: { e_loc: Entity_location }
+          return: {
             type       : 'LOCATION'  :: text
             entity_obj : e_loc       :: Entity_location
           } }
-      ]
-    }
-    
-    # (TODO: We should be able to make a table using "GROUP BY".)
-    # (NOTE: This artifact is not in an original appl.conf!)
-    Entity_gp: {
-      from:    { e: Entity }
-      groupby: { e...docid }                      ########## HERE!
-      let:     { res: array_agg(e) }              ########## HERE!
-      return:  { entity_objs : res :: Entity[] }
-    }
+    ]
 
+    # TODO find if there's a pattern of nested FLWR exprs that we can compile into GROUP BY SQL queries.
     # (TODO: We should be able to pass to a python function a user-created array of values.)
     Relation_candidate: {
-      from: {
-        s: Sentence
-        e_gp: Entity_gp
-      }
-      where: [ s.docid = e_gp...docid ]
+      for: { s: Sentence }
       using: {
-        zlib: python('/udf/z-lib.py')
-        zext: python('/udf/z-ext_relation_samesent.py') }
-      let:   {
-        entities: zext.aux(s.sentid,
-                           e_gp.entity_objs,
-                           e_gp.entity_objs[].type,      ######### HERE!
-                           e_gp.entity_objs[]...sentid,  ######### HERE!
-                           e_gp.entity_objs[]...start,   ######### HERE!
-                           e_gp.entity_objs[]...end,     ######### HERE!
-                           e_gp.entity_objs[]...entity)  ######### HERE!
-        res: zext.main(s.words, s.ners, entities)
+        UdfRelationSameSent: python('udf/z-ext_relation_samesent.py')
+      }
+      let: {
+        entitiesInThisSentence: {
+          for: { e: Entity }
+          where: [
+            e...docid = s.docid
+            e.sentid = s.sentid
+          ]
+          return: {
+            entity_obj : e
+            type       : SPLIT(e.type, '-')[-1] # TODO should we support simple string manipulations?
+            start      : e.start
+            end        : e.end
+            entity     : e.entity
+          }
+        }
+        res: UdfRelationSameSent.main(s.words, s.ners, entitiesInThisSentence)
       }
       return: {
-        from: { r: res }
+        for: { r: res }
         return: {
           e1       : r.e1       :: Entity
           e2       : r.e2       :: Entity
@@ -194,11 +172,11 @@ mindbender: {
     ################################################################
     Relation_formationtemporal: {
       # TODO: How to express "SELECT DISTINCT" in our syntax?
-      # SOLN: For now, we use the keyword "fromdistinct" instead of "from".
-      fromdistinct:  { rel: Relation_candidate }  ######### HERE!
+      # SOLN: For now, we use the builtin function DISTINCT() in "for".
+      for:  { rel: DISTINCT(Relation_candidate) }  ######### HERE!
       where: [ rel.type = 'FORMATIONINTERVAL' ]
-      using: { zsup: python('/udf/z-supervise_formationtemporal.py') }
-      let:   { res: zsup.main(rel.e1...entity, rel.e2...entity) }
+      using: { UdfSuperviseFormationTemporal: python('udf/z-supervise_formationtemporal.py') }
+      let:   { res: UdfSuperviseFormationTemporal.main(rel.e1...entity, rel.e2...entity) }
       return: {
         rel        : rel :: Relation_candidate
         is_correct : res :: boolean
@@ -211,33 +189,35 @@ mindbender: {
 
 ### Q: What is the exact semantics of "return" block?
 ################################################################
-      return: {
-        from: { r: res }
-        return: {
-          aaa : r.a :: A
-          bbb : r.b :: B
-      }
-      ################
-      return: {
-        aaa : a :: A
-        bbb : b :: B
-      }
-      ################
-      return: [
-        # when returning multiple
-        {
-          from: { r: res }
-          return: {
-            aaa : r.a :: A
-            bbb : r.b :: B
-          }
-        }
-        # when returning just one
-        {
-          return: {
-            aaa : a :: A
-            bbb : b :: B
-          }
-        }
-      ]
+#     return: {
+#       for: { r: res }
+#       return: {
+#         aaa : r.a :: A
+#         bbb : r.b :: B
+#     }
+#     ################
+#     return: {
+#       aaa : a :: A
+#       bbb : b :: B
+#     }
+#     ################
+#     return: [
+#       # when returning multiple
+#       {
+#         for: { r: res }
+#         return: {
+#           aaa : r.a :: A
+#           bbb : r.b :: B
+#         }
+#       }
+#       # when returning just one
+#       {
+#         return: {
+#           aaa : a :: A
+#           bbb : b :: B
+#         }
+#       }
+#     ]
 ################################################################
+
+# vim:sw=2:sts=2:ts=8

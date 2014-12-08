@@ -5,17 +5,16 @@ import re
 import sys
 import json
 
-def aux (entities, types):
+def aux (entitiesWithTypes):
 	good_names = {}
 	local_entity_types = {}
 	local_entities = {}
-	i = 0
-	for ent in entities:
+	for et in entitiesWithTypes:
+	        ent = et.entity
 		local_entities[ent] = 1
 		good_names[ent] = ent
 		good_names[ent[0:ent.rindex(' ')]] = ent
-		local_entity_types[ent] = types[i]
-		i = i + 1
+		local_entity_types[ent] = et.type
 	return {"good_names":good_names, "local_entities":local_entities, "local_entity_types":local_entity_types}
 
 def main (words, lemmas, all_phrases, good_names, local_entities, local_entity_types):
@@ -30,3 +29,4 @@ def main (words, lemmas, all_phrases, good_names, local_entities, local_entity_t
 				name = good_names[phrase.lower()]
 				yield {"start": start, "end": end,
 					   "type": local_entity_types[name], "entity": name, "is_correct": None}
+
