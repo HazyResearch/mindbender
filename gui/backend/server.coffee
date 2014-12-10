@@ -61,6 +61,30 @@ server.listen (app.get "port"), ->
 
 ## MindBender backend services
 class MindbenderUtils
+    # Expand all parameter references in the strings of given value.  Expansion
+    # is done recursively to values and elements if it is a complex Object or
+    # Array.
+    @expandParameters: (value, params) ->
+        return value unless params?
+        expanded = (o) ->
+            if "string" is typeof o
+                o.replace ///
+                        [$][{]   # begin string '${'
+                        ([^{}]+) #  parameter name may not include { or }
+                        [}]      # end string '}'
+                    ///g, (m, name) ->
+                        params[name] ? m
+            else if o instanceof Array
+                expanded v for v in o
+            else if "object" is typeof o
+                eo = {}
+                for k,v of o
+                    eo[k] = expanded v
+                eo
+            else
+                o
+        expanded value
+
     @escapeSqlString: (s) ->
         s?.replace /'/g, "''"
     @escapeSqlName: (n) ->
@@ -196,7 +220,14 @@ class MindbenderUtils
 ## A Mindtagger task that holds items and tags with a schema and other info
 class MindtaggerTask
     @ALL = {}
-    constructor: (@config, next) ->
+    @nameFor: (taskName, params) ->
+        if params?
+            for name in (_.keys params).sort()
+                value = params[name]
+                taskName += " #{name}=#{value}"
+        taskName
+
+    constructor: (@config, @params, next) ->
         # load task config if necessary
         unless typeof @config is "object"
             configFile = @config
@@ -206,25 +237,44 @@ class MindtaggerTask
         throw new Error "No path set in config", @config unless @config.path
         # determine task's name
         @config.name ?= path.basename @config.path
+        @config.name = MindtaggerTask.nameFor @config.name, @params
         if MindtaggerTask.ALL[@config.name]?
             suffix = 1
             ++suffix while MindtaggerTask.ALL["#{@config.name}-#{suffix}"]?
             @config.name += "-#{suffix}"
-        # initialize fields
-        @allItems = null
-        @allTags = null
-        @areTagsDirty = no
-        # load all schema files and merge
-        @baseTagsSchema = {}
-        schemaFiles = ("#{dir}/schema.json" for dir in [@config.path])
-        async.map schemaFiles,
-            (fName, next) -> MindbenderUtils.loadOptionalDataFile fName, {}, next
-        , (err, schemas) =>
-            return next err if err
-            _.extend @baseTagsSchema, s for s in schemas.reverse()
-            # finally, register itself
+        # do not actually load anything if this is a parameterized task but no values were supplied
+        if @config.params?.length > 0 and not @params?
+            @instantiateIfNeeded = (params, next) =>
+                instanceName = MindtaggerTask.nameFor @config.name, params
+                instance = MindtaggerTask.ALL[instanceName]
+                if instance?
+                    next null, instance, instanceName
+                else
+                    # instantiate one if doesn't exist yet
+                    config = _.extend {}, @config
+                    new MindtaggerTask config, params, (err, instance) =>
+                        instance.baseTask = @
+                        next null, instance, instanceName
             MindtaggerTask.registerTask @
             next null, @
+        else
+            # expand all parameters
+            @config = MindbenderUtils.expandParameters @config, @params
+            # initialize fields
+            @allItems = null
+            @allTags = null
+            @areTagsDirty = no
+            # load all schema files and merge
+            @baseTagsSchema = {}
+            schemaFiles = ("#{dir}/schema.json" for dir in [@config.path])
+            async.map schemaFiles,
+                (fName, next) -> MindbenderUtils.loadOptionalDataFile fName, {}, next
+            , (err, schemas) =>
+                return next err if err
+                _.extend @baseTagsSchema, s for s in schemas.reverse()
+                # finally, register itself
+                MindtaggerTask.registerTask @
+                next null, @
 
     preferCached: (cache, generator) -> (next) ->
         if cache?
@@ -402,6 +452,7 @@ class MindtaggerTask
     @WRITER_T = null
     @WRITER_INTERVAL = 30 * 1000
     @registerTask: (task) ->
+        util.log "Loaded Mindtagger task #{task.config.name}"
         MindtaggerTask.ALL[task.config.name] = task
         unless @WRITER_T?
             # set up a periodic task that writes back changes
@@ -418,7 +469,7 @@ class MindtaggerTask
 
 # prepare Mindtagger tasks based on given json files
 async.map mindtaggerConfFiles,
-    (confFile, next) -> new MindtaggerTask confFile, next
+    (confFile, next) -> new MindtaggerTask confFile, null, next
 , (err, tasks) ->
     throw err if err
     #util.log "Mindtagger task #{task.name}: #{JSON.stringify task.config, null, 2}" for task in _.values MindtaggerTask.ALL  # XXX debug
@@ -432,7 +483,7 @@ async.map mindtaggerConfFiles,
 
 # list of all tasks
 app.get "/api/mindtagger/", (req, res) ->
-    res.json (task.config for taskName,task of MindtaggerTask.ALL)
+    res.json (task.config for taskName,task of MindtaggerTask.ALL when not task.config.params?.length > 0)
 
 # each task
 withTask = (taskName, req, res, next) ->
@@ -441,7 +492,25 @@ withTask = (taskName, req, res, next) ->
         res.status 404
             .send "No such task: #{taskName}"
     else
-        next task, taskName
+        if task.config.params?.length > 0
+            # collect supplied parameter values if task is parameterized
+            params = {}
+            for name in task.config.params
+                value = req.param "task_#{name}"
+                unless value?
+                    res.status 400
+                        .send "Missing parameter: task_#{name}"
+                    return
+                params[name] = value
+            # find the task instance
+            task.instantiateIfNeeded params, (err, taskInstance, taskInstanceName) ->
+                if err
+                    res.status 500
+                        .send "Error loading task #{taskInstanceName}"
+                    return
+                next taskInstance, taskInstanceName
+        else
+            next task, taskName
 app.get "/api/mindtagger/:task/schema", (req, res) ->
     withTask (req.param "task"), req, res, (task) ->
         task.getSchema (err, schema) ->
