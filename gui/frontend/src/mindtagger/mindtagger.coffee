@@ -16,7 +16,7 @@ angular.module 'mindbenderApp.mindtagger', [
 
 .controller 'MindtaggerTaskListCtrl', ($scope, $http, $location, localStorageState) ->
     $scope.tasks ?= []
-    $http.get "/api/mindtagger/"
+    $http.get "api/mindtagger/"
         .success (tasks) ->
             $scope.tasks = tasks
             if $location.path() is "/mindtagger" and tasks?.length > 0
@@ -149,11 +149,11 @@ angular.module 'mindbenderApp.mindtagger', [
     load: =>
         $q.all [
             # TODO consider using $resource instead
-            ( $http.get "/api/mindtagger/#{@name}/schema"
+            ( $http.get "api/mindtagger/#{@name}/schema"
                 .success ({schema}) =>
                     @updateSchema schema
             )
-            ( $http.get "/api/mindtagger/#{@name}/items",
+            ( $http.get "api/mindtagger/#{@name}/items",
                     params:
                         offset: @itemsPerPage * (@currentPage - 1)
                         limit:  @itemsPerPage
@@ -241,7 +241,7 @@ angular.module 'mindbenderApp.mindtagger', [
                     tag: @tags[index]
                     key: @keyFor item
                 }
-        $http.post "/api/mindtagger/#{@name}/items", updates
+        $http.post "api/mindtagger/#{@name}/items", updates
             .success (schema) =>
                 console.log "committed tags updates", updates
                 @updateSchema schema
@@ -258,7 +258,7 @@ angular.module 'mindbenderApp.mindtagger', [
         (event) => @addTagToCursor name, value
 
     export: (format, tableName = "") =>
-        $window.location.href = "/api/mindtagger/#{@name}/tags.#{format
+        $window.location.href = "api/mindtagger/#{@name}/tags.#{format
         }?tags=#{
             encodeURIComponent ((tagName for tagName,tagSchema of @schema.tags when tagSchema.shouldExport).join ",")
         }&attrs=#{
