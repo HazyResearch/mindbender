@@ -36,14 +36,6 @@ def wordseq_feature (e1, e2, words, ners):
             ss.append(ners[w])
     return prefix + "_".join(ss)
 
-def aux (sentid, ents_entity_obj, ents_type, ents_sentid, ents_start, ents_end, ents_entity):
-	entities = []
-	for i in range(len(ents_entity_obj)):
-		if ents_sentid[i] == sentid:
-			entities.append(Mention(ents_entity_obj[i], ents_type[i].split('-')[-1],
-									ents_start[i], ents_end[i], ents_entity[i]))
-	return entities
-
 def main (words, ners, entities):
   	if len(entities) < 2: pass
 
