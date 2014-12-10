@@ -50,9 +50,13 @@ angular.module 'mindbenderApp.mindtagger', [
             $location.search "p", savedState["MindtaggerTask.currentPage"]  ? 1
             $location.search "s", savedState["MindtaggerTask.itemsPerPage"] ? 10
             return
+        # passthru task parameters
+        @params = {}
+        for name,value of search when /^task_/.test name
+            @params[name] = value
         # initialize or load task
         $scope.MindtaggerTask =
-        task = MindtaggerTask.forName @name,
+        task = MindtaggerTask.forName @name, @params,
             currentPage:  +$location.search().p
             itemsPerPage: +$location.search().s
             $scope: $scope
@@ -120,13 +124,19 @@ angular.module 'mindbenderApp.mindtagger', [
 .service 'MindtaggerTask', ($http, $q, $modal, $window, $timeout) ->
   class MindtaggerTask
     @allTasks: {}
-    @forName: (name, args) ->
-        if (task = MindtaggerTask.allTasks[name])?
+    @qnameFor: (taskName, params) ->
+        if params?
+            for name,value of params
+                taskName += " #{name}=#{value}"
+        taskName
+    @forName: (name, params, args) ->
+        if (task = MindtaggerTask.allTasks[MindtaggerTask.qnameFor name, params])?
             task.init args
         else
-            new MindtaggerTask name, args
+            new MindtaggerTask name, params, args
 
-    constructor: (@name, args) ->
+    constructor: (@name, @params, args) ->
+        @qname = MindtaggerTask.qnameFor @name, @params
         @currentPage = 1
         @itemsPerPage = 10
         @$scope = null
@@ -134,7 +144,7 @@ angular.module 'mindbenderApp.mindtagger', [
         @schemaTagsFixed = {}
         @itemsCount = null
         @init args
-        MindtaggerTask.allTasks[name] = @
+        MindtaggerTask.allTasks[@qname] = @
 
     init: (args) =>
         _.extend @, args
@@ -149,12 +159,13 @@ angular.module 'mindbenderApp.mindtagger', [
     load: =>
         $q.all [
             # TODO consider using $resource instead
-            ( $http.get "api/mindtagger/#{@name}/schema"
+            ( $http.get "api/mindtagger/#{@name}/schema",
+                    params: @params
                 .success ({schema}) =>
                     @updateSchema schema
             )
             ( $http.get "api/mindtagger/#{@name}/items",
-                    params:
+                    params: _.extend {}, @params,
                         offset: @itemsPerPage * (@currentPage - 1)
                         limit:  @itemsPerPage
                 .success ({tags, items, itemsCount}) =>
@@ -167,6 +178,14 @@ angular.module 'mindbenderApp.mindtagger', [
                         @cursorInitIndex = null
             )
         ]
+
+    encodeParamsAsQueryString: (prefixIfNonEmpty = "") =>
+        # gives task parameters encoded as query strings of URI
+        qs = (
+                "#{encodeURIComponent name}=#{encodeURIComponent value}" for name,value of @params
+            ).join "&"
+        if qs.length == 0 then ""
+        else prefixIfNonEmpty + qs
 
     defineTags: (tagsSchema...) =>
         console.log "defineTags", tagsSchema...
@@ -241,7 +260,7 @@ angular.module 'mindbenderApp.mindtagger', [
                     tag: @tags[index]
                     key: @keyFor item
                 }
-        $http.post "api/mindtagger/#{@name}/items", updates
+        $http.post "api/mindtagger/#{@name}/items#{@encodeParamsAsQueryString "?"}", updates
             .success (schema) =>
                 console.log "committed tags updates", updates
                 @updateSchema schema
@@ -265,6 +284,8 @@ angular.module 'mindbenderApp.mindtagger', [
             encodeURIComponent ((attrName for attrName,attrSchema of @schema.items when attrSchema.shouldExport).join ",")
         }&table=#{
             tableName
+        }#{
+            @encodeParamsAsQueryString "&"
         }"
 
 
