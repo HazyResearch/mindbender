@@ -2,3 +2,4 @@ server.coffee                           gui/
 node_modules                            gui/
 mindbender-gui                          bin/mindbender.d/
 mindbender-tagger                       bin/mindbender.d/
+mindtagger-defaults.conf                etc/

@@ -248,6 +248,7 @@ class MindtaggerTask
             @config.name += "-#{suffix}"
         # do not actually load anything if this is a parameterized task but no values were supplied
         if @config.params?.length > 0 and not @params?
+            @isAbstract = -> yes
             @instantiateIfNeeded = (params, next) =>
                 instanceName = MindtaggerTask.nameFor @config.name, params
                 instance = MindtaggerTask.ALL[instanceName]
@@ -262,8 +263,13 @@ class MindtaggerTask
             MindtaggerTask.registerTask @
             next null, @
         else
+            @isAbstract = -> no
             # expand all parameters
             @config = MindbenderUtils.expandParameters @config, @params
+            # making sure there's tags config as it's crucial
+            @config.tags ?=
+                storage: "file"
+                file: "tags.json"
             # initialize fields
             @allItems = null
             @allTags = null
@@ -300,7 +306,7 @@ class MindtaggerTask
                     @allItems ?= []
                     next err, @allItems
             allTags: @preferCached @allTags, (next) =>
-                tagsFile = path.resolve @config.path, "tags.json"
+                tagsFile = path.resolve @config.path, @config.tags.file
                 emptyTags = @createEmptyTags()
                 MindbenderUtils.loadOptionalDataFile tagsFile, emptyTags, (err, @allTags) =>
                     return next err if err
@@ -310,7 +316,7 @@ class MindtaggerTask
             return next err, {} if err
             # XXX backward compatibility: upgrade Array-type tags to Object
             if allTags instanceof Array
-                util.log "#{@config.name}: upgrading tags.json from Array"
+                util.log "#{@config.name}: upgrading #{@config.tags.file} from Array"
                 tagsArray = allTags
                 allTags = @allTags = @createEmptyTags()
                 for tag,idx in tagsArray when tag?
@@ -318,18 +324,18 @@ class MindtaggerTask
                     allTags.by_key[key] = tag
             # XXX backward compatibility: upgrade plain Object tags
             unless allTags.version? and allTags.by_key?
-                util.log "#{@config.name}: upgrading tags.json from plain Object"
+                util.log "#{@config.name}: upgrading #{@config.tags.file} from plain Object"
                 byKey = allTags
                 allTags = @allTags = @createEmptyTags()
                 allTags.by_key = byKey
             # make sure we know how to handle this version
             unless allTags.version == 1
-                err = new Error "tags.json version #{allTags.version} unsupported"
+                err = new Error "#{@config.tags.file} version #{allTags.version} unsupported"
                 util.log err
                 return next err, {}
             # try upgrading if key_columns have changed
             if (JSON.stringify allTags.key_columns) isnt (JSON.stringify @config.items?.key_columns)
-                util.log "#{@config.name}: upgrading keys for tags.json from [#{allTags.key_columns}] to [#{@config.items?.key_columns}]"
+                util.log "#{@config.name}: upgrading keys for #{@config.tags.file} from [#{allTags.key_columns}] to [#{@config.items?.key_columns}]"
                 byNewKey = {}
                 oldKeyColumns = allTags.key_columns
                 for item,idx in allItems
@@ -438,7 +444,7 @@ class MindtaggerTask
 
     writeChanges: (next) =>
         # write the tags to file
-        tagsFile = path.resolve @config.path, "tags.json"
+        tagsFile = path.resolve @config.path, @config.tags.file
         write = (next) =>
             MindbenderUtils.writeDataFile tagsFile, @allTags, (err) =>
                 @areTagsDirty = no unless err
@@ -468,7 +474,8 @@ class MindtaggerTask
             process.on "SIGTERM", => MindtaggerTask.writeBackChanges -> process.exit 143
             #process.on "exit",    => MindtaggerTask.writeBackChanges -> process.exit 0
     @writeBackChanges: (next = (err) ->) ->
-        async.each (_.values MindtaggerTask.ALL), ((task, next) -> task.writeChanges next), next
+        allConcreteTasks = (task for task in _.values MindtaggerTask.ALL when not task.isAbstract())
+        async.each allConcreteTasks, ((task, next) -> task.writeChanges next), next
 
 
 # prepare Mindtagger tasks based on given json files
@@ -487,7 +494,7 @@ async.map mindtaggerConfFiles,
 
 # list of all tasks
 app.get "/api/mindtagger/", (req, res) ->
-    res.json (task.config for taskName,task of MindtaggerTask.ALL when not task.config.params?.length > 0)
+    res.json (task.config for taskName,task of MindtaggerTask.ALL when not task.isAbstract())
 
 # each task
 withTask = (taskName, req, res, next) ->
@@ -496,7 +503,7 @@ withTask = (taskName, req, res, next) ->
         res.status 404
             .send "No such task: #{taskName}"
     else
-        if task.config.params?.length > 0
+        if task.isAbstract()
             # collect supplied parameter values if task is parameterized
             params = {}
             for name in task.config.params
