@@ -43,12 +43,15 @@ angular.module 'mindbenderApp.mindtagger', [
             "MindtaggerTask.currentPage"
             "MindtaggerTask.itemsPerPage"
             "MindtaggerTask.cursor.index"
+            "MindtaggerTask.params"
         ], no
-        # make sure the search includes the required parameters
+        # make sure the search part of $location includes the required parameters
         search = $location.search()
         unless search.p? and search.s?
             $location.search "p", savedState["MindtaggerTask.currentPage"]  ? 1
             $location.search "s", savedState["MindtaggerTask.itemsPerPage"] ? 10
+            for name,value of savedState["MindtaggerTask.params"] ? {}
+                $location.search name, value
             return
         # passthru task parameters
         @params = {}
