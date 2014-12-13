@@ -170,14 +170,16 @@ class MindbenderUtils
                 else # when ".csv"
                     parser = csv.parse (_.clone MindbenderUtils.CSV_OPTIONS)
                     output = []
-                    parser.on "readable", ->
-                        while record = parser.read()
-                            output.push record
-                    parser.on "error", next
-                    parser.on "finish", ->
-                        next null, MindbenderUtils.deserializeNullStrings output
-                    (fs.createReadStream fName)
-                        .pipe parser
+                    parser
+                        .on "readable", ->
+                            while record = parser.read()
+                                output.push record
+                        .on "error", next
+                        .on "finish", ->
+                            next null, MindbenderUtils.deserializeNullStrings output
+                    input = (fs.createReadStream fName)
+                        .on "error", next
+                        .on "open", -> input.pipe parser
         catch err
             next err
     @loadOptionalDataFile: (fName, defaultValue, next) ->
