@@ -341,7 +341,18 @@ angular.module 'mindbenderApp.mindtagger', [
 # A controller that sets item and tag to those of the cursor
 .controller 'MindtaggerTaskCursorFollowCtrl', ($scope) ->
     $scope.$watch 'MindtaggerTask.cursor.index', (cursorIndex) ->
-        cursor = $scope.MindtaggerTask.cursor
+        cursor =
+            if cursorIndex?
+                $scope.MindtaggerTask.cursor
+            else
+                # XXX phantom item/tag for undefined cursors
+                item: {}
+                tag: {}
+                # This can prevent other directives from breaking the $scope,
+                # e.g., mindtaggerValueSetTag directive configured to work with
+                # cursor item/tag attributes can create a bogus item/tag in its
+                # scope shadowing this directive's item/tag if no phantom
+                # objects are provided here.
         $scope.item = cursor.item
         $scope.tag = cursor.tag
 
