@@ -46,6 +46,51 @@
   $("#add-tag-modal").on("shown.bs.modal", function(e) { $(this).find("input:visible:first").focus(); });
 </script>
 
+
+<!-- Managing tags: shortcut key, visibility, etc. -->
+<div class="modal" id="manage-tags-modal" tabindex="-1" role="dialog" aria-labelledby="manageTagsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+        <h4 class="modal-title" id="manageTagsModalLabel">Manage Tags</h4>
+      </div>
+      <div class="modal-body">
+        <table class="table table-stripped table-hover">
+          <thead>
+            <tr>
+              <th>Tag</th>
+              <th>Shortcut Key</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags">
+              <th><i class="fa fa-tag"></i> {{tagName}}</th>
+              <td class="col-xs-2">
+                <input type="text" class="form-control input-sm" ng-model="tagSchema.shortcutKey">
+              </td>
+              <td>
+                <label btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
+                  class="btn" ng-class="tagSchema.hidden ? 'btn-danger' : 'btn-default'"
+                  ng-model="tagSchema.hidden">
+                  <span ng-if="!tagSchema.hidden"><i class="fa fa-eye"></i> Shown</span>
+                  <span ng-if=" tagSchema.hidden"><i class="fa fa-eye-slash"></i> Hidden</span>
+                </label>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // autofocus the first visible input field in the modal
+  $("#add-tag-modal").on("shown.bs.modal", function(e) { $(this).find("input:visible:first").focus(); });
+</script>
+
+
 <!-- Error modal when loading the task fails -->
 <script type="text/ng-template" id="mindtagger/load-error.html">
   <div class="modal-header text-danger">

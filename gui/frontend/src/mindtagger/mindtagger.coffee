@@ -200,11 +200,13 @@ angular.module 'mindbenderApp.mindtagger', [
         @schema.tags ?= {}
         for tagName,tagSchema of @schemaTagsFixed
             _.extend (@schema.tags[tagName] ?= {}), tagSchema
+        # TODO derive default shortcutKey
         # set default export options
         for attrName,attrSchema of @schema.items when attrName in @schema.itemKeys
             attrSchema.shouldExport ?= yes
         for tagName,tagSchema of @schema.tags
             tagSchema.shouldExport ?= yes
+    # TODO register hotkeys
 
     indexOf: (item) =>
         if (typeof item) is "number" then item
