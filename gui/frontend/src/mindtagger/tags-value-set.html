@@ -16,7 +16,7 @@
       </a></li>
       <li ng-repeat="(tagName,tagSchema) in MindtaggerTask.schema.tags"
         ng-class="tagName == MindtaggerValueSetTag.name ? 'active' : ''"
-        ng-if="tagSchema.type == 'set'"><a ng-click="MindtaggerValueSetTag.name = tagName"
+        ng-if="tagSchema.type == 'set' && !tagSchema.hidden"><a ng-click="MindtaggerValueSetTag.name = tagName"
             mindtagger-hotkey="{{MindtaggerTask.tagShortcutKey[tagName]}}" title="Switch to tag '{{tagName}}'">
           <i class="fa fa-tag"></i> {{tagName}}
           <span class="badge" ng-if="tag[tagName].length > 0">{{tag[tagName].length}}</span>

@@ -5,8 +5,12 @@
 ">
 
 <div mindtagger-navbar>
-  <div mindtagger-insert-template="navbar"></div>
+  <ul class="nav navbar-nav navbar-right">
+    <li><a data-toggle="modal" data-target="#manage-tags-modal"
+            ><i class="glyphicon glyphicon-cog"></i> Manage Tags...</a></li>
+  </ul>
 
+  <div mindtagger-insert-template="navbar"></div>
 </div>
 
 <section class="row">
