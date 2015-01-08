@@ -65,18 +65,18 @@
             </tr>
           </thead>
           <tbody>
-            <tr ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags">
+            <tr ng-repeat="(tagName, tagOpt) in MindtaggerTask.tagOptions">
               <th><i class="fa fa-tag"></i> {{tagName}}</th>
               <td class="col-xs-2">
-                <input type="text" class="form-control input-sm" ng-model="MindtaggerTask.tagShortcutKey[tagName]">
+                <input type="text" class="form-control input-sm" ng-model="tagOpt.shortcutKey">
               </td>
               <td>
                 <label btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
-                  class="btn" ng-class="(tagSchema.hidden ? 'btn-danger' : 'btn-default') +
+                  class="btn" ng-class="(tagOpt.hidden ? 'btn-danger' : 'btn-default') +
                     (MindtaggerTask.schemaTagsFixed[tagName].hidden == null ? '' : ' disabled')"
-                  ng-model="tagSchema.hidden">
-                  <span ng-if="!tagSchema.hidden"><i class="fa fa-eye"></i> Shown</span>
-                  <span ng-if=" tagSchema.hidden"><i class="fa fa-eye-slash"></i> Hidden</span>
+                  ng-model="tagOpt.hidden">
+                  <span ng-if="!tagOpt.hidden"><i class="fa fa-eye"></i> Shown</span>
+                  <span ng-if=" tagOpt.hidden"><i class="fa fa-eye-slash"></i> Hidden</span>
                 </label>
               </td>
             </tr>
@@ -150,10 +150,10 @@
             <label for="export-tags" class="col-sm-2 control-label">Tags to export</label>
             <div class="col-sm-10">
               <ul class="list-inline">
-                <li ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags">
+                <li ng-repeat="(tagName, tagOpt) in MindtaggerTask.tagOptions">
                   <span class="checkbox">
                     <label>
-                      <input type="checkbox" ng-model="tagSchema.shouldExport">
+                      <input type="checkbox" ng-model="tagOpt.shouldExport">
                       {{tagName}}
                     </label>
                   </span>

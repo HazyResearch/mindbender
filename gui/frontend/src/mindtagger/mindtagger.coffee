@@ -44,7 +44,7 @@ angular.module 'mindbenderApp.mindtagger', [
             "MindtaggerTask.itemsPerPage"
             "MindtaggerTask.cursor.index"
             "MindtaggerTask.params"
-            "MindtaggerTask.tagShortcutKey"
+            "MindtaggerTask.tagOptions"
         ], no
         # make sure the search part of $location includes the required parameters
         search = $location.search()
@@ -61,10 +61,10 @@ angular.module 'mindbenderApp.mindtagger', [
         # initialize or load task
         $scope.MindtaggerTask =
         task = MindtaggerTask.forName @name, @params,
+            tagOptions: savedState["MindtaggerTask.tagOptions"]
             currentPage:  +$location.search().p
             itemsPerPage: +$location.search().s
             $scope: $scope
-            tagShortcutKey: savedState["MindtaggerTask.tagShortcutKey"]
         task.cursorInitIndex ?= savedState["MindtaggerTask.cursor.index"]
         task.load()
             .catch (err) =>
@@ -202,29 +202,40 @@ angular.module 'mindbenderApp.mindtagger', [
         @schema.tags ?= {}
         for tagName,tagSchema of @schemaTagsFixed
             _.extend (@schema.tags[tagName] ?= {}), tagSchema
-        # TODO aggregate UI/presentation settings: tagShortcutKey, hidden states, export options
-        # set default export options
+        # set UI/presentation settings: shortcutKey, hidden states, export options
+        do @updateTagOptions
+        # set default export options for item attributes
         for attrName,attrSchema of @schema.items when attrName in @schema.itemKeys
             attrSchema.shouldExport ?= yes
-        for tagName,tagSchema of @schema.tags
-            tagSchema.shouldExport ?= yes
-        do @assignDefaultShortcutKeys
 
-    assignDefaultShortcutKeys: =>
-        @tagShortcutKey ?= {}
-        # first, import shortcut keys from schema
-        for tagName,tagSchema of @schema.tags
-            @tagShortcutKey[tagName] ?= tagSchema.shortcutKey
+    updateTagOptions: (tags = @schema.tags) =>
+        @tagOptions ?= {}
+        # first, import from schema (shortcutKey, hidden, ...)
+        optionsToImportFromSchema = [
+            "shortcutKey"
+            "hidden"
+        ]
+        for tagName,tagSchema of tags
+            tagOpt = @tagOptions[tagName] ?= {}
+            for opt in optionsToImportFromSchema
+                tagOpt[opt] ?= tagSchema[opt]
+        # set default export options
+        for tagName,tagOpt of @tagOptions
+            tagOpt.shouldExport ?= yes
+        @assignDefaultShortcutKeys tags
+
+    assignDefaultShortcutKeys: (tags = @schema.tags) =>
         # reset any conflicting shortcut keys
         # TODO resolve conflicts by skipping the longest common prefix
         shortcutKeysAssigned = {}
-        for tagName,key of @tagShortcutKey
+        for tagName,tagOpt of @tagOptions
+            key = tagOpt.shortcutKey
             if shortcutKeysAssigned[key]?
-                @tagShortcutKey[tagName] = null
+                tagOpt.shortcutKey = null
             else
                 shortcutKeysAssigned[key] = tagName
         # make sure all known tags have a shortcutKey derived from its name
-        for tagName,tagSchema of @schema.tags when not @tagShortcutKey[tagName]?
+        for tagName,tagOpt of @tagOptions when not tagOpt.shortcutKey
             i = 0
             keyCandidates = tagName + "1234567890qwertyuiopasdfghjklzxcvbnm"
             while i < keyCandidates.length
@@ -232,7 +243,7 @@ angular.module 'mindbenderApp.mindtagger', [
                 break unless shortcutKeysAssigned[key]?
                 key = null
             if key?
-                @tagShortcutKey[tagName] = key
+                tagOpt.shortcutKey = key
                 shortcutKeysAssigned[key] = tagName
             else
                 console.error "No key available for tag #{tagName}"
@@ -344,10 +355,14 @@ angular.module 'mindbenderApp.mindtagger', [
 .service "localStorageState", ->
     (key, $scope, exprs, autoWatch = yes) ->
         console.log "localStorageState loading #{key}", localStorage[key]
-        lastState = (try JSON.parse localStorage[key]) ? {}
+        lastState = _.object exprs, (try JSON.parse localStorage["#{key} #{expr}"] for expr in exprs)
         lastState.startWatching = ->
-            $scope.$watchGroup exprs, (values) ->
-                try localStorage[key] = JSON.stringify (_.object exprs, values)
+            for expr in exprs
+                do (expr) ->
+                    $scope.$watch expr, (value) ->
+                        #console.log "localStorageState storing new #{key} #{expr}", JSON.stringify value
+                        try localStorage["#{key} #{expr}"] = JSON.stringify value
+                    , true # use angular.equals for deeper equality check
         do lastState.startWatching if autoWatch
         lastState
 
