@@ -59,8 +59,9 @@
     <div class="panel-footer">
       <!-- correct/undecidable/incorrect tags for precision labeling -->
       <span class="btn-group">
-        <label mindtagger-hotkey="1" title="Mark as correct"   uncheckable btn-radio="true"  ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null &&  tag.is_correct ? 'btn-success' : 'btn-default'"><i class="glyphicon glyphicon-ok"     ng-class="tag.is_correct == null || !tag.is_correct ? 'text-success' : ''"></i></label>
-        <label mindtagger-hotkey="2" title="Mark as incorrect" uncheckable btn-radio="false" ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && !tag.is_correct ? 'btn-danger'  : 'btn-default'"><i class="glyphicon glyphicon-remove" ng-class="tag.is_correct == null ||  tag.is_correct ? 'text-danger'  : ''"></i></label>
+        <label mindtagger-hotkey="1" title="Mark as correct"   uncheckable btn-radio="true"      ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && tag.is_correct == true      ? 'btn-success' : 'btn-default'"><i class="fa fa-check"           ng-class="tag.is_correct == null || tag.is_correct != true      ? 'text-success' : ''"></i></label>
+        <label mindtagger-hotkey="2" title="Mark as incorrect" uncheckable btn-radio="false"     ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && tag.is_correct == false     ? 'btn-danger'  : 'btn-default'"><i class="fa fa-remove"          ng-class="tag.is_correct == null || tag.is_correct != false     ? 'text-danger'  : ''"></i></label>
+        <label mindtagger-hotkey="3" title="Mark as unknown"   uncheckable btn-radio="'UNKNOWN'" ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && tag.is_correct == 'UNKNOWN' ? 'btn-warning' : 'btn-default'"><i class="fa fa-question-circle" ng-class="tag.is_correct == null || tag.is_correct != 'UNKNOWN' ? 'text-warning' : ''"></i></label>
       </span>
 
       <!-- custom tagging UI elements -->
