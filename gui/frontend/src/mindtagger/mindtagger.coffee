@@ -221,6 +221,8 @@ angular.module 'mindbenderApp.mindtagger', [
         for tagName,key of @tagShortcutKey
             if shortcutKeysAssigned[key]?
                 @tagShortcutKey[tagName] = null
+            else
+                shortcutKeysAssigned[key] = tagName
         # make sure all known tags have a shortcutKey derived from its name
         for tagName,tagSchema of @schema.tags when not @tagShortcutKey[tagName]?
             i = 0
