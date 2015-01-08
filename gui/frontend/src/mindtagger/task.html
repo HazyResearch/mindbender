@@ -68,11 +68,12 @@
             <tr ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags">
               <th><i class="fa fa-tag"></i> {{tagName}}</th>
               <td class="col-xs-2">
-                <input type="text" class="form-control input-sm" ng-model="tagSchema.shortcutKey">
+                <input type="text" class="form-control input-sm" ng-model="MindtaggerTask.tagShortcutKey[tagName]">
               </td>
               <td>
                 <label btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
-                  class="btn" ng-class="tagSchema.hidden ? 'btn-danger' : 'btn-default'"
+                  class="btn" ng-class="(tagSchema.hidden ? 'btn-danger' : 'btn-default') +
+                    (MindtaggerTask.schemaTagsFixed[tagName].hidden == null ? '' : ' disabled')"
                   ng-model="tagSchema.hidden">
                   <span ng-if="!tagSchema.hidden"><i class="fa fa-eye"></i> Shown</span>
                   <span ng-if=" tagSchema.hidden"><i class="fa fa-eye-slash"></i> Hidden</span>

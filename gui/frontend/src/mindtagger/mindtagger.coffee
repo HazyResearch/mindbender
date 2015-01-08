@@ -44,6 +44,7 @@ angular.module 'mindbenderApp.mindtagger', [
             "MindtaggerTask.itemsPerPage"
             "MindtaggerTask.cursor.index"
             "MindtaggerTask.params"
+            "MindtaggerTask.tagShortcutKey"
         ], no
         # make sure the search part of $location includes the required parameters
         search = $location.search()
@@ -63,6 +64,7 @@ angular.module 'mindbenderApp.mindtagger', [
             currentPage:  +$location.search().p
             itemsPerPage: +$location.search().s
             $scope: $scope
+            tagShortcutKey: savedState["MindtaggerTask.tagShortcutKey"]
         task.cursorInitIndex ?= savedState["MindtaggerTask.cursor.index"]
         task.load()
             .catch (err) =>
@@ -200,13 +202,38 @@ angular.module 'mindbenderApp.mindtagger', [
         @schema.tags ?= {}
         for tagName,tagSchema of @schemaTagsFixed
             _.extend (@schema.tags[tagName] ?= {}), tagSchema
-        # TODO derive default shortcutKey
+        # TODO aggregate UI/presentation settings: tagShortcutKey, hidden states, export options
         # set default export options
         for attrName,attrSchema of @schema.items when attrName in @schema.itemKeys
             attrSchema.shouldExport ?= yes
         for tagName,tagSchema of @schema.tags
             tagSchema.shouldExport ?= yes
-    # TODO register hotkeys
+        do @assignDefaultShortcutKeys
+
+    assignDefaultShortcutKeys: =>
+        @tagShortcutKey ?= {}
+        # first, import shortcut keys from schema
+        for tagName,tagSchema of @schema.tags
+            @tagShortcutKey[tagName] ?= tagSchema.shortcutKey
+        # reset any conflicting shortcut keys
+        # TODO resolve conflicts by skipping the longest common prefix
+        shortcutKeysAssigned = {}
+        for tagName,key of @tagShortcutKey
+            if shortcutKeysAssigned[key]?
+                @tagShortcutKey[tagName] = null
+        # make sure all known tags have a shortcutKey derived from its name
+        for tagName,tagSchema of @schema.tags when not @tagShortcutKey[tagName]?
+            i = 0
+            keyCandidates = tagName + "1234567890qwertyuiopasdfghjklzxcvbnm"
+            while i < keyCandidates.length
+                key = keyCandidates[i++].toLowerCase()
+                break unless shortcutKeysAssigned[key]?
+                key = null
+            if key?
+                @tagShortcutKey[tagName] = key
+                shortcutKeysAssigned[key] = tagName
+            else
+                console.error "No key available for tag #{tagName}"
 
     indexOf: (item) =>
         if (typeof item) is "number" then item
@@ -354,15 +381,43 @@ angular.module 'mindbenderApp.mindtagger', [
                     , (isCursorOnTheItem) =>
                         @routeTo $scope if isCursorOnTheItem
             if @numConnected++ == 0
-                for {combo,description,action} in @hotkeys
+                for {combo,description,action, forEvent} in @hotkeys
                     hotkeys.add {
                         combo
                         description
                         callback: do (action) => (overrideDefaultEventWith => @$scope?.$eval action)
+                        action: forEvent
                     }
         detach: ($scope) =>
             if --@numConnected == 0
                 hotkeys.del combo for {combo} in @hotkeys
+
+.directive "mindtaggerHotkey", (MindtaggerTaskHotkeysDemuxCtrl, $timeout) ->
+    hotkeysDemux = {}
+
+    restrict: 'A'
+    scope: true
+    link: ($scope, $element, $attrs) ->
+        oldCombo = null
+        initializeHotkeysDemux = ->
+            combo = $attrs.mindtaggerHotkey
+            action = "mindtaggerHotkeyPressed()"
+            description = $attrs.mindtaggerHotkeyDescription ? $attrs.title
+            $scope.mindtaggerHotkeyPressed = _.debounce ->
+                    $timeout -> do $element.click
+                , +($attrs.mindtaggerHotkeyRepeatEvery ? 200)
+                , true # trigger on leading edge
+            hotkeysDemux[combo] ?= new MindtaggerTaskHotkeysDemuxCtrl [
+                { combo, action, description }
+            ]
+            hotkeysDemux[combo].attach $scope
+            oldCombo = combo
+        do initializeHotkeysDemux
+        # watch to reflect any changes to combo
+        $scope.$watch (-> $attrs.mindtaggerHotkey), (combo) ->
+            return if combo is oldCombo
+            hotkeysDemux[oldCombo].detach $scope
+            do initializeHotkeysDemux
 
 # A controller that sets item and tag to those of the cursor
 .controller 'MindtaggerTaskCursorFollowCtrl', ($scope) ->
