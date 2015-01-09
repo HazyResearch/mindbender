@@ -41,7 +41,12 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
     classNameSeq = 0
     restrict: 'EAC'
     scope:
-        from: '=', to: '='
+        from: '='
+        froms: '='
+        to: '='
+        tos: '='
+        length: '='
+        lengths: '='
         indexArray: '='
         indexArrays: '='
     require: [
@@ -49,6 +54,11 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
     ]
     compile: (tElement, tAttrs) ->
         arrayFormat = tAttrs.arrayFormat
+        asArray =
+            if arrayFormat?
+                (v) -> parsedArrayFilter v, arrayFormat
+            else
+                (v) -> v
         style = tAttrs.withStyle
         className = "mindtagger-highlight-words-#{classNameSeq++}"
         ($scope, $element, $attrs, [
@@ -58,29 +68,60 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
             mindtaggerCreateStylesheet(""".mindtagger-word.#{className} { #{style} }""")
                 .appendTo($element.closest("body"))
             $scope.$watchGroup [
-                "from", "to"
+                "from"
+                "froms"
+                "to"
+                "tos"
+                "length"
+                "lengths"
                 "indexArray"
                 "indexArrays"
                 -> mindtaggerWordArray.wordArray
             ], ->
                 words = mindtaggerWordArray.getWordElements()
                 wordsToHighlight =
+                    # several ways to specify a set of word spans
                     if $scope.from? and $scope.to?
+                        # from-to
                         if 0 <= +$scope.from <= +$scope.to < words.length
                             words.slice +$scope.from, +$scope.to + 1
+                    else if $scope.from? and $scope.length?
+                        # from-length
+                        if 0 <= +$scope.from < words.length and +$scope.length >= 0
+                            words.slice +$scope.from, +$scope.from + +$scope.length
                     else
                         indexes =
                             if $scope.indexArray?.length > 0
-                                indexes =
-                                    if arrayFormat?
-                                        parsedArrayFilter $scope.indexArray, arrayFormat
-                                    else
-                                        $scope.indexArray
+                                # an indexArray
+                                indexes = asArray $scope.indexArray
                                 (+i for i in indexes)
                             else if $scope.indexArrays?.length > 0
+                                # multiple indexArrays
                                 _.union $scope.indexArrays...
-                            else
-                                []
+                            else if $scope.froms? and $scope.tos?
+                                # multiple from-to pairs
+                                froms = asArray $scope.froms
+                                tos   = asArray $scope.tos
+                                if froms.length == tos.length
+                                    _.union (
+                                        for from,i in froms
+                                            from = +from
+                                            to = +tos[i]
+                                            continue unless 0 <= from <= to < words.length
+                                            [from..to]
+                                    )...
+                            else if $scope.froms? and $scope.lengths?
+                                # multiple from-length pairs
+                                froms   = asArray $scope.froms
+                                lengths = asArray $scope.lengths
+                                if froms.length == lengths.length
+                                    _.union (
+                                        for from,i in froms
+                                            from = +from
+                                            length = +lengths[i]
+                                            continue unless 0 <= from < words.length and length >= 0
+                                            [from...(from + length)]
+                                    )...
                         words.filter((i) -> i in indexes) if indexes?.length > 0
                 # apply style
                 words.removeClass className
