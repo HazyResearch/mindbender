@@ -126,7 +126,7 @@ angular.module 'mindbenderApp.mindtagger', [
         """
 
 # TODO fold this into mindtaggerTask directive's controller
-.service 'MindtaggerTask', ($http, $q, $modal, $window, $timeout) ->
+.service 'MindtaggerTask', ($http, $q, $modal, $window, $timeout, hotkeys) ->
   class MindtaggerTask
     @allTasks: {}
     @qnameFor: (taskName, params) ->
@@ -230,14 +230,14 @@ angular.module 'mindbenderApp.mindtagger', [
         shortcutKeysAssigned = {}
         for tagName,tagOpt of @tagOptions
             key = tagOpt.shortcutKey
-            if shortcutKeysAssigned[key]?
+            if shortcutKeysAssigned[key]? or (hotkeys.get key)?
                 tagOpt.shortcutKey = null
             else
                 shortcutKeysAssigned[key] = tagName
         # make sure all known tags have a shortcutKey derived from its name
         for tagName,tagOpt of @tagOptions when not tagOpt.shortcutKey
             i = 0
-            keyCandidates = tagName + "1234567890qwertyuiopasdfghjklzxcvbnm"
+            keyCandidates = tagName + "qwertyuiopasdfghjklzxcvbnm1234567890"
             while i < keyCandidates.length
                 key = keyCandidates[i++].toLowerCase()
                 break unless shortcutKeysAssigned[key]?
