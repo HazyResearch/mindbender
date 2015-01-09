@@ -324,7 +324,7 @@ angular.module 'mindbenderApp.mindtagger', [
     export: (format, tableName = "") =>
         $window.location.href = "api/mindtagger/#{@name}/tags.#{format
         }?tags=#{
-            encodeURIComponent ((tagName for tagName,tagSchema of @schema.tags when tagSchema.shouldExport).join ",")
+            encodeURIComponent ((tagName for tagName,tagOpt of @tagOptions when tagOpt.shouldExport).join ",")
         }&attrs=#{
             encodeURIComponent ((attrName for attrName,attrSchema of @schema.items when attrSchema.shouldExport).join ",")
         }&table=#{
