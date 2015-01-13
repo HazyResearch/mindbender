@@ -9,14 +9,20 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         mindtaggerWordArray: '='
         arrayFormat: '@'
     template: """
-        <span class="mindtagger-word-container"
-            ng-repeat="word in mindtaggerWordArray | parsedArray:arrayFormat track by $index">
-            <span class="mindtagger-word">{{word}}</span>
+        <span class="mindtagger-words">
+            <span class="mindtagger-word-container"
+                ng-repeat="word in mindtaggerWordArray | parsedArray:arrayFormat track by $index">
+                <span class="mindtagger-word">{{word}}</span>
+            </span>
+            <span ng-transclude></span>
         </span>
-        <span ng-transclude></span>
     """
     controller: ($scope, $element, $attrs, $filter) ->
         @$element = $element
+        $element.tooltip(
+            selector: ".has-tooltip"
+            container: ".mindtagger-words"
+        )
         @getWordElements = =>
             @$element.find(".mindtagger-word")
         $scope.$watchGroup [
@@ -65,7 +71,28 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
             mindtaggerWordArray
         ]) ->
             # add a new stylesheet
-            mindtaggerCreateStylesheet(""".mindtagger-word.#{className} { #{style} }""")
+            mindtaggerCreateStylesheet("""
+                    .mindtagger-word-container .#{className} { #{style} }
+
+                    /* box-shadow and bottom margin for making overlapping highlights more obvious */
+                    .mindtagger-word-container .mindtagger-highlight-words {
+                        display: inline-block;
+                        box-shadow: 0 0 0.2em;
+                    }
+                    .mindtagger-word-container
+                    .mindtagger-highlight-words .mindtagger-highlight-words {
+                        margin-bottom: 0.2em;
+                    }
+                    .mindtagger-word-container:hover
+                    .mindtagger-highlight-words .mindtagger-highlight-words {
+                        margin-bottom: 2em;
+                    }
+                    .mindtagger-words .tooltip-inner {
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                """)
                 .appendTo($element.closest("body"))
             $scope.$watchGroup [
                 "from"
@@ -79,53 +106,68 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 -> mindtaggerWordArray.wordArray
             ], ->
                 words = mindtaggerWordArray.getWordElements()
-                wordsToHighlight =
+                wordSpans =
                     # several ways to specify a set of word spans
                     if $scope.from? and $scope.to?
                         # from-to
                         if 0 <= +$scope.from <= +$scope.to < words.length
-                            words.slice +$scope.from, +$scope.to + 1
+                            [{from: +$scope.from, to: +$scope.to + 1}]
                     else if $scope.from? and $scope.length?
                         # from-length
                         if 0 <= +$scope.from < words.length and +$scope.length >= 0
-                            words.slice +$scope.from, +$scope.from + +$scope.length
+                            [{from: +$scope.from, to: +$scope.from + +$scope.length}]
+                    else if $scope.indexArray?.length > 0
+                        # an indexArray
+                        indexes = asArray $scope.indexArray
+                        [+i for i in indexes]
+                    else if $scope.indexArrays?.length > 0
+                        # multiple indexArrays
+                        $scope.indexArrays
+                    else if $scope.froms? and $scope.tos?
+                        # multiple from-to pairs
+                        froms = asArray $scope.froms
+                        tos   = asArray $scope.tos
+                        if froms.length == tos.length
+                            for from,i in froms
+                                from = +from
+                                to = +tos[i] + 1
+                                continue unless 0 <= from <= to <= words.length
+                                {from, to}
+                    else if $scope.froms? and $scope.lengths?
+                        # multiple from-length pairs
+                        froms   = asArray $scope.froms
+                        lengths = asArray $scope.lengths
+                        if froms.length == lengths.length
+                            for from,i in froms
+                                from = +from
+                                length = +lengths[i]
+                                continue unless 0 <= from < words.length and length >= 0
+                                to = from + length
+                                {from, to}
                     else
-                        indexes =
-                            if $scope.indexArray?.length > 0
-                                # an indexArray
-                                indexes = asArray $scope.indexArray
-                                (+i for i in indexes)
-                            else if $scope.indexArrays?.length > 0
-                                # multiple indexArrays
-                                _.union $scope.indexArrays...
-                            else if $scope.froms? and $scope.tos?
-                                # multiple from-to pairs
-                                froms = asArray $scope.froms
-                                tos   = asArray $scope.tos
-                                if froms.length == tos.length
-                                    _.union (
-                                        for from,i in froms
-                                            from = +from
-                                            to = +tos[i]
-                                            continue unless 0 <= from <= to < words.length
-                                            [from..to]
-                                    )...
-                            else if $scope.froms? and $scope.lengths?
-                                # multiple from-length pairs
-                                froms   = asArray $scope.froms
-                                lengths = asArray $scope.lengths
-                                if froms.length == lengths.length
-                                    _.union (
-                                        for from,i in froms
-                                            from = +from
-                                            length = +lengths[i]
-                                            continue unless 0 <= from < words.length and length >= 0
-                                            [from...(from + length)]
-                                    )...
-                        words.filter((i) -> i in indexes) if indexes?.length > 0
-                # apply style
-                words.removeClass className
-                wordsToHighlight?.addClass className
+                        console.error "mindtagger-word-array incomplete attributes", $element?.clone()
+                        []
+                # apply style to wordSpans by wrapping highlight elements
+                words.parents(".#{className}")
+                    .tooltip("destroy")
+                    .contents().unwrap()
+                for wordSpan in wordSpans
+                    wordsToHighlight =
+                        if wordSpan instanceof Array
+                            words.filter((i) -> i in wordSpan) if wordSpan?.length > 0
+                        else
+                            {from, to} = wordSpan
+                            words.slice from, to
+                    wordSpanText = wordsToHighlight.map(-> $(@).text()).toArray().join(" ")
+                    wordsToHighlight.wrap(
+                        $("<span>")
+                            .addClass("#{className} mindtagger-highlight-words has-tooltip")
+                            .attr(
+                                title: wordSpanText
+                                "data-placement": "bottom"
+                            )
+                    )
+            
 
 .directive 'mindtaggerSelectableWords', ($parse, $timeout, hotkeys, MindtaggerTaskHotkeysDemuxCtrl) ->
     hotkeysDemux = new MindtaggerTaskHotkeysDemuxCtrl [
