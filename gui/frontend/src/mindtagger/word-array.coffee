@@ -19,10 +19,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
     """
     controller: ($scope, $element, $attrs, $filter) ->
         @$element = $element
-        $element.tooltip(
-            selector: ".has-tooltip"
-            container: ".mindtagger-words"
-        )
+        $element.tooltip selector: ".has-tooltip"
         @getWordElements = =>
             @$element.find(".mindtagger-word")
         $scope.$watchGroup [
@@ -78,6 +75,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                     .mindtagger-word-container .mindtagger-highlight-words {
                         display: inline-block;
                         box-shadow: 0 0 0.2em;
+                        cursor: default;
                     }
                     .mindtagger-word-container
                     .mindtagger-highlight-words .mindtagger-highlight-words {
@@ -145,7 +143,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                                 to = from + length
                                 {from, to}
                     else
-                        console.error "mindtagger-word-array incomplete attributes", $element?.clone()
+                        console.error "mindtagger-word-array incomplete attributes", $attrs
                         []
                 # apply style to wordSpans by wrapping highlight elements
                 words.parents(".#{className}")
@@ -154,9 +152,11 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 for wordSpan in wordSpans
                     wordsToHighlight =
                         if wordSpan instanceof Array
+                            indexes = wordSpan
                             words.filter((i) -> i in wordSpan) if wordSpan?.length > 0
                         else
                             {from, to} = wordSpan
+                            indexes = [from...to]
                             words.slice from, to
                     wordSpanText = wordsToHighlight.map(-> $(@).text()).toArray().join(" ")
                     wordsToHighlight.wrap(
@@ -165,6 +165,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                             .attr(
                                 title: wordSpanText
                                 "data-placement": "bottom"
+                                "data-word-indexes": JSON.stringify indexes
                             )
                     )
             
@@ -201,8 +202,15 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
             sel = getSelection()
             if sel.baseNode is sel.extentNode and sel.baseOffset == sel.extentOffset
                 # if selection is empty, this must be a normal click
-                word = findWordFor (event.srcElement ? event.target)
-                selectedWordIndexes = [words.index word]
+                el = event.srcElement ? event.target
+                $hl = $(el).closest ".mindtagger-highlight-words, .mindtagger-word-container"
+                if $hl.hasClass "mindtagger-highlight-words"
+                    # if a highlighted span was clicked, select it
+                    selectedWordIndexes = JSON.parse $hl.attr("data-word-indexes")
+                else
+                    # otherwise, select the word
+                    word = findWordFor el
+                    selectedWordIndexes = [words.index word]
             else
                 # from the selected range
                 r = sel.getRangeAt(0)
