@@ -143,7 +143,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                                 to = from + length
                                 {from, to}
                     else
-                        console.error "mindtagger-word-array incomplete attributes", $attrs
+                        console.warn "mindtagger-highlight-words has incomplete attributes", $attrs
                         []
                 # apply style to wordSpans by wrapping highlight elements
                 words.parents(".#{className}")
