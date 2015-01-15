@@ -189,7 +189,8 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         indexArrayModel = $parse $attrs.indexArray
         updateIndexArray = (indexArray) ->
             if indexArray?.length > 0
-                indexArray = _.uniq indexArray.sort()
+                compareNumbers = (a, b) -> a - b # For sorting in numerical order, see: http://stackoverflow.com/questions/1063007/arr-sort-does-not-sort-integers-correctly
+                indexArray = (_.uniq indexArray).sort compareNumbers
             else
                 indexArray = null
             indexArrayModel.assign $scope, indexArray
