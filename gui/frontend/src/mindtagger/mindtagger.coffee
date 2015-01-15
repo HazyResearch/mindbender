@@ -263,12 +263,13 @@ angular.module 'mindbenderApp.mindtagger', [
 
     # cursor
     moveCursorTo: (index = 0, mayNeedScroll = yes) =>
-        if index?
+        if index? and 0 <= index < @items?.length
             @cursor.index = index
             @cursor.item  = @items?[index]
             @cursor.tag   = @tags?[index]
             @cursor.mayNeedScroll = mayNeedScroll
         else
+            console.warn "resetting cursor to null", index
             @cursor.index =
             @cursor.item =
             @cursor.tag =
@@ -287,7 +288,7 @@ angular.module 'mindbenderApp.mindtagger', [
             if not @cursorInitIndex? and @currentPage * @itemsPerPage < @itemsCount
                 @currentPage++
                 @cursorInitIndex = 0
-        else
+        else if 0 <= newIndex < @items?.length
             @moveCursorTo newIndex
 
     # create/add tag
