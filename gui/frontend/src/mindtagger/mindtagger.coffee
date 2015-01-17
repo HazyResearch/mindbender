@@ -40,6 +40,7 @@ angular.module 'mindbenderApp.mindtagger', [
         @name = $attrs.mindtaggerTask
         # load current page and cursor position saved in localStorage
         savedState = localStorageState "MindtaggerTask_#{@name}", $scope, [
+            "MindtaggerTask.groupFilter"
             "MindtaggerTask.currentPage"
             "MindtaggerTask.itemsPerPage"
             "MindtaggerTask.cursor.index"
@@ -48,12 +49,18 @@ angular.module 'mindbenderApp.mindtagger', [
         ], no
         # make sure the search part of $location includes the required parameters
         search = $location.search()
+        needsReload = no
+        unless search.g?
+            $location.search "g", savedState["MindtaggerTask.groupFilter"] ? ""
+            needsReload = yes
         unless search.p? and search.s?
             $location.search "p", savedState["MindtaggerTask.currentPage"]  ? 1
             $location.search "s", savedState["MindtaggerTask.itemsPerPage"] ? 10
-            for name,value of savedState["MindtaggerTask.params"] ? {}
-                $location.search name, value
-            return
+            needsReload = yes
+        for name,value of savedState["MindtaggerTask.params"] ? {} when not search[name]?
+            $location.search name, value
+            needsReload = yes
+        return if needsReload
         # passthru task parameters
         @params = {}
         for name,value of search when /^task_/.test name
@@ -62,6 +69,7 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.MindtaggerTask =
         task = MindtaggerTask.forName @name, @params,
             tagOptions: savedState["MindtaggerTask.tagOptions"]
+            groupFilter:  $location.search().g
             currentPage:  +$location.search().p
             itemsPerPage: +$location.search().s
             $scope: $scope
@@ -90,6 +98,11 @@ angular.module 'mindbenderApp.mindtagger', [
                 $scope.MindtaggerTask.itemsPerPage
             , (newPageSize) ->
                 $location.search "s", newPageSize
+                task.moveCursorTo 0 unless task.cursorInitIndex?
+        $scope.$watch ->
+                $scope.MindtaggerTask.groupFilter
+            , (newGroupFilter) ->
+                $location.search "g", newGroupFilter
                 task.moveCursorTo 0 unless task.cursorInitIndex?
 
         $scope.keys = (obj) -> key for key of obj
@@ -171,12 +184,14 @@ angular.module 'mindbenderApp.mindtagger', [
             )
             ( $http.get "api/mindtagger/#{@name}/items",
                     params: _.extend {}, @params,
+                        group: @groupFilter
                         offset: @itemsPerPage * (@currentPage - 1)
                         limit:  @itemsPerPage
-                .success ({tags, items, itemsCount}) =>
+                .success ({tags, items, itemsCount, grouping}) =>
                     @tags = tags
                     @items = items
                     @itemsCount = itemsCount
+                    @grouping = grouping
                     $timeout =>
                         # XXX we need to defer this so the mindtaggerTaskKeepsCursorVisible can scroll after the items are rendered
                         @moveCursorTo @cursorInitIndex
