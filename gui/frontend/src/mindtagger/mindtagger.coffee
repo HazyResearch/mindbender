@@ -199,6 +199,13 @@ angular.module 'mindbenderApp.mindtagger', [
             )
         ]
 
+    loadGroupNames: (q) =>
+        $http.get "api/mindtagger/#{@name}/groups",
+                params: _.extend {}, @params,
+                    q: q
+            .then (res) =>
+                res.data
+
     encodeParamsAsQueryString: (prefixIfNonEmpty = "") =>
         # gives task parameters encoded as query strings of URI
         qs = (

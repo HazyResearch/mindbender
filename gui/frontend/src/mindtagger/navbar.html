@@ -23,14 +23,19 @@
         <li ng-if="tasks.length == 1" class="active"><a href="#/mindtagger/{{MindtaggerTask.name}}">{{MindtaggerTask.name}}</a></li>
       </ul>
 
-      <form class="navbar-form navbar-left" role="search">
+      <form class="navbar-form navbar-left" role="search"
+          ng-init="groupFilter = MindtaggerTask.groupFilter"
+          ng-submit="MindtaggerTask.groupFilter = groupFilter">
         <div class="input-group">
           <span class="input-group-addon"><i class="fa fa-filter"></i></span>
           <input type="text"
             placeholder="Showing all"
-            ng-model="MindtaggerTask.groupFilter"
-            ng-model-options="{ updateOn: 'default blur', debounce: {'default': 500, 'blur': 0} }"
+            ng-model="groupFilter"
+            ng-blur="MindtaggerTask.groupFilter = groupFilter"
+            typeahead="g for g in MindtaggerTask.loadGroupNames($viewValue)"
+            typeahead-loading="loadingGroupNames"
             class="form-control">
+    <i ng-show="loadingGroupNames" class="glyphicon glyphicon-refresh"></i>
           <div class="input-group-btn">
             <a class="btn btn-default" disabled ng-disabled="MindtaggerTask.grouping.previous == null" ng-click="MindtaggerTask.groupFilter = MindtaggerTask.grouping.previous"><i class="fa fa-chevron-up"></i></a>
             <a class="btn btn-default" disabled ng-disabled="MindtaggerTask.grouping.next     == null" ng-click="MindtaggerTask.groupFilter = MindtaggerTask.grouping.next    "><i class="fa fa-chevron-down"></i></a>

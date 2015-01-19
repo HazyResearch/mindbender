@@ -299,7 +299,7 @@ class MindtaggerTask
         key_columns: @config.items?.key_columns ? []
         by_key: {}
 
-    getItemsWithTags: (next, offset, limit) =>
+    getItemsWithTags: (next, group, offset, limit) =>
         async.parallel {
             allItems: @preferCached @allItems, (next) =>
                 itemsFile = path.resolve @config.path, @config.items?.file
@@ -349,6 +349,18 @@ class MindtaggerTask
                         break if (_.size allTags.by_key) == 0
                 allTags.by_key = byNewKey
                 allTags.key_columns = @config.items?.key_columns
+            # filter to the group if necessary when grouping_columns exist
+            if group and @config.items?.grouping_columns
+                groupedItems = @groupItems allItems
+                groups = _.keys groupedItems
+                groupIdx = groups.indexOf group
+                allItems = groupedItems[group] ? []
+                grouping =
+                    filter  : group
+                    previous: groups[groupIdx - 1]
+                    next    : groups[groupIdx + 1]
+            else
+                grouping = null
             # offset, limit
             # TODO more sanity check offset, limit
             items =
@@ -367,6 +379,7 @@ class MindtaggerTask
                 key = @keyFor item, idx
                 tags.push allTags.by_key[key]
             next null, {
+                grouping
                 itemsCount: allItems.length
                 items
                 tags
@@ -379,6 +392,17 @@ class MindtaggerTask
         else
             # or simply the row position
             idx
+
+    groupFor: (item, grouping_columns = @config.items?.grouping_columns) =>
+        if grouping_columns?.length > 0
+            (item[c] for c in grouping_columns).join "\t"
+
+    groupItems: (allItems) =>
+        unless @groupedItems?
+            @groupedItems = {}
+            for item in allItems
+                (@groupedItems[@groupFor item] ?= []).push item
+        @groupedItems
 
     getSchema: (next) => (@preferCached @schema, (next) =>
             @getItemsWithTags (err, {items, tags}) =>
@@ -536,21 +560,23 @@ app.get "/api/mindtagger/:task/items", (req, res) ->
     parseNum = (x) ->
         return null unless x?
         x = +x; if _.isNaN x then null else x
+    group = req.param "group"
     offset = parseNum (req.param "offset") ? 0
     limit  = parseNum (req.param "limit" ) ? 10
     withTask (req.param "task"), req, res, (task) ->
-        task.getItemsWithTags (err, {items, itemsCount, tags}) ->
+        task.getItemsWithTags (err, {grouping, items, itemsCount, tags}) ->
             if err
                 return res.status 500
                     .send "Internal error: #{err}"
             res.json {
+                grouping
                 itemsCount
                 limit
                 offset
                 tags
                 items
             }
-        , offset, limit
+        , group, offset, limit
 app.post "/api/mindtagger/:task/items", (req, res) ->
     withTask (req.param "task"), req, res, (task) ->
         task.setTagsForItems req.body, (err) ->
@@ -558,6 +584,23 @@ app.post "/api/mindtagger/:task/items", (req, res) ->
                 return res.status 400
                     .send "Bad request: #{err}"
             res.json task.schema
+
+# filter item groups (for typeahead/autocompletion)
+app.get "/api/mindtagger/:task/groups", (req, res) ->
+    q = req.param "q"
+    if q?.length >= 2
+        withTask (req.param "task"), req, res, (task) ->
+            task.getItemsWithTags (err, {items}) ->
+                if err
+                    return res.status 500
+                        .send "Internal error: #{err}"
+                groupedItems = task.groupItems items
+                allGroups = _.keys groupedItems
+                res.json (g for g in allGroups when ~g.indexOf q)
+    else
+        res.status 400
+            .send "Bad request: parameter 'q' is too short"
+
 
 # set up APIs for exporting
 app.get ///^ /api/mindtagger/([^/]+)/tags\.(.*) $///, (req, res) ->
