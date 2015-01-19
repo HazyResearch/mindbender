@@ -205,6 +205,9 @@ angular.module 'mindbenderApp.mindtagger', [
                     q: q
             .then (res) =>
                 res.data
+    updateFilter: (q) =>
+        @groupFilter = q
+        @currentPage = 1
 
     encodeParamsAsQueryString: (prefixIfNonEmpty = "") =>
         # gives task parameters encoded as query strings of URI
