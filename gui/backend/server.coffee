@@ -446,7 +446,7 @@ class MindtaggerTask
                         values.length == 2 and
                         not values[0] is not not values[1]
                     tagSchema.values = values
-                    'binary'
+                    'simple'
                 else
                     # TODO 'categorical'
                     delete tagSchema.frequency

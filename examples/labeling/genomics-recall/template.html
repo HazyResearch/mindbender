@@ -15,12 +15,13 @@
   <template for="tags">
       <div ng-init="
         MindtaggerTask.defineTags(
-        { more_genes:      { type: 'set' }
-        , more_phenotypes: { type: 'set' }
-        , more_diseases:   { type: 'set' }
+        { more_genes:      { type: 'parametric', multiple: true }
+        , more_phenotypes: { type: 'parametric', multiple: true }
+        , more_diseases:   { type: 'parametric', multiple: true }
+        , expresses:       { type: 'parametric', multiple: true, params: { gene: {}, phenotype: {} } }
         })
         ">
-        <span mindtagger-value-set-tag="'more_genes'" with-value="item.selection"
+        <span mindtagger-parametric-tags with-value="item.selection"
             render-each-value="item.words | filterArrayByIndexes:value:'postgres'"></span>
     </div>
   </template>

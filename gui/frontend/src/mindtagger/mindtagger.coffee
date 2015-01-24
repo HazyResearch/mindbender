@@ -3,7 +3,7 @@ angular.module 'mindbenderApp.mindtagger', [
     'cfp.hotkeys'
     'mindbenderApp.mindtagger.wordArray'
     'mindbenderApp.mindtagger.arrayParsers'
-    'mindbenderApp.mindtagger.tags.valueSet'
+    'mindbenderApp.mindtagger.tags.parametric'
 ]
 
 .config ($routeProvider) ->
@@ -67,6 +67,7 @@ angular.module 'mindbenderApp.mindtagger', [
             @params[name] = value
         # initialize or load task
         $scope.MindtaggerTask =
+        @task =
         task = MindtaggerTask.forName @name, @params,
             tagOptions: savedState["MindtaggerTask.tagOptions"]
             groupFilter:  $location.search().g
@@ -317,7 +318,7 @@ angular.module 'mindbenderApp.mindtagger', [
             @moveCursorTo newIndex
 
     # create/add tag
-    addTagTo: (item, name, value, type = 'binary') =>
+    addTagTo: (item, name, value, type = 'simple') =>
         console.log "adding tag to item #{@keyFor item}", name, type, value
         index = @indexOf item
         tag = (@tags[index] ?= {})

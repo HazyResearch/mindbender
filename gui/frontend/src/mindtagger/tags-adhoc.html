@@ -1,4 +1,4 @@
-<!-- free form tags -->
+<!-- ad-hoc user-defined simple tags -->
 <span class="btn-group" style="margin-left:20px;">
   <button class="btn btn-default" data-toggle="modal" data-target="#add-tag-modal"
       mindtagger-hotkey="+" title="Add a new tag">
@@ -7,8 +7,8 @@
   </button>
 </span>
 <span ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags" ng-if="!MindtaggerTask.tagOptions[tagName].hidden">
-  <!-- binary -->
-  <label ng-if="tagSchema.type == 'binary'"
+  <!-- simple tags -->
+  <label ng-if="tagSchema.type == 'simple'"
     btn-checkbox btn-checkbox-true="true" btn-checkbox-false="null"
     ng-model="tag[tagName]" ng-click="commit(item,tag)"
     ng-class="tag[tagName] ? 'btn-info' : 'btn-default'"
@@ -20,9 +20,5 @@
   <!-- TODO render categorical tags with one input box (name) and a dropdown -->
   <!-- TODO render freetext tags with two input boxes: name and value -->
   <!-- TODO autocomplete/typeahead in input boxes -->
-
-  <!-- Set of values as Split button -->
-  <span ng-if="tagSchema.type == 'set'"
-    mindtagger-value-set-tag="tagName" with-value="tagValue"></span>
 
 </span>

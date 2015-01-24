@@ -1,0 +1,88 @@
+<!-- UI elements for parametric tags: singleton/multiple, unary/n-ary -->
+
+<!-- buttons corresponding to values in the set -->
+<div>
+  <span ng-repeat="(tagName,paramTag) in MindtaggerParametricTags.all">
+    <!-- TODO singleton -->
+    <span class="btn-group" ng-repeat="value in paramTag.enumerateValues(tag)"
+      ng-init="paramValues = paramTag.unpack(value)">
+      <!-- button for each value -->
+      <button class="btn btn-xs btn-default"
+        ng-class="equals(MindtaggerParametricTags.paramValues, paramValues) ? 'disabled' : ''"
+        ng-click="MindtaggerParametricTags.name = tagName;
+                  MindtaggerParametricTags.paramIndex = 0;
+                  MindtaggerParametricTags.paramValues = paramTag.unpack(value);
+                  MindtaggerParametricTags.withValue = MindtaggerParametricTags.paramValues[MindtaggerParametricTags.paramIndex];
+                  "><i class="fa fa-tag"></i> {{tagName}}</button>
+        <button class="btn btn-xs btn-default"
+          ng-repeat="param in paramTag.paramNames"
+          ng-init="paramValue = paramValues[$index]"
+          ng-click="MindtaggerParametricTags.withValue = paramValue"
+          ng-class="equals(MindtaggerParametricTags.withValue, paramValue) ? 'disabled' : ''"
+          title="{{paramTag.hasParamNames ? param : ''}}">{{renderValue(paramValue)}}</button>
+      <button class="btn btn-xs btn-default"
+        ng-click="paramTag.toggle(tag, paramValues)"
+        ><i class="fa fa-remove text-danger"></i></button>
+    </span>
+  </span>
+</div>
+
+<!-- controls for adding/removing values -->
+<span class="btn-group">
+  <!-- dropup button for choosing the tag -->
+  <span class="btn-group dropup">
+    <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+      <i class="fa fa-tag"></i> {{MindtaggerParametricTags.name}}
+      <!-- <span class="badge" ng-if="MindtaggerParametricTags.values.length > 0">{{MindtaggerParametricTags.values.length}}</span> -->
+      <span class="caret"></span>
+    </button>
+    <!-- dropdown for switching between "parametric" tags -->
+    <ul class="dropdown-menu" role="menu">
+      <!-- TODO allow to define new 'parametric'-type tags via modal -->
+      <li class="disabled"><a><span class="text-primary"><i class="fa fa-plus"></i> Create a new tag</span>
+      </a></li>
+      <li ng-repeat="(tagName,paramTag) in MindtaggerParametricTags.all"
+        ng-class="tagName == MindtaggerParametricTags.name ? 'active' : ''"
+        ng-if="!MindtaggerTask.tagOptions[tagName].hidden"><a ng-click="MindtaggerParametricTags.name = tagName"
+            mindtagger-hotkey="{{MindtaggerTask.tagOptions[tagName].shortcutKey}}" title="Switch to tag '{{tagName}}'">
+          <i class="fa fa-tag"></i> {{tagName}}
+          <span class="badge" ng-if="tag[tagName].length > 0">{{tag[tagName].length}}</span>
+      </a></li>
+      <li class="divider"></li>
+      <li ng-if="MindtaggerParametricTags.current.enumerateValues(tag).length > 0"><a ng-click="tag[MindtaggerParametricTags.name] = null; commit(item,tag)">
+          <span class="text-danger">
+            <i class="fa fa-trash"></i> Remove all <span class="badge">{{MindtaggerParametricTags.values.length}}</span> values
+          </span>
+      </a></li>
+    </ul>
+  </span>
+  <button type="button" class="btn btn-default"
+      ng-repeat="param in MindtaggerParametricTags.current.paramNames"
+      ng-class="MindtaggerParametricTags.paramIndex == $index ? 'active' : ''"
+      ng-click="MindtaggerParametricTags.paramIndex = $index;
+                MindtaggerParametricTags.withValue = MindtaggerParametricTags.paramValues[$index]">
+      {{renderValue(MindtaggerParametricTags.paramValues[$index])}}
+  </button>
+  <!-- button to add/remove current value to the set -->
+  <button type="button" class="btn"
+    ng-class="MindtaggerParametricTags.withValue == null ? 'btn-default disabled' :
+              MindtaggerParametricTags.willRemove(tag) ? 'btn-danger' : 'btn-primary'"
+              ng-click="MindtaggerParametricTags.nextNullParamOrToggle(tag)">
+    <span ng-if="!MindtaggerParametricTags.isComplete()"
+      title="Move to next parameter">
+      <i class="fa fa-arrow-right"></i>
+    </span>
+    <span ng-if="MindtaggerParametricTags.isComplete()">
+      <span ng-if="!MindtaggerParametricTags.willRemove(tag)"
+        title="Add new tag '{{MindtaggerParametricTags.name}}'">
+        <i class="fa fa-plus"></i>
+      </span>
+      <span ng-if="MindtaggerParametricTags.willRemove(tag)"
+        title="Remove new tag '{{MindtaggerParametricTags.name}}'">
+        <i class="fa fa-remove"></i>
+      </span>
+    </span>
+  </button>
+
+  <!-- TODO clear all button? -->
+</span>
