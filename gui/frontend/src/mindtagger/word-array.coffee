@@ -43,15 +43,6 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
 .directive 'mindtaggerHighlightWords', (mindtaggerCreateStylesheet, parsedArrayFilter, watchGroupDeep) ->
     classNameSeq = 0
     restrict: 'EAC'
-    scope:
-        from: '='
-        froms: '='
-        to: '='
-        tos: '='
-        length: '='
-        lengths: '='
-        indexArray: '='
-        indexArrays: '='
     require: [
         '^mindtaggerWordArray'
     ]
@@ -67,6 +58,80 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         ($scope, $element, $attrs, [
             mindtaggerWordArray
         ]) ->
+            getWordSpanFrom =
+                # several ways to specify a set of word spans
+                if $attrs.from? and $attrs.to?
+                    # from-to
+                    watchExprs = [
+                        "from"
+                        "to"
+                    ]
+                    ($scope) ->
+                        from = $scope.$eval $attrs.from
+                        to   = $scope.$eval $attrs.to
+                        if from? and to? and 0 <= +from <= +to < words.length
+                            [{from: +from, to: +to + 1}]
+                else if $attrs.from? and $attrs.length?
+                    # from-length
+                    watchExprs = [
+                        $attrs.from
+                        $attrs.length
+                    ]
+                    ($scope) ->
+                        from   = $scope.$eval $attrs.from
+                        length = $scope.$eval $attrs.length
+                        if from? and length? and 0 <= +from < words.length and +length >= 0
+                            [{from: +from, to: +from + +length}]
+                else if $attrs.indexArray?
+                    # an indexArray
+                    watchExprs = [
+                        "#{$attrs.indexArray} | json"
+                    ]
+                    ($scope) ->
+                        indexes = asArray $scope.$eval $attrs.indexArray
+                        [+i for i in indexes] if indexes?
+                else if $attrs.indexArrays?
+                    # multiple indexArrays
+                    watchExprs = [
+                        "#{$attrs.indexArrays} | json"
+                    ]
+                    ($scope) ->
+                        asArray $scope.$eval $attrs.indexArrays
+                else if $attrs.froms? and $attrs.tos?
+                    # multiple from-to pairs
+                    watchExprs = [
+                        "#{$attrs.froms} | json"
+                        "#{$attrs.tos} | json"
+                    ]
+                    ($scope) ->
+                        froms = asArray $scope.$eval $attrs.froms
+                        tos   = asArray $scope.$eval $attrs.tos
+                        if from? and tos? and froms.length == tos.length
+                            for from,i in froms
+                                from = +from
+                                to = +tos[i] + 1
+                                continue unless 0 <= from <= to <= words.length
+                                {from, to}
+                else if $attrs.froms? and $attrs.lengths?
+                    # multiple from-length pairs
+                    watchExprs = [
+                        "#{$attrs.froms} | json"
+                        "#{$attrs.lengths} | json"
+                    ]
+                    ($scope) ->
+                        froms   = asArray $scope.$eval $attrs.froms
+                        lengths = asArray $scope.$eval $attrs.lengths
+                        if froms? and lengths? and froms.length == lengths.length
+                            for from,i in froms
+                                from = +from
+                                length = +lengths[i]
+                                continue unless 0 <= from < words.length and length >= 0
+                                to = from + length
+                                {from, to}
+                else
+                    console.warn "mindtagger-highlight-words has incomplete attributes", $attrs
+                    watchExprs = []
+                    ($scope) -> null
             # add a new stylesheet
             mindtaggerCreateStylesheet("""
                     .mindtagger-word-container .#{className} { #{style} }
@@ -93,58 +158,11 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 """)
                 .appendTo($element.closest("body"))
             $scope.$watchGroup [
-                "from"
-                "froms"
-                "to"
-                "tos"
-                "length"
-                "lengths"
-                "indexArray"
-                "indexArrays"
+                watchExprs...
                 -> mindtaggerWordArray.wordArray
             ], ->
                 words = mindtaggerWordArray.getWordElements()
-                wordSpans =
-                    # several ways to specify a set of word spans
-                    if $scope.from? and $scope.to?
-                        # from-to
-                        if 0 <= +$scope.from <= +$scope.to < words.length
-                            [{from: +$scope.from, to: +$scope.to + 1}]
-                    else if $scope.from? and $scope.length?
-                        # from-length
-                        if 0 <= +$scope.from < words.length and +$scope.length >= 0
-                            [{from: +$scope.from, to: +$scope.from + +$scope.length}]
-                    else if $scope.indexArray?.length > 0
-                        # an indexArray
-                        indexes = asArray $scope.indexArray
-                        [+i for i in indexes]
-                    else if $scope.indexArrays?.length > 0
-                        # multiple indexArrays
-                        $scope.indexArrays
-                    else if $scope.froms? and $scope.tos?
-                        # multiple from-to pairs
-                        froms = asArray $scope.froms
-                        tos   = asArray $scope.tos
-                        if froms.length == tos.length
-                            for from,i in froms
-                                from = +from
-                                to = +tos[i] + 1
-                                continue unless 0 <= from <= to <= words.length
-                                {from, to}
-                    else if $scope.froms? and $scope.lengths?
-                        # multiple from-length pairs
-                        froms   = asArray $scope.froms
-                        lengths = asArray $scope.lengths
-                        if froms.length == lengths.length
-                            for from,i in froms
-                                from = +from
-                                length = +lengths[i]
-                                continue unless 0 <= from < words.length and length >= 0
-                                to = from + length
-                                {from, to}
-                    else
-                        console.warn "mindtagger-highlight-words has incomplete attributes", $attrs
-                        []
+                wordSpans = getWordSpanFrom $scope ? []
                 # apply style to wordSpans by wrapping highlight elements
                 words.parents(".#{className}")
                     .tooltip("destroy")
