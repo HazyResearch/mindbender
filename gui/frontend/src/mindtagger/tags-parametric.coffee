@@ -3,7 +3,7 @@ angular.module 'mindbenderApp.mindtagger.tags.parametric', [
 
 .directive 'mindtaggerParametricTags', ($parse, $interpolate, MindtaggerTaskHotkeysDemuxCtrl, localStorageState) ->
     hotkeysDemux = new MindtaggerTaskHotkeysDemuxCtrl [
-        { combo: "enter", description: "Toggle current tag with the selection", action: "MindtaggerParametricTags.nextNullParamOrToggle(tag)" }
+        { combo: "enter", description: "Add/remove tag with selected values, or keep selection and move to selecting next value", action: "MindtaggerParametricTags.nextNullParamOrToggle(tag)" }
     ]
     restrict: 'A', transclude: true, templateUrl: "mindtagger/tags-parametric.html"
     controller: ($scope, $element, $attrs) ->
@@ -14,15 +14,27 @@ angular.module 'mindbenderApp.mindtagger.tags.parametric', [
         @name = null
         @current = null
         @isComplete = =>
-            # TODO
+            for paramName,i in @current.paramNames
+                return no unless @paramValues[i]?
             yes
         @willRemove = (tag, paramValues = @paramValues) =>
             @current.contains tag, paramValues
+        @atTheLastParam = =>
+            @paramIndex + 1 == @current.paramNames.length
         @nextNullParamOrToggle = (tag, paramValues = @paramValues) =>
-            if @isComplete
+            numParams = @current.paramNames.length
+            if @atTheLastParam() and @isComplete()
                 @current.toggle tag, paramValues
+                @paramIndex = 0
             else
-                # TODO move @paramIndex to next null
+                # move to next param
+                @paramIndex = (@paramIndex + 1) % numParams
+            if numParams > 1
+                if paramValues[@paramIndex]?
+                    @withValue = paramValues[@paramIndex]
+                else
+                    paramValues[@paramIndex] = @withValue
+                do $scope.$digest
         # find all parametric tags from schema and prepare an object for each
         @all = {}
         for tagName,tagSchema of $scope.MindtaggerTask.schema.tags when tagSchema.type is "parametric"
@@ -91,7 +103,9 @@ class ParametricTag
         else
             @pack = (paramValues) -> paramValues[0]
             @unpack = (value) -> [value]
+    # contains(tag, paramValues) returns whether the paramValues exist in tag.
     contains: null
+    # toggle(tag, paramValues) toggles the paramValues from tag, then returns what @contains would return.
     toggle: null
     enumerateValues: null
 
@@ -103,12 +117,18 @@ class MultipleTag extends ParametricTag
                 return yes
         no
     toggle: (tag, paramValues) =>
-        return unless paramValues?
+        return no unless paramValues?
         aValue = @pack paramValues
         set = tag[@name] ? []
         newSet = (v for v in set when not angular.equals(aValue, v))
-        newSet.push aValue if newSet.length == set.length
+        wasAdded =
+            if newSet.length == set.length
+                newSet.push aValue
+                yes
+            else
+                no
         tag[@name] = newSet
+        wasAdded
     enumerateValues: (tag) => tag[@name]
 
 class SingletonTag extends ParametricTag
@@ -117,10 +137,11 @@ class SingletonTag extends ParametricTag
         angular.equals(aValue, tag[@name])
     toggle: (tag, paramValues) =>
         aValue = @pack paramValues
-        tag[@name] =
-            if angular.equals(aValue, tag[@name])
-                null
-            else
-                aValue
+        if angular.equals(aValue, tag[@name])
+            tag[@name] = null
+            no
+        else
+            tag[@name] = aValue
+            yes
     enumerateValues: (tag) => [tag[@name]] if tag[@name]?
 

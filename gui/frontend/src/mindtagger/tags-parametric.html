@@ -66,13 +66,17 @@
   <!-- button to add/remove current value to the set -->
   <button type="button" class="btn"
     ng-class="MindtaggerParametricTags.withValue == null ? 'btn-default disabled' :
-              MindtaggerParametricTags.willRemove(tag) ? 'btn-danger' : 'btn-primary'"
+              !MindtaggerParametricTags.atTheLastParam() ? 'btn-default' :
+              !MindtaggerParametricTags.isComplete()     ? 'btn-default disabled' :
+              !MindtaggerParametricTags.willRemove(tag)  ? 'btn-primary' :
+              'btn-danger'"
               ng-click="MindtaggerParametricTags.nextNullParamOrToggle(tag)">
-    <span ng-if="!MindtaggerParametricTags.isComplete()"
-      title="Move to next parameter">
+    <span ng-if="!MindtaggerParametricTags.atTheLastParam()"
+      class="text-primary"
+      title="Move to the next parameter">
       <i class="fa fa-arrow-right"></i>
     </span>
-    <span ng-if="MindtaggerParametricTags.isComplete()">
+    <span ng-if="MindtaggerParametricTags.atTheLastParam()">
       <span ng-if="!MindtaggerParametricTags.willRemove(tag)"
         title="Add new tag '{{MindtaggerParametricTags.name}}'">
         <i class="fa fa-plus"></i>
