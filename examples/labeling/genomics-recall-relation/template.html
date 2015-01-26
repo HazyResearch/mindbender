@@ -1,0 +1,30 @@
+<mindtagger mode="recall">
+
+  <template for="each-item">
+      <big mindtagger-word-array="item.words" array-format="postgres">
+          <span mindtagger-highlight-words index-arrays="tag.expresses | pick:'gene'"      with-style="background-color: hsla(181,100%,50%,0.5);"></span>
+          <span mindtagger-highlight-words index-arrays="tag.expresses | pick:'phenotype'" with-style="background-color: hsla(292,100%,50%,0.5);"></span>
+
+          <span mindtagger-selectable-words index-array="cursor.selection"></span>
+          <span mindtagger-highlight-words index-array="cursor.params.gene"                with-style="background-color: hsla(181,100%,50%,1);"></span>
+          <span mindtagger-highlight-words index-array="cursor.params.phenotype"           with-style="background-color: hsla(292,100%,50%,1);"></span>
+
+          <!-- <span mindtagger-highlight-words index-array="item.positions" array-format="postgres" with-style="background-color: yellow;"></span> -->
+      </big>
+      <br>
+  </template>
+
+  <template for="tags">
+      <div ng-init="
+        MindtaggerTask.defineTags(
+        { expresses:  { type: 'parametric', multiple: true, params: { gene: {}, phenotype: {} } }
+        })
+        ">
+        <span mindtagger-parametric-tags
+            ng-model="cursor.params"
+            with-value="cursor.selection"
+            render-each-value="item.words | filterArrayByIndexes:value:'postgres'"></span>
+    </div>
+  </template>
+
+</mindtagger>

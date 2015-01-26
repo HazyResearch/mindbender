@@ -2,19 +2,15 @@
 
   <template for="each-item">
       <big mindtagger-word-array="item.words" array-format="postgres">
-          <span mindtagger-highlight-words index-array="cursor.params.gene"                with-style="background-color: cyan;    font-style: italic;"></span>
-          <span mindtagger-highlight-words index-array="cursor.params.phenotype"           with-style="background-color: magenta; font-style: italic;"></span>
-          <!-- <span mindtagger-highlight-words index-arrays="tag.expresses | pick:'phenotype'" with-style="background-color: magenta;"></span> -->
-          <!-- <span mindtagger-highlight-words index-arrays="tag.expresses | pick:'gene'"      with-style="background-color: cyan;"></span> -->
-
-          <span mindtagger-highlight-words index-arrays="tag.phenotypes" with-style="background-color: magenta;"></span>
           <span mindtagger-highlight-words index-arrays="tag.genes"      with-style="background-color: cyan;"></span>
+          <span mindtagger-highlight-words index-arrays="tag.phenotypes" with-style="background-color: magenta;"></span>
 
-          <span mindtagger-highlight-words index-array="cursor.selection" with-style="border-bottom: 2px solid;"></span>
           <span mindtagger-selectable-words index-array="cursor.selection"></span>
+          <span mindtagger-highlight-words index-array="cursor.selection"                  with-style="border-bottom: 2px solid;"></span>
 
           <span mindtagger-highlight-words index-array="item.positions" array-format="postgres" with-style="background-color: yellow;"></span>
       </big>
+      <br>
   </template>
 
   <template for="tags">
@@ -22,11 +18,9 @@
         MindtaggerTask.defineTags(
         { genes:      { type: 'parametric', multiple: true }
         , phenotypes: { type: 'parametric', multiple: true }
-        , expresses:  { type: 'parametric', multiple: true, params: { gene: {}, phenotype: {} } }
         })
         ">
         <span mindtagger-parametric-tags
-            ng-model="cursor.params"
             with-value="cursor.selection"
             render-each-value="item.words | filterArrayByIndexes:value:'postgres'"></span>
     </div>
