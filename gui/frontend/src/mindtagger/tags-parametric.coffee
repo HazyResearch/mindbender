@@ -25,6 +25,7 @@ angular.module 'mindbenderApp.mindtagger.tags.parametric', [
             numParams = @current.paramNames.length
             if @atTheLastParam() and @isComplete()
                 @current.toggle tag, paramValues
+                $scope.$eval "commit(item,tag)"
                 @paramIndex = 0
             else
                 # move to next param
@@ -34,7 +35,6 @@ angular.module 'mindbenderApp.mindtagger.tags.parametric', [
                     @withValue = paramValues[@paramIndex]
                 else
                     paramValues[@paramIndex] = @withValue
-                do $scope.$digest
         # find all parametric tags from schema and prepare an object for each
         @all = {}
         for tagName,tagSchema of $scope.MindtaggerTask.schema.tags when tagSchema.type is "parametric"
@@ -69,15 +69,24 @@ angular.module 'mindbenderApp.mindtagger.tags.parametric', [
             if @paramIndex >= @current.paramNames.length
                 @paramIndex = 0
                 @paramValues.splice 0, @current.paramNames.length
-        $scope.$watch "tag[MindtaggerParametricTags.name]", (newValue) =>
-            $scope.$eval "commit(item,tag)"
+        # watcher and setter for ngModel
+        ngModel = $parse $attrs.ngModel
+        $scope.$watch "MindtaggerParametricTags.paramValues", (newParamValues) =>
+            ngModel.assign $scope, @current.pack newParamValues
+        , yes
+        $scope.$watch $attrs.ngModel, (newPackedValue) =>
+            @paramValues = @current.unpack newPackedValue
+            @withValue = @paramValues[@paramIndex]
+        , yes
         # watcher and setter for withValue
         $scope.$watch $attrs.withValue, (newValue) =>
             @withValue = newValue
             @paramValues[@paramIndex] = @withValue
+        , yes
         withValueModel = $parse $attrs.withValue
         $scope.$watch "MindtaggerParametricTags.withValue", (newValue) =>
             withValueModel.assign $scope, newValue
+        , yes
         # value renderer
         $scope.renderValue = (value) => ($scope.$eval $attrs.renderEachValue, {value}) ? value ? 'N/A'
         # equality check for complex values

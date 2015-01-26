@@ -35,6 +35,7 @@ angular.module 'mindbenderApp.mindtagger', [
     controller: ($scope, $element, $attrs, MindtaggerTask, MindtaggerUtils
             $modal, $location, $timeout, $window,
             hotkeys, overrideDefaultEventWith, localStorageState) ->
+        $scope._ = _  # See: http://underscorejs.org
         $scope.MindtaggerUtils = MindtaggerUtils
         $scope.taskName =
         @name = $attrs.mindtaggerTask
@@ -173,6 +174,7 @@ angular.module 'mindbenderApp.mindtagger', [
             index: null
             item: null
             tag: null
+            data: {}
         @
 
     load: =>
@@ -289,6 +291,8 @@ angular.module 'mindbenderApp.mindtagger', [
 
     # cursor
     moveCursorTo: (index = 0, mayNeedScroll = yes) =>
+        # reset cursor-specific data upon movement
+        @cursor.data = {} unless index == @cursor.index
         if index? and 0 <= index < @items?.length
             @cursor.index = index
             @cursor.item  = @items?[index]
@@ -473,6 +477,7 @@ angular.module 'mindbenderApp.mindtagger', [
                 # XXX phantom item/tag for undefined cursors
                 item: {}
                 tag: {}
+                data: {}
                 # This can prevent other directives from breaking the $scope,
                 # e.g., mindtaggerValueSetTag directive configured to work with
                 # cursor item/tag attributes can create a bogus item/tag in its
@@ -480,6 +485,7 @@ angular.module 'mindbenderApp.mindtagger', [
                 # objects are provided here.
         $scope.item = cursor.item
         $scope.tag = cursor.tag
+        $scope.cursor = cursor.data
 
 .directive 'mindtagger', ($compile) ->
     restrict: 'E', transclude: true
@@ -489,6 +495,22 @@ angular.module 'mindbenderApp.mindtagger', [
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/navbar.html"
 .directive 'mindtaggerPagination', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/pagination.html"
+
+.directive 'mindtaggerItem', ($timeout) ->
+    restrict: 'EA'
+    link: ($scope, $element, $attrs) ->
+        $scope.$watch $attrs.mindtaggerItem, (item) ->
+            $scope.item = item
+            $scope.itemIndex = $scope.MindtaggerTask.indexOf item
+            $scope.tag = $scope.MindtaggerTask.tagOf $scope.itemIndex
+        $scope.$watch "MindtaggerTask.cursor.index", (newCursorIndex) ->
+            $scope.cursor =
+                if newCursorIndex == $scope.itemIndex
+                    $scope.MindtaggerTask.cursor.data
+        $element.on "mousedown", (e) ->
+            $scope.$eval "MindtaggerTask.moveCursorTo(itemIndex, false)"
+            $timeout -> do $scope.$digest
+        $element.addClass "mindtagger-item"
 
 .directive 'mindtaggerItemDetails', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/item-details.html"
@@ -501,4 +523,3 @@ angular.module 'mindbenderApp.mindtagger', [
 
 .directive 'mindtaggerNoteTags', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/tags-note.html"
-

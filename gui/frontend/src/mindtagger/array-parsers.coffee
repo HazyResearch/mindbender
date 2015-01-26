@@ -84,3 +84,6 @@ angular.module 'mindbenderApp.mindtagger.arrayParsers', [
         return null unless indexArray?
         array[i] for i in indexArray
 
+.filter 'pick', () ->
+    (array, fieldnames) ->
+        _.pluck array, fieldnames if array?

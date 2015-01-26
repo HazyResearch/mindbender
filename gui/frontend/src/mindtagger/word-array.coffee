@@ -40,7 +40,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
         </style>
         """)
 
-.directive 'mindtaggerHighlightWords', (mindtaggerCreateStylesheet, parsedArrayFilter) ->
+.directive 'mindtaggerHighlightWords', (mindtaggerCreateStylesheet, parsedArrayFilter, watchGroupDeep) ->
     classNameSeq = 0
     restrict: 'EAC'
     scope:
@@ -235,11 +235,6 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                             (_.difference prevIndexes, selectedWordIndexes)
             # finally, reflect to the model
             updateIndexArray selectedWordIndexes
-        # blur the selection when this item loses focus
-        $scope.$watch ->
-                $scope.MindtaggerTask.cursor.item is $scope.item
-            , (isCursorOnThisItem) ->
-                indexArrayModel.assign $scope, null unless isCursorOnThisItem
         # keyboard shortcuts handlers
         $scope.moveIndexArrayBy = (incr = 0) ->
             return if incr == 0
@@ -265,4 +260,11 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 else _.difference indexArray, [(Math.max 0, rightmostIndex+dir+1)..rightmostIndex]
             indexArray = [leftmostIndex] if indexArray.length == 0
             updateIndexArray indexArray
+
+
+.service 'watchGroupDeep', () ->
+    ($scope, exprOrFns, action) ->
+        for exprOrFn in exprOrFns
+            $scope.$watch exprOrFn, (-> $scope.$emit "watchGroupDeepFoundSomethingChanged"), yes
+        $scope.$on 'watchGroupDeepFoundSomethingChanged', _.debounce action, 100
 

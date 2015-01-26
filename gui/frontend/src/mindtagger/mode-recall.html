@@ -16,10 +16,9 @@
 <section class="row">
 
 <!-- Rendering items as inline text -->
-<span class="mindtagger-item" ng-repeat="item in MindtaggerTask.items"
-  ng-class="$index == MindtaggerTask.cursor.index ? 'mindtagger-cursor-item' : 'text-muted'"
-  ng-init="tag = MindtaggerTask.tagOf(item)"
-  ng-mousedown="MindtaggerTask.moveCursorTo($index, false)">
+<span ng-repeat="item in MindtaggerTask.items"
+  mindtagger-item="item"
+  ng-class="cursor ? 'mindtagger-cursor-item' : 'text-muted'">
   <span mindtagger-insert-template="each-item"></span>
 </span>
 
