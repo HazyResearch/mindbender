@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+# mindbender-produce-reports -- produce all reports by instantiating what's enumerated in the dashboard configuration
+# Usage:
+# > mindbender produce-reports SNAPSHOT_DIR
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-02-08
+set -eu
+
+[[ $# -gt 0 ]] || usage "$0" "Missing SNAPSHOT_DIR"
+SnapshotDir=$1; shift
+
+# find path to the DeepDive app based on the snapshot path
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+
+# make sure there is a reports.conf dashboard configuration in DeepDive app as well as the given snapshot
+if ! [[ -e "$DEEPDIVE_APP"/reports.conf ]]; then
+    # install default reports.conf if not there
+    cp -f "$MINDBENDER_HOME"/etc/reports.conf "$DEEPDIVE_APP"/
+    error "Default reports.conf was installed to the DeepDive app $DEEPDIVE_APP" || true
+fi
+cp -f "$DEEPDIVE_APP"/reports.conf "$SnapshotDir"/
+
+# move into the given snapshot
+cd "$SnapshotDir" || error "$SnapshotDir: No such snapshot"
+[[ -r reports.conf ]] || error "$SnapshotDir/reports.conf: missing configuration"
+
+resolve-report-template-path() {
+    local name=$1; shift
+    for dir in "$DEEPDIVE_APP"/report-templates "$MINDBENDER_HOME"/etc/report-templates; do
+        [[ -d "$dir/$name" ]] || continue
+        (cd "$dir/$name" && pwd -P)
+        return
+    done
+    error "$name: No such report template"
+}
+create-report-instance() {
+    local instance= name=$1; shift
+    if [[ -e "$name" ]]; then
+        local serial=1
+        while [[ -e "$name-$serial" ]]; do
+            # TODO check if recorded parameters are identical to those given here
+            let ++serial
+        done
+        instance="$name-$serial"
+    else
+        instance=$name
+    fi
+    mkdir -p "$instance"
+    # TODO record parameters
+    echo "$instance"
+}
+
+quote-html-attr() {
+    local s=
+    for s; do
+        s=${s//&/&amp;}
+        s=${s//</&lt;}
+        s=${s//\"/&quot;}
+        echo -n "$s"
+    done
+}
+
+log() {
+    echo "# $(date +%FT%T)  $*"
+}
+
+begin-report() {
+    # initialize
+    timestamp=$(date +%FT%T)
+    cat >README.md <<EOF
+# $SnapshotDir
+(Produced at $timestamp)
+
+EOF
+    cp -f README.md README.links.md
+    {
+        echo "<!-- Generated: $timestamp -->"
+    } >index.html
+}
+end-report() {
+    # no-op
+    :
+}
+register-report() {
+    local instance=$1; shift
+    local name=$1; shift
+
+    # embed the produced README.md
+    {
+        cat "$instance"/README.md
+        echo
+    } >>README.md
+
+    # add a link to the instance to the snapshot-level README.links.md
+    {
+        echo "* [**$name** $*]($instance/README.md)"
+    } >>README.links.md
+
+    # add blocks to the dashboard index
+    {
+        instanceQuoted=$(quote-html-attr "$instance")
+        cat <<-EOF
+	<div mb-report="$instanceQuoted"
+	     name="$(quote-html-attr "$name")"
+	     $(
+                for namedParam; do
+                    paramName=${namedParam%%=*}
+                    paramName=${paramName//_/-}
+                    paramValue=${namedParam#*=}
+                    echo "    param-$paramName=\"$(quote-html-attr "$paramValue")\""
+                done
+            )></div>
+	EOF
+    } >>index.html
+}
+
+## commands reports.conf is expected to rely on
+report() {
+    local name=$1; shift
+    local template=$(resolve-report-template-path "$name")
+    local instance=$(create-report-instance "$name" "$@")
+    # TODO skip $instance if already produced ([[ -x report.sh ]])
+    # TODO otherwise, clean up before filling contents
+    rm -rf "$instance".incomplete
+    trap 'mv -f "$instance" "$instance".incomplete' EXIT
+    log "Producing $instance${*:+ ($*)}"
+    # clone contents of template into the instance
+    cp -a "$template"/. "$instance"/.
+    # execute report.sh under a controlled environment
+    (
+        cd "$instance"
+        export -- "$@"
+        ./report.sh
+        chmod -x report.sh
+    )
+    trap - EXIT
+    register-report "$instance" "$name" "$@"
+    log "Produced $instance"
+    # support composite report templates
+    if [[ -e "$instance"/reports.conf ]]; then
+        ( . "$instance"/reports.conf )
+    fi
+}
+section() {
+    local title=$1
+    # add a heading for this section in snapshot-level README.md
+    {
+        echo
+        echo "# $title"
+        echo 
+    } >>README.md
+    {
+        echo
+        echo "# $title"
+        echo 
+    } >>README.links.md
+    {
+        echo "<h1>$title</h1>"
+    } >>index.html
+}
+
+# produce reports as per dashboard configuration in the snapshot
+{
+log "Producing reports under $SnapshotDir/"
+
+# use dashboard configuration to produce reports
+begin-report
+( . reports.conf )
+end-report
+
+numReports=$(grep -c 'mb-report=' README.md)
+log "Produced $numReports reports under $SnapshotDir/"
+} 2>&1 | tee -a reports.log

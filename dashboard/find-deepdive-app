@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# find-deepdive-app -- Find the path to root of the enclosing DeepDive app
+# > find-deepdive-app [PATH_TO_START_SEARCH_FROM]
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-02-08
+set -eu
+
+if [[ -n "${DEEPDIVE_APP:-}" ]]; then
+    # short circuit if DEEPDIVE_APP environment is already defined
+    echo "$DEEPDIVE_APP"
+else
+    until [[ $PWD = / || -e application.conf ]]; do
+        cd ..
+    done
+
+    [[ -e application.conf ]]
+    pwd -P
+fi

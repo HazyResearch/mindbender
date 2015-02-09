@@ -1,0 +1,8 @@
+mindbender-snapshot                     bin/mindbender.d/
+mindbender-produce-reports              bin/mindbender.d/
+find-deepdive-db-uri                    bin/mindbender.d/
+find-deepdive-app                       bin/mindbender.d/
+run-sql                                 bin/mindbender.d/
+html-table-for                          bin/mindbender.d/
+report-templates                        etc/
+snapshot-files                          etc/

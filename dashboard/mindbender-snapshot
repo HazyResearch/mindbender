@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# mindbender-snapshot -- Produce a snapshot of the current DeepDive app
+# > mindbender snapshot
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-02-09
+set -eu
+
+# find path to the DeepDive app based on the snapshot path
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+cd "$DEEPDIVE_APP"
+
+# create a fresh snapshot directory
+SnapshotDir=snapshot/$(date +%Y%m%d)
+serial=1
+while [[ -e "$SnapshotDir-$serial" ]]; do
+    let ++serial
+done
+SnapshotDir="$SnapshotDir-$serial"
+mkdir -p "$SnapshotDir"/files
+
+# keep a copy of important deepdive artifacts
+[[ -e snapshot-files ]] ||
+    cp -f "$MINDBENDER_HOME"/etc/snapshot-files .
+sed 's/#.*//' <snapshot-files | grep -v '^$' |
+xargs -I{} -- cp -a {} "$SnapshotDir"/files/
+# TODO avoid copying files more than once into snapshot and create symlink to a master copy instead
+
+# produce reports for the snapshot
+mindbender-produce-reports "$SnapshotDir"
