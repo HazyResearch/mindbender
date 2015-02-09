@@ -162,6 +162,8 @@ section() {
 }
 
 # produce reports as per dashboard configuration in the snapshot
+set -o pipefail
+trap 'log "Aborting due to an error"; error "Failed producing reports"' ERR
 {
 log "Producing reports under $SnapshotDir/"
 
@@ -170,6 +172,6 @@ begin-report
 ( . reports.conf )
 end-report
 
-numReports=$(grep -c 'mb-report=' README.md)
+numReports=$(grep -c 'mb-report=' index.html || echo 0)
 log "Produced $numReports reports under $SnapshotDir/"
 } 2>&1 | tee -a reports.log
