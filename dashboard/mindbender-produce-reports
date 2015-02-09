@@ -26,6 +26,35 @@ cp -f "$DEEPDIVE_APP"/reports.conf "$SnapshotDir"/
 cd "$SnapshotDir" || error "$SnapshotDir: No such snapshot"
 [[ -r reports.conf ]] || error "$SnapshotDir/reports.conf: missing configuration"
 
+## some utility commands
+escape-shell-string() {
+    local s=
+    for s; do
+        sq=${s//\'/\'\\\'\'}
+        echo "'$sq'"
+    done
+}
+json-string() {
+    local s=
+    for s; do
+        s=${s//\"/\\\"}
+        echo -n "\"$s\""
+    done
+}
+quote-html-attr() {
+    local s=
+    for s; do
+        s=${s//&/&amp;}
+        s=${s//</&lt;}
+        s=${s//\"/&quot;}
+        echo -n "$s"
+    done
+}
+log() {
+    echo "# $(date +%FT%T)  $*"
+}
+
+## commands for report-template and instance handling
 resolve-report-template-path() {
     local name=$1; shift
     for dir in "$DEEPDIVE_APP"/report-templates "$MINDBENDER_HOME"/etc/report-templates; do
@@ -38,7 +67,7 @@ resolve-report-template-path() {
 create-report-instance() {
     local instance= name=$1; shift
     if [[ -e "$name" ]]; then
-        local serial=1
+        local serial=2
         while [[ -e "$name-$serial" ]]; do
             # TODO check if recorded parameters are identical to those given here
             let ++serial
@@ -48,33 +77,42 @@ create-report-instance() {
         instance=$name
     fi
     mkdir -p "$instance"
-    # TODO record parameters
+    # record instance parameters in bash
+    {
+        local namedParam=
+        for namedParam; do
+            local paramName=${namedParam%%=*}
+            local paramValue=${namedParam#*=}
+            echo "export $paramName=$(escape-shell-string "$paramValue")"
+        done
+    } > "$instance"/report.params.sh
+    # record instance parameters in JSON
+    coffee -e '
+        [name, namedParams...] = process.argv[4..]
+        parameters = {}
+        for namedParam in namedParams
+            [paramName, paramValue] = namedParam.split "=", 2
+            parameters[paramName] = paramValue
+        console.log JSON.stringify { name, parameters }
+    ' "$name" "$@" >"$instance"/report.params.json
     echo "$instance"
 }
 
-quote-html-attr() {
-    local s=
-    for s; do
-        s=${s//&/&amp;}
-        s=${s//</&lt;}
-        s=${s//\"/&quot;}
-        echo -n "$s"
-    done
-}
-
-log() {
-    echo "# $(date +%FT%T)  $*"
-}
-
+## commands for producing the snapshot-level report
 begin-report() {
     # initialize
     timestamp=$(date +%FT%T)
+
+    {
+        echo "# $timestamp"
+    } >reports.paths
+
     cat >README.md <<EOF
 # $SnapshotDir
 Produced: $timestamp
 
 EOF
-    cp -f README.md README.links.md
+
     {
         echo "<!-- Generated: $timestamp -->"
     } >index.html
@@ -87,16 +125,16 @@ register-report() {
     local instance=$1; shift
     local name=$1; shift
 
-    # embed the produced README.md
+    # record path to the instance
+    {
+        echo "$instance  # $name   $*"
+    } >>reports.paths
+
+    # concatenate the produced report to the snapshot-level README.md
     {
         cat "$instance"/README.md
         echo
     } >>README.md
-
-    # add a link to the instance to the snapshot-level README.links.md
-    {
-        echo "* [**$name** $*]($instance/README.md)"
-    } >>README.links.md
 
     # add blocks to the dashboard index
     {
@@ -117,6 +155,21 @@ register-report() {
 }
 
 ## commands reports.conf is expected to rely on
+section() {
+    local title=$1
+    {
+        echo "## $title"
+    } >>reports.paths
+    # add a heading for this section in snapshot-level README.md
+    {
+        echo
+        echo "# $title"
+        echo
+    } >>README.md
+    {
+        echo "<h1>$title</h1>"
+    } >>index.html
+}
 report() {
     local name=$1; shift
     local template=$(resolve-report-template-path "$name")
@@ -143,25 +196,9 @@ report() {
         ( . "$instance"/reports.conf )
     fi
 }
-section() {
-    local title=$1
-    # add a heading for this section in snapshot-level README.md
-    {
-        echo
-        echo "# $title"
-        echo 
-    } >>README.md
-    {
-        echo
-        echo "# $title"
-        echo 
-    } >>README.links.md
-    {
-        echo "<h1>$title</h1>"
-    } >>index.html
-}
 
-# produce reports as per dashboard configuration in the snapshot
+
+## produce reports as per dashboard configuration in the snapshot
 set -o pipefail
 trap 'log "Aborting due to an error"; error "Failed producing reports"' ERR
 {
