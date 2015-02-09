@@ -1,19 +1,46 @@
-MindBender
+Mindbender
 ==========
 
-Mindbender for iterative knowledge base construction with [DeepDive][].
+Mindbender is a set of tools for iterative knowledge base construction with [DeepDive][].
 
 ## Synopsis
+#### Installation
+
+1. Download [a release of Mindbender](https://github.com/netj/mindbender/releases).
+2. Mark the downloaded file as executable (by running `chmod +x mindbender-*.sh`).
+3. Place it into a directory that is on the `$PATH` environment (e.g., `/usr/local/bin/mindbender`), also renaming it so you can simply type `mindbender` later.
+
+Alternatively, you can build and install from source by running `make install PREFIX=/usr/local`.
+
+
+#### Launch Mindtagger for labeling data
+```bash
+mindbender tagger examples/labeling/**/mindtagger.conf
+# See-also: ./examples/labeling/start-mindtagger.sh
 ```
-make polish
 
-./examples/labeling/start-mindtagger.sh
+#### Take snapshots of your DeepDive app, producing various reports
+```bash
+cd your-deepdive-app
+mindbender snapshot
+open snapshot/LATEST/README.md
+```
 
-@prefix@/bin/mindbender compile  examples/genomics-application.mb  examples/genomics-application.deepdive
-@prefix@/bin/mindbender compile  examples/spouse-example.mb        examples/spouse-example.deepdive
+#### Launch Dashboard to use the reports interactively for deeper error analysis
+```
+mindbender dashboard  # (Under development)
+```
+
+
+#### Compile Mindbender syntax into DeepDive apps
+```
+# (Under development; Extremely experimental)
+mindbender compile  examples/genomics-application.mb  examples/genomics-application.deepdive
+mindbender compile  examples/spouse-example.mb        examples/spouse-example.deepdive
 ```
 
 [DeepDive]: http://deepdive.stanford.edu/
+
 
 ## Mindtagger
 

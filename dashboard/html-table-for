@@ -51,7 +51,7 @@ EOF
                     print """
                         <table class="table table-stripped">
                         <thead><tr>
-                            #{("<th>#{escape column}</th>" for column of row).join "\n"}
+                        #{("<th>#{escape column}</th>" for column of row).join "\n"}
                         </tr></thead>
                         <tbody>
                         """

@@ -6,3 +6,5 @@ run-sql                                 bin/mindbender.d/
 html-table-for                          bin/mindbender.d/
 report-templates                        etc/
 snapshot-files                          etc/
+
+mindbender-dashboard                    bin/mindbender.d/

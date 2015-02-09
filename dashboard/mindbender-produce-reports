@@ -71,7 +71,7 @@ begin-report() {
     timestamp=$(date +%FT%T)
     cat >README.md <<EOF
 # $SnapshotDir
-(Produced at $timestamp)
+Produced: $timestamp
 
 EOF
     cp -f README.md README.links.md

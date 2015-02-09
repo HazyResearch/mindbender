@@ -29,3 +29,6 @@ xargs -I{} -- cp -a {} "$SnapshotDir"/files/
 
 # produce reports for the snapshot
 mindbender-produce-reports "$SnapshotDir"
+
+# place a symlink to the latest snapshot
+ln -sfnv "${SnapshotDir#snapshot/}" snapshot/LATEST

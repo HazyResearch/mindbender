@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# mindbender-dashboard -- Launch Dashboard for DeepDive
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-02-09
+set -eu
+
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+
+error "Not implemented yet"
