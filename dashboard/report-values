@@ -1,0 +1,17 @@
+#!/usr/bin/env coffee
+# report-values -- Writes given key-value pairs to the report.json file (or $JSON_FILE)
+# report-values KEY=VALUE...
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-02-11
+
+fs = require "fs"
+jsonFile = process.env.JSON_FILE ? "report.json"
+keyValuePairs = process.argv[2..]
+
+fs.readFile jsonFile, (err, data) ->
+    obj = ((try JSON.parse data) unless err) ? {}
+    for kv in keyValuePairs
+        [key, value] = kv.split "=", 2
+        obj[key] = value
+    fs.writeFileSync jsonFile, JSON.stringify obj
