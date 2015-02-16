@@ -31,6 +31,8 @@ cp -f "$DEEPDIVE_APP"/reports.conf "$SnapshotDir"/
 cd "$SnapshotDir" || error "$SnapshotDir: No such snapshot"
 [[ -r reports.conf ]] || error "$SnapshotDir/reports.conf: missing configuration"
 
+# TODO factor out these shell functions into separate scripts, and add unit tests
+
 ## some utility commands
 escape-shell-string() {
     local s=
@@ -102,6 +104,20 @@ list-breadcrumb-paths() {
         echo "$prefix"
     done
 }
+assign-unique-serial() {
+    local prefix=$1             # prefix string
+    local satisfiesCondition=$2 # command for testing collisions
+    local separator=${3:-'-'}   # separator between the prefix and serial
+    local serial=${4:-2}        # base serial number to start with
+    if ! "$satisfiesCondition" "$prefix"; then
+        while ! "$satisfiesCondition" "$prefix$separator$serial"; do
+            let ++serial || true
+        done
+        echo "$prefix$separator$serial"
+    else
+        echo "$prefix"
+    fi
+}
 
 ## commands for report-template and instance handling
 list-all-reports() {
@@ -150,20 +166,15 @@ list-all-reports() {
 }
 create-report-instance() {
     local name=$1; shift
+    local reportsPrefix="reports/"  # keep instances under reports/
     # create a directory for the report instance
-    local instance=
-    if [[ -e "$name" ]]; then
-        local serial=2
-        while [[ -e "$name-$serial" ]]; do
-            let ++serial
-        done
-        instance="$name-$serial"
-    else
-        instance=$name
-    fi
+    local instance=$(
+        no-instance-already-there() { ! [[ -e "$1" ]]; }
+        assign-unique-serial "$reportsPrefix$name" no-instance-already-there
+    )
     mkdir -p "$instance"
     # import all report templates found by $name
-    local numImports=0
+    local dir= numImports=0
     for dir in "${reportTemplateImportOrder[@]}"; do
         local template="$dir/$name"
         [[ -d "$template" ]] || continue
@@ -175,18 +186,27 @@ create-report-instance() {
         let ++numImports
     done
     [[ $numImports -gt 0 ]] || error "$name: No such report template"
+    # make sure the instance includes report.params of all parents
+    for dir in "${reportTemplateImportOrder[@]}"; do
+        list-breadcrumb-paths "$name" |
+        head -n -1 | # exclude the last line that is $name itself
+        while read p; do
+            local params="$dir/$p"/report.params
+            [[ -e "$params" ]] || continue
+            cp -f "$params" "$reportsPrefix$p"/
+        done
+    done
     # make sure all nested reports in the instance inherits their parents' report.params
     list-all-reports "$instance" |
     (
-        cd "$instance"
         while read report; do
             case $report in
-                .) ;;
-                *) report="./$report"
+                .) report="$instance" ;;
+                *) report="$instance/$report"
             esac
             list-breadcrumb-paths "$report" |
-            while read d; do
-                cat "$d"/report.params 2>/dev/null || true
+            while read p; do
+                cat "$p"/report.params 2>/dev/null || true
             done >"$report"/.report.params
         done
     )
@@ -229,16 +249,17 @@ record-report-params() {
                 echo >>.report.params.optional "$name"
             }
             ( source .report.params )
-            echo export $(cat .report.params.{required,optional}) >>.report.params.sh
+            echo >>.report.params.sh export $(cat .report.params.{required,optional} 2>/dev/null)
         fi
 
         # TODO warn extra params
 
         # record parameters in JSON as well
-        local paramsArgs='"$@"'
+        local paramsArgs=
         for name in $(cat .report.params.{required,optional} 2>/dev/null); do
-            paramsArgs+=' '$name'="$'$name'"'
+            paramsArgs+=$name'="$'$name'" '
         done
+        paramsArgs+='"$@"'
         bash -c "
             source .report.params.sh
             rm -f report.params.json
@@ -252,10 +273,18 @@ record-report-params() {
             idFormat+=" %s"
             idArgs+=' "$'"$name"'"'
         done
-        bash -c "
+        local id=$(bash -c "
             source .report.params.sh
             printf '$idFormat' $idArgs
-        " >.report.id 
+        ")
+        # make sure the report id is not used already, or append a unique serial number
+        id=$(
+            id-is-available() {
+                ! grep -qxF "$1" "$DEEPDIVE_APP/$SnapshotDir"/reports.ids
+            }
+            assign-unique-serial "$id" id-is-available
+        )
+        echo "$id" >.report.id 
         # mark them read-only
         chmod -w .report.params* .report.id
     )
@@ -286,12 +315,12 @@ produce-report() {
             )
         fi
     )
-    register-report "$reportPath" "$reportName" "$@"
 }
 
 ## commands for producing the snapshot-level report
 begin-report() {
     # initialize
+    : >reports.ids
     : >reports.paths
 
     timestamp=$(date +%FT%T)
@@ -305,17 +334,20 @@ EOF
     {
         echo "<!-- Generated: $timestamp -->"
         echo "<section>"
-    } >index.html
+    } >reports.html
 }
 end-report() {
     # no-op
     {
         echo "</section>"
-    } >>index.html
+    } >>reports.html
 }
 register-report() {
     local reportPath=$1; shift
     local reportName=$1; shift
+
+    # record id as used
+    cat "$reportPath"/.report.id >>reports.ids
 
     # record path to the report
     echo "$reportPath" >>reports.paths
@@ -341,7 +373,25 @@ register-report() {
                 done
             )></div>
 	EOF
-    } >>index.html
+    } >>reports.html
+
+    # aggregate the report.params.json and report.json in reports.json indexed by .report.id
+    JSON_FILE=reports.json \
+        report-values "$(
+            cat "$reportPath"/.report.id
+        )={$(
+            cd "$reportPath"
+            # first, the path, name of the report
+            echo -n ' "path":'  ; json-string "$reportPath"
+            echo -n ',"report":'; json-string "$reportName"
+            # and record report.params.json
+            echo -n ',"params":'; cat report.params.json || echo '{}'
+            # then, report.json
+            if [[ -s report.json ]]; then
+                echo -n ',"values":'
+                cat report.json
+            fi
+        )}"
 }
 
 ## commands reports.conf is expected to rely on
@@ -358,7 +408,7 @@ section() {
         echo
         echo "<section>"
         echo "<h1>$title</h1>"
-    } >>index.html
+    } >>reports.html
 }
 report() {
     local reportBaseName=$1; shift
@@ -375,6 +425,8 @@ report() {
         record-report-params "$reportPath" "$reportName" "$@"
         # then produce the report
         produce-report "$reportPath" "$reportName" "$@"
+        # and register it
+        register-report "$reportPath" "$reportName" "$@"
     done
     report-log "Produced $SnapshotDir/$instance"
 }

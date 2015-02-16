@@ -13,5 +13,7 @@ fs.readFile jsonFile, (err, data) ->
     obj = ((try JSON.parse data) unless err) ? {}
     for kv in keyValuePairs
         [key, value] = kv.split "=", 2
-        obj[key] = value
+        obj[key] =
+            try JSON.parse value # see if the value looks like JSON
+            catch err then value # or treat it simply as string
     fs.writeFileSync jsonFile, JSON.stringify obj

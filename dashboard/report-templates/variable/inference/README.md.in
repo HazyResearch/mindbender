@@ -61,6 +61,6 @@ $>
 <$ fi $>
 
 <$ if [[ -n "$words_column" ]]; then $>
-#### Most frequent extractions
+### Most frequent extractions
 <$ html-table-for top_extractions.csv $>
 <$ fi $>
