@@ -66,7 +66,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                         "from"
                         "to"
                     ]
-                    ($scope) ->
+                    (words, $scope) ->
                         from = $scope.$eval $attrs.from
                         to   = $scope.$eval $attrs.to
                         if from? and to? and 0 <= +from <= +to < words.length
@@ -77,7 +77,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                         $attrs.from
                         $attrs.length
                     ]
-                    ($scope) ->
+                    (words, $scope) ->
                         from   = $scope.$eval $attrs.from
                         length = $scope.$eval $attrs.length
                         if from? and length? and 0 <= +from < words.length and +length >= 0
@@ -87,7 +87,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                     watchExprs = [
                         "#{$attrs.indexArray} | json"
                     ]
-                    ($scope) ->
+                    (words, $scope) ->
                         indexes = asArray $scope.$eval $attrs.indexArray
                         [+i for i in indexes] if indexes?
                 else if $attrs.indexArrays?
@@ -95,7 +95,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                     watchExprs = [
                         "#{$attrs.indexArrays} | json"
                     ]
-                    ($scope) ->
+                    (words, $scope) ->
                         asArray $scope.$eval $attrs.indexArrays
                 else if $attrs.froms? and $attrs.tos?
                     # multiple from-to pairs
@@ -103,7 +103,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                         "#{$attrs.froms} | json"
                         "#{$attrs.tos} | json"
                     ]
-                    ($scope) ->
+                    (words, $scope) ->
                         froms = asArray $scope.$eval $attrs.froms
                         tos   = asArray $scope.$eval $attrs.tos
                         if from? and tos? and froms.length == tos.length
@@ -118,7 +118,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                         "#{$attrs.froms} | json"
                         "#{$attrs.lengths} | json"
                     ]
-                    ($scope) ->
+                    (words, $scope) ->
                         froms   = asArray $scope.$eval $attrs.froms
                         lengths = asArray $scope.$eval $attrs.lengths
                         if froms? and lengths? and froms.length == lengths.length
@@ -131,7 +131,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 else
                     console.warn "mindtagger-highlight-words has incomplete attributes", $attrs
                     watchExprs = []
-                    ($scope) -> null
+                    (words, $scope) -> null
             # add a new stylesheet
             mindtaggerCreateStylesheet("""
                     .mindtagger-word-container .#{className} { #{style} }
@@ -162,7 +162,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                 -> mindtaggerWordArray.wordArray
             ], ->
                 words = mindtaggerWordArray.getWordElements()
-                wordSpans = getWordSpanFrom $scope ? []
+                wordSpans = (getWordSpanFrom words, $scope) ? []
                 # apply style to wordSpans by wrapping highlight elements
                 words.parents(".#{className}")
                     .tooltip("destroy")
