@@ -132,7 +132,7 @@ list-all-reports() {
             find "$@" \
                 \( -name report.sh \
                 -o -name README.md.in \
-                \)
+                \) 2>/dev/null || true
         }
         if [[ -s reports.order ]]; then
             # if the order is specified, list paths carefully 
@@ -154,14 +154,14 @@ list-all-reports() {
                 list-reports * | sort | grep -vxFf "$listed"/either
                 # finally, print the bottom
                 cat "$listed"/bottom
-            } |
-            awk '!seen[$0]++ {print}'  # and show the first occurences only
+            }
             rm -rf "$listed"
         else
             # otherwise, just enumerate reports
             list-reports * | sort
         fi |
-        while read file; do dirname "$file"; done
+        while read file; do dirname "$file"; done |
+        awk '!seen[$0]++ {print}'  # only show the first occurences
     )
 }
 create-report-instance() {
@@ -300,7 +300,7 @@ produce-report() {
         # execute report.sh and mark it as done afterwards
         if [[ -x report.sh ]]; then
             # passing full path to the script as argv[0] for better error messages
-            exec -a "$SnapshotDir/$reportPath/report.sh" ./report.sh
+            (exec -a "$SnapshotDir/$reportPath/report.sh" ./report.sh)
             chmod -x report.sh
         elif [[ -e report.sh ]]; then
             # warn about executable bit
