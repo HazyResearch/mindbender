@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# json-for -- Produce a JSON form of the given CSV or TSV file
+# > json-for FILE
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-02-19
+set -eu
+
+[[ $# -gt 0 ]] || usage "$0" "Missing FILE"
+
+File=$1; shift
+
+case $File in
+# TODO
+#*.tsv)
+#    ;;
+
+*.csv) # TODO
+    coffee -e '
+    fs = require "fs"
+    _ = require "underscore"
+    csv = require "csv"
+
+    [filename] = process.argv[4..]
+
+    parser = csv.parse {
+        columns: yes
+        header: yes
+        auto_parse: yes
+    }
+    is_first = yes
+    print = (s) -> console.log s
+    parser
+        .on "readable", ->
+            while row = parser.read()
+                print (if is_first then is_first = no; "[" else ",")
+                print JSON.stringify row
+        .on "finish", ->
+            print "]"
+        .on "error", ->
+            console.error "Cannot parse CSV"
+            process.exit 2
+    input = (fs.createReadStream filename)
+        .on "open", ->
+            input.pipe parser
+        .on "error", ->
+            console.error "#{filename}: Cannot open file"
+            process.exit 4
+    ' "$File"
+    ;;
+
+*)
+    error "$File: Unsupported data format"
+esac

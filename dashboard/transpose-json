@@ -1,0 +1,44 @@
+#!/usr/bin/env coffee
+# transpose-json -- Switch between row-major and column-major JSON arrays
+# > transpose-json [JSON_FILE]
+# Writes a transposed JSON into standard output.
+# If no JSON_FILE is specified, it reads from standard input.
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-02-19
+
+fs = require "fs"
+
+[jsonFile] = process.argv[2..]
+jsonFile ?= "/dev/stdin"
+
+fs.readFile jsonFile, (err, rawdata) ->
+    if err
+        console.error err
+        process.exit 2
+    data =
+        try JSON.parse rawdata
+        catch err
+            console.error err
+            process.exit 4
+    console.log JSON.stringify (
+        if data instanceof Array
+            # row-major to column-major
+            columns = {}
+            for row,i in data
+                for name,value of row
+                    (columns[name] ?= [])[i] = value
+            columns
+        else if "object" is typeof data
+            # column-major to row-major
+            numRows = Math.max (values?.length ? 0 for name,values of data)...
+            for i in [0...numRows]
+                row = {}
+                for name,values of data
+                    row[name] = values[i]
+                row
+        else
+            # pass through unrecognized formats
+            data
+    )
+    process.exit 0
