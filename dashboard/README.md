@@ -207,6 +207,7 @@ Simply running `report-values x=1 y=2.34 b=true c=bar d='[1,"2","three"]'` will 
 ```
 As shown in this example, values passed as arguments can be a valid JSON formatted string, or they will be treated as a normal string.
 
+
 ### Running SQL queries
 `run-sql` command runs a SQL query against the underlying database for the current DeepDive app, and outputs the result in tab-separated format.
 Currently, only Postgres/Greenplum is supported (a thin wrapper for `psql -c "COPY ... TO STDOUT"`), and the DeepDive app must keep the database credentials in `env.sh` at its root.
@@ -249,7 +250,19 @@ Here are the 10 most frequent candidates extracted by DeepDive:
 </blockquote>
 
 
+### Logging messages
+`report-log` and `report-warn` commands shows given arguments as timestamped messages in the log.
+`report-warn` will start the message with a `WARNING:` sign to make it stand out.
 
+The following command will print the next two lines below:
+```bash
+report-log "Computing something..."
+report-warn "Something went wrong!"
+```
+```
+2015-02-21 06:28:12 localhost	Computing something...
+2015-02-21 06:28:13 localhost	WARNING: Something went wrong!
+```
 
 
 ## Built-in Report Templates
