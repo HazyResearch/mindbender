@@ -1,0 +1,23 @@
+<$
+run-sql "
+ SELECT weight, description
+   FROM dd_inference_result_variables_mapped_weights
+  ORDER BY weight DESC
+  LIMIT ${num_top_weighted_features}
+" CSV HEADER >top_positive_features.csv
+
+run-sql "
+ SELECT weight, description
+   FROM dd_inference_result_variables_mapped_weights
+  ORDER BY weight ASC
+  LIMIT ${num_top_weighted_features}
+" CSV HEADER >top_negative_features.csv
+
+$>
+
+### Top <$= $num_top_weighted_features $> Positively Weighted Features
+<$ html-table-for top_positive_features.csv $>
+
+### Top <$= $num_top_weighted_features $> Negatively Weighted Features
+<$ html-table-for top_negative_features.csv $>
+
