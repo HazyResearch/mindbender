@@ -8,9 +8,11 @@ set -eu
 DEEPDIVE_APP=$(find-deepdive-app)
 
 # TODO need a more reliable way to extract these from the DeepDive app
+{
 set +eu
 . "$DEEPDIVE_APP"/env.sh
 set -eu
+} &>/dev/null  # ignore output
 
 # produce a URI
 if [[ -n "${PGHOST:-}" && -n "${DBNAME:-}" ]]; then
