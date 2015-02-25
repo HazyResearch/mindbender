@@ -4,17 +4,17 @@ column=${variable#$table.}
 
 if [[ -n "$words_column" ]]; then
     # most frequent candidates
-    report-log "Finding $num_top_candidates most frequent candidates of variable ${variable}..."
+    report-log "Finding $num_most_frequent_candidates most frequent candidates of variable ${variable}..."
     run-sql "
         SELECT ${words_column}, COUNT(*) AS count
         FROM ${table}_${column}_inference
         GROUP BY ${words_column}
         ORDER BY count DESC, ${words_column}
-        LIMIT $num_top_candidates
-    " CSV HEADER >top_candidates.csv
+        LIMIT $num_most_frequent_candidates
+    " CSV HEADER >frequent_candidates.csv
 $>
 
-### Most frequent candidate samples
-<$ html-table-for top_candidates.csv $>
+### <$= $num_most_frequent_candidates $> Most Frequent Candidate Samples
+<$ html-table-for frequent_candidates.csv $>
 
 <$ fi $>
