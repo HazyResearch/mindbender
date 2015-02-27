@@ -4,7 +4,10 @@ column=${variable#$table.}
 
 sql=
 if [[ -n "${candidate_id_column:-}" ]]; then
-    if [[ -n "${features_array_column:-}" ]]; then
+case ${features_layout:-} in
+
+array_column)
+    if [[ -n "${features_column:-}" ]]; then
         # when features are stored as array in the candidate table
         sql="
             SELECT num_candidates
@@ -13,7 +16,7 @@ if [[ -n "${candidate_id_column:-}" ]]; then
                 SELECT feature
                      , COUNT(candidate) AS num_candidates
                   FROM (
-                    SELECT UNNEST(${features_array_column}) feature
+                    SELECT UNNEST(${features_column}) feature
                          , ${candidate_id_column} AS candidate
                       FROM ${table}
                   ) features
@@ -22,8 +25,13 @@ if [[ -n "${candidate_id_column:-}" ]]; then
              GROUP BY num_candidates
              ORDER BY num_candidates ASC
         "
+    else
+        report-warn "Parameter features_column= undefined for features_layout=array_column"
+    fi
+    ;;
 
-    elif [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
+own_table)
+    if [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
         # when features are stored in a separate table (for incremental DeepDive)
         sql="
             SELECT num_candidates
@@ -37,8 +45,12 @@ if [[ -n "${candidate_id_column:-}" ]]; then
              GROUP BY num_candidates
              ORDER BY num_candidates ASC
         "
-
+    else
+        report-warn "Parameters features_table= and/or features_column= undefined for features_layout=own_table"
     fi
+    ;;
+
+esac
 fi
 
 if [[ -n "$sql" ]]; then

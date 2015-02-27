@@ -1,41 +1,52 @@
 <$
-## parameters this report expects
-: ${variable:?name of the variable}
 table=${variable%%.*}
 column=${variable#$table.}
 
 num_features=
 num_distinct_features=
 
-if [[ -n "${features_array_column:-}" ]]; then
-    # when features are stored as array in the candidate table
-    num_features=$(run-sql "
-        SELECT COUNT(*)
-          FROM (
-              SELECT UNNEST(${features_array_column})
-              FROM ${table}
-          ) f
-    ")
-    num_distinct_features=$(run-sql "
-        SELECT COUNT(DISTINCT feature)
-          FROM (
-              SELECT UNNEST(${features_array_column}) AS feature
-              FROM ${table}
-          ) f
-    ")
+case ${features_layout:-} in
 
-elif [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
-    # when features are stored in a separate table (incremental)
-    num_features=$(run-sql "
-        SELECT COUNT(*)
-          FROM ${features_table}
-    ")
-    num_distinct_features=$(run-sql "
-        SELECT COUNT(DISTINCT ${features_column})
-          FROM ${features_table}
-    ")
+array_column)
+    if [[ -n "${features_column:-}" ]]; then
+        # when features are stored as array in the candidate table
+        num_features=$(run-sql "
+            SELECT COUNT(*)
+              FROM (
+                  SELECT UNNEST(${features_column})
+                  FROM ${table}
+              ) f
+        ")
+        num_distinct_features=$(run-sql "
+            SELECT COUNT(DISTINCT feature)
+              FROM (
+                  SELECT UNNEST(${features_column}) AS feature
+                  FROM ${table}
+              ) f
+        ")
+    else
+        report-warn "Parameter features_column= undefined for features_layout=array_column"
+    fi
+    ;;
 
-fi
+own_table)
+    : ${features_table:=${table}_features}
+    if [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
+        # when features are stored in a separate table (incremental)
+        num_features=$(run-sql "
+            SELECT COUNT(*)
+              FROM ${features_table}
+        ")
+        num_distinct_features=$(run-sql "
+            SELECT COUNT(DISTINCT ${features_column})
+              FROM ${features_table}
+        ")
+    else
+        report-warn "Parameters features_table= and/or features_column= undefined for features_layout=own_table"
+    fi
+    ;;
+
+esac
 $>
 
 ## Feature Extraction
