@@ -1,0 +1,21 @@
+<mindtagger mode="precision">
+
+  <template for="each-item">
+    <strong>{{item.title}}</strong><br>
+    uploaded by: <strong>{{item.author}}</strong>
+    <blockquote>
+        <a href="{{item.link}}">
+            <img ng-src="{{item.media.m}}" alt="{{item.link}}">
+        </a>
+    </blockquote>
+    <p>tagged: {{item.tags}}</p>
+
+    <div mindtagger-item-details></div>
+  </template>
+
+  <template for="tags">
+    <span mindtagger-adhoc-tags></span>
+    <span mindtagger-note-tags></span>
+  </template>
+
+</mindtagger>
