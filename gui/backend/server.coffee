@@ -157,16 +157,27 @@ class MindbenderUtils
             array
     @loadDataFile: (fName, next) ->
         util.log "loading #{fName}"
+        loaded = (err, data) ->
+            if err
+                util.log "error loading #{fName}"
+            else
+                util.log "loaded #{fName}"
+            next err, data
         try
             switch path.extname fName
                 when ".json"
-                    fs.readFile fName, (err, data) -> next err, try (JSON.parse String data)
+                    fs.readFile fName, (err, data) ->
+                        return loaded err if err
+                        try loaded null, JSON.parse data
+                        catch parseError then loaded parseError
                 when ".tsv"
-                    fs.readFile fName, (err, data) -> next err,
-                      MindbenderUtils.unescapeBackslashes (
-                          MindbenderUtils.deserializeNullStrings (
-                              try (TSV.parse (String data).replace /[\r\n]+$/g, ""))
-                      )
+                    fs.readFile fName, (err, data) ->
+                        return loaded err if err
+                        try loaded null, MindbenderUtils.unescapeBackslashes (
+                                MindbenderUtils.deserializeNullStrings (
+                                    (TSV.parse (String data).replace /[\r\n]+$/g, ""))
+                            )
+                        catch parseError then loaded parseError
                 else # when ".csv"
                     parser = csv.parse (_.clone MindbenderUtils.CSV_OPTIONS)
                     output = []
@@ -174,14 +185,14 @@ class MindbenderUtils
                         .on "readable", ->
                             while record = parser.read()
                                 output.push record
-                        .on "error", next
+                        .on "error", loaded
                         .on "finish", ->
-                            next null, MindbenderUtils.deserializeNullStrings output
+                            loaded null, MindbenderUtils.deserializeNullStrings output
                     input = (fs.createReadStream fName)
-                        .on "error", next
+                        .on "error", loaded
                         .on "open", -> input.pipe parser
         catch err
-            next err
+            loaded err
     @loadOptionalDataFile: (fName, defaultValue, next) ->
         fs.exists fName, (exists) ->
             if exists
@@ -299,7 +310,7 @@ class MindtaggerTask
         key_columns: @config.items?.key_columns ? []
         by_key: {}
 
-    getItemsWithTags: (next, group, offset, limit) =>
+    getAllItemsAndTags: (next) =>
         async.parallel {
             allItems: @preferCached @allItems, (next) =>
                 itemsFile = path.resolve @config.path, @config.items?.file
@@ -325,7 +336,7 @@ class MindtaggerTask
                     key = @keyFor allItems[idx], idx
                     allTags.by_key[key] = tag
             # XXX backward compatibility: upgrade plain Object tags
-            unless allTags.version? and allTags.by_key?
+            unless allTags.version? and allTags.by_key? and "object" is typeof allTags.by_key
                 util.log "#{@config.name}: upgrading #{@config.tags.file} from plain Object"
                 byKey = allTags
                 allTags = @allTags = @createEmptyTags()
@@ -349,8 +360,14 @@ class MindtaggerTask
                         break if (_.size allTags.by_key) == 0
                 allTags.by_key = byNewKey
                 allTags.key_columns = @config.items?.key_columns
+            next null, {allItems, allTags}
+
+    getItemsWithTags: (next, group, offset, limit) =>
+        @getAllItemsAndTags (err, {allItems, allTags}) =>
+            return next err, {} if err
             # filter to the group if necessary when grouping_columns exist
             if group and @config.items?.grouping_columns
+                util.log "#{@config.name}: grouping items with [#{@config.items?.grouping_columns}]"
                 groupedItems = @groupItems allItems
                 groups = _.keys groupedItems
                 groupIdx = groups.indexOf group
@@ -363,6 +380,7 @@ class MindtaggerTask
                 grouping = null
             # offset, limit
             # TODO more sanity check offset, limit
+            util.log "#{@config.name}: selecting items with offset=#{offset} limit=#{limit}"
             items =
                 if offset? and limit?
                     allItems[offset...(offset+limit)]
@@ -373,6 +391,7 @@ class MindtaggerTask
                 else
                     allItems
             # join items with tags
+            util.log "#{@config.name}: joining #{items.length} items with their tags"
             tags = []
             for item,i in items
                 idx = offset + i
@@ -405,38 +424,53 @@ class MindtaggerTask
         @groupedItems
 
     getSchema: (next) => (@preferCached @schema, (next) =>
-            @getItemsWithTags (err, {items, tags}) =>
+            @getAllItemsAndTags (err, {allItems, allTags}) =>
                 return next err if err
                 @schema =
-                    items: @config.items?.schema ? MindtaggerTask.deriveSchema items
+                    items: @config.items?.schema ? @deriveSchema allItems, approximate:yes
                     itemKeys: @config.items?.key_columns
-                    tags: MindtaggerTask.deriveSchema tags, @baseTagsSchema
+                    tags: @deriveSchema (_.values allTags.by_key), baseSchema: @baseTagsSchema
                 next null, @schema
         ) next
-    @deriveSchema: (tags, baseSchema, oldTags) ->
+    deriveSchema: (tags, {baseSchema, oldTags, approximate}) =>
+        util.log "#{@config.name}: deriving schema for #{tags.length} items or tags#{
+            if approximate then " approximately" else ""}"
         schema = {}
         _.extend schema, baseSchema if baseSchema?
-        # compute frequency of all values of all tags
-        # TODO sample if large?
-        for tag in tags when tag?
-            for name,value of tag when value?
-                v = JSON.stringify value
-                ((schema[name] ?= {}).frequency ?= {})[v] ?= 0
-                schema[name].frequency[v] += 1
+        if approximate and not oldTags?
+            # approximate by sampling if input are too many
+            tagsSampled = _.sample tags, (Math.min 100, tags.length)
+            invSampleRatio = tags.length / tagsSampled.length  # XXX this naively assumes uniform distribution of tags
+            for tag in tagsSampled when tag?
+                for name,value of tag when value?
+                    v = JSON.stringify value
+                    ((schema[name] ?= {}).frequency ?= {})[v] ?= 0
+                    schema[name].frequency[v] += invSampleRatio
+            for name,s of schema
+                s.count = 0
+                s.count += f for v,f of s.frequency
+        else
+            # compute frequency of all values of all tags
+            for tag in tags when tag?
+                for name,value of tag when value?
+                    v = JSON.stringify value
+                    ((schema[name] ?= {}).frequency ?= {})[v] ?= 0
+                    schema[name].frequency[v] += 1
+            # sum the individual frequencies for total count
             for name,s of schema
                 s.count = 0 unless oldTags?
                 s.count += f for v,f of s.frequency
-        if oldTags?
-            # perform incremental maintenance of value frequencies if previous
-            # values of the same tags were given as well
-            for tag in oldTags when tag?
-                for name,value of tag when value? and schema[name]?
-                    v = JSON.stringify value
-                    unless (schema[name].frequency?[v] -= 1) > 0
-                        delete schema[name].frequency[v]
-            for name,s of schema
-                s.count -= f for v,f of s.frequency
-                delete s.count unless s.count >= 0
+            if oldTags?
+                # perform incremental maintenance of value frequencies if previous
+                # values of the same tags were given as well
+                for tag in oldTags when tag?
+                    for name,value of tag when value? and schema[name]?
+                        v = JSON.stringify value
+                        unless (schema[name].frequency?[v] -= 1) > 0
+                            delete schema[name].frequency[v]
+                for name,s of schema
+                    s.count -= f for v,f of s.frequency
+                    delete s.count unless s.count >= 0
         # infer type by induction on observed values
         for tagName,tagSchema of schema when not tagSchema.type?
             values = (JSON.parse v for v of tagSchema.frequency)
@@ -454,7 +488,7 @@ class MindtaggerTask
         schema
 
     setTagsForItems: (updates, next) =>
-        @getItemsWithTags (err, {items, tags}) =>
+        @getAllItemsAndTags (err, {allItems, allTags}) =>
             oldTags = (@allTags.by_key[update.key] for update in updates)
             newTags =
                 for update in updates
@@ -464,7 +498,7 @@ class MindtaggerTask
             # update tags schema
             @getSchema (err, schema) =>
                 return next err if err
-                schema.tags = MindtaggerTask.deriveSchema newTags, schema.tags, oldTags
+                schema.tags = @deriveSchema newTags, baseSchema: schema.tags, oldTags: oldTags
                 next null
 
 
@@ -590,11 +624,11 @@ app.get "/api/mindtagger/:task/groups", (req, res) ->
     q = req.param "q"
     if q?.length >= 2
         withTask (req.param "task"), req, res, (task) ->
-            task.getItemsWithTags (err, {items}) ->
+            task.getAllItemsAndTags (err, {allItems}) ->
                 if err
                     return res.status 500
                         .send "Internal error: #{err}"
-                groupedItems = task.groupItems items
+                groupedItems = task.groupItems allItems
                 allGroups = _.keys groupedItems
                 res.json (g for g in allGroups when ~g.indexOf q)
     else
@@ -611,6 +645,7 @@ app.get ///^ /api/mindtagger/([^/]+)/tags\.(.*) $///, (req, res) ->
         return res.status 400
             .send "Bad request: no attrs specified"
     withTask (taskName), req, res, (task, taskName) ->
+        # TODO use getAllItemsAndTags and do the join here
         task.getItemsWithTags (err, taggedItems) ->
             if err
                 return res.status 500
