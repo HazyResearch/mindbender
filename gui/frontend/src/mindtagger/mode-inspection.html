@@ -1,0 +1,59 @@
+<div>
+
+<div mindtagger-navbar>
+
+  <ul class="nav navbar-nav navbar-right">
+    <li class="dropdown">
+      <a class="dropdown-toggle"><i class="glyphicon glyphicon-tags"></i> Tags <span class="caret"></span></a>
+      <ul class="dropdown-menu" role="menu">
+        <li ng-repeat="(tagName, tagSchema) in MindtaggerTask.schema.tags"><a>
+          <i class="glyphicon glyphicon-tag"></i> {{tagName}}
+          <div class="progress" ng-if="tagSchema.frequency">
+            <div class="progress-bar" role="progressbar"
+              ng-repeat="(value, frequency) in tagSchema.frequency"
+              tooltip="{{value}}: {{frequency}}/{{MindtaggerTask.itemsCount}}"
+              tooltip-placement="bottom" tooltip-animation="false"
+              tooltip-trigger="mouseenter" tooltip-append-to-body="li"
+              ng-class="MindtaggerUtils.progressBarClassForValue(value, $index)"
+              aria-valuenow="{{100 * frequency / MindtaggerTask.itemsCount | number:1}}" aria-valuemin="0" aria-valuemax="100"
+              style="width:  {{100 * frequency / MindtaggerTask.itemsCount | number:1}}%;">
+            </div>
+          </div>
+        </a></li>
+        <li class="divider"></li>
+        <!-- <li><a>No grouping</a></li> -->
+        <li><a data-toggle="modal" data-target="#manage-tags-modal"
+                ><i class="glyphicon glyphicon-cog"></i> Manage Tags...</a></li>
+      </ul>
+    </li>
+  </ul>
+
+  <div mindtagger-insert-template="navbar"></div>
+
+</div>
+
+<section class="row">
+<!-- Rendering items -->
+<div class="panel col-md-4" ng-repeat="item in MindtaggerTask.items"
+  mindtagger-item="item"
+  ng-class="cursor ? 'mindtagger-cursor-item panel-primary' : 'panel-default'">
+    <div class="panel-body">
+      <big>
+        <div mindtagger-insert-template="each-item"></div>
+      </big>
+    </div>
+
+    <div class="panel-footer">
+      <span mindtagger-adhoc-tags></span>
+  
+      <!-- custom tagging UI elements -->
+      <span mindtagger-insert-template="tags"></span>
+    </div>
+</div>
+</section>
+
+<div mindtagger-pagination>
+    <div mindtagger-insert-template="pagination"></div>
+</div>
+
+</div>
