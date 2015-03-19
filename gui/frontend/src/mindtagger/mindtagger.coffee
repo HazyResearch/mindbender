@@ -28,9 +28,7 @@ angular.module 'mindbenderApp.mindtagger', [
                     $location.path "/mindtagger/#{savedState["MindtaggerTask.name"] ? tasks[0].name}"
 
 
-.directive 'mindtaggerTask', (
-    $templateRequest, $templateCache, $document, $compile, # for per-task template handling
-) ->
+.directive 'mindtaggerTask', () ->
     templateUrl: "mindtagger/task.html"
     controller: ($scope, $element, $attrs, MindtaggerTask, MindtaggerUtils
             $modal, $location, $timeout, $window,
@@ -113,32 +111,6 @@ angular.module 'mindbenderApp.mindtagger', [
         hotkeys.bindTo $scope
             .add combo: "up",   description: "Move cursor to previous item", callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy -1)
             .add combo: "down", description: "Move cursor to next item",     callback: (overrideDefaultEventWith -> $scope.MindtaggerTask.moveCursorBy +1)
-
-    link: ($scope, $element, $attrs) ->
-        # load Mindtagger per-task template
-        $templateRequest "mindtagger/tasks/#{$attrs.mindtaggerTask}/template.html"
-            .then (template) ->
-                # parse mindtagger template fragments (template[for=...]) from it
-                parsedTemplate =
-                    $($.parseHTML template, $document[0])
-                        # TODO keep a list of valid template names and put all of them in $templateCache
-                        .find("template")
-                            .each (i, t) ->
-                                $t = $(t)
-                                $templateCache.put "mindtagger/tasks/#{$attrs.mindtaggerTask
-                                    }/template-#{$t.attr("for")}.html", $t.html()
-                            .remove()
-                        .end()
-                $element.prepend (($compile parsedTemplate) $scope)
-            .catch ->
-                # TODO use default template?
-
-# a shorthand for inserting a named fragment of the Mindtagger task specific template
-.directive 'mindtaggerInsertTemplate', ->
-    template: (tElement, tAttrs) -> """
-        <ng-include src="'mindtagger/tasks/'+ MindtaggerTask.name +
-            '/template-#{tAttrs.mindtaggerInsertTemplate}.html'"></ng-include>
-        """
 
 # TODO fold this into mindtaggerTask directive's controller
 .service 'MindtaggerTask', ($http, $q, $modal, $window, $timeout, hotkeys) ->
@@ -487,9 +459,55 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.tag = cursor.tag
         $scope.cursor = cursor.data
 
-.directive 'mindtagger', ($compile) ->
-    restrict: 'E', transclude: true
-    templateUrl: ($element, $attrs) -> "mindtagger/mode-#{$attrs.mode}.html"
+# an alternative to ngInclude for showing error messages when inclusion fails
+.directive 'mindtaggerInclude', (
+    $templateRequest, $document, $compile, # for mode template inclusion
+) ->
+    restrict: 'EA', transclude: true
+    link: ($scope, $element, $attrs, controller, $transclude) ->
+        url = $scope.$eval ($attrs.mindtaggerInclude ? $attrs.src)
+        # load template for the mode
+        $templateRequest url
+            .then (template) ->
+                parsedTemplate = $($.parseHTML template, $document[0])
+                $element.prepend parsedTemplate  # XXX this first prepend is to make sure parents are accessible during the following template's compilation
+                $element.prepend (($compile parsedTemplate) $scope)
+            .catch ->
+                # display an error
+                $element.prepend $("""
+                    <div class="alert alert-danger"></div>
+                    """).append $transclude()
+
+# top-level element in task templates (which can be nested as well)
+.directive 'mindtagger', () ->
+    restrict: 'E'
+    compile: (tElement, tAttrs) ->
+        tElement.prepend """
+            <div mindtagger-include="'mindtagger/mode-#{tAttrs.mode}.html'">
+                <strong>
+                    <code>#{tAttrs.mode}</code>: mode unsupported by Mindtagger
+                </strong>
+            </div>
+            """
+
+# a shorthand for inserting a named fragment of the Mindtagger task specific template
+.directive 'mindtaggerInsertTemplate', ($compile, $document) ->
+    restrict: 'EA'
+    link: pre: ($scope, $element, $attrs) ->
+        # find the template with the name under the closest mindtagger directive element
+        template = $element.parents("mindtagger")
+            .children("template[for=#{$attrs.mindtaggerInsertTemplate}]").eq(0)
+        if template.length > 0
+            # clone the contents of the template
+            instance = $($.parseHTML template.html(), $document[0])
+            # attach it outside the current mindtagger directive element
+            # to support recursive use of mindtaggerInsertTemplate inside the template with the same name
+            template.closest("mindtagger").after instance
+            # compile and prepend the instantiated template
+            $element.prepend ($compile instance) $scope
+        else
+            $element.remove()
+
 
 .directive 'mindtaggerNavbar', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/navbar.html"

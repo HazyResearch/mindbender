@@ -1,8 +1,13 @@
+<!-- Mindtagger inspection mode -->
 <div>
 
 <div mindtagger-navbar>
 
   <ul class="nav navbar-nav navbar-right">
+    <!--
+      <li class="dropdown"><a><i class="glyphicon glyphicon-filter"></i> Filter by <span class="caret"></span></a></li>
+      <li class="dropdown"><a><i class="glyphicon glyphicon-sort-by-attributes"></i> Order by <span class="caret"></span></a></li>
+    -->
     <li class="dropdown">
       <a class="dropdown-toggle"><i class="glyphicon glyphicon-tags"></i> Tags <span class="caret"></span></a>
       <ul class="dropdown-menu" role="menu">
@@ -34,8 +39,11 @@
 
 <section class="row">
 <!-- Rendering items -->
-<div class="panel col-md-4" ng-repeat="item in MindtaggerTask.items"
-  mindtagger-item="item"
+<div mindtagger-insert-template="before-items"></div>
+<div mindtagger-insert-template="before-each-item"
+    ng-repeat-start="item in MindtaggerTask.items"></div>
+<div mindtagger-item="item"
+     class="panel panel-default"
   ng-class="cursor ? 'mindtagger-cursor-item panel-primary' : 'panel-default'">
     <div class="panel-body">
       <big>
@@ -44,12 +52,12 @@
     </div>
 
     <div class="panel-footer">
-      <span mindtagger-adhoc-tags></span>
-  
-      <!-- custom tagging UI elements -->
+      <!-- task-specific tagging UI elements -->
       <span mindtagger-insert-template="tags"></span>
     </div>
 </div>
+<div mindtagger-insert-template="after-each-item" ng-repeat-end></div>
+<div mindtagger-insert-template="after-items"></div>
 </section>
 
 <div mindtagger-pagination>
