@@ -1,17 +1,20 @@
 <mindtagger mode="inspection">
 
-  <template for="each-item" class="col-md-4">
-    <strong>{{item.title}}</strong><br>
-    <!-- uploaded by: <strong>{{item.author}}</strong> -->
-    <div class="thumbnail">
+  <template for="each-item-container">
+    <div class="thumbnail col-md-4"
+      ng-class="cursor ? 'panel-primary' : 'panel-default'">
         <a href="{{item.link}}">
             <img ng-src="{{item.media.m}}" alt="{{item.link}}" style="min-height:250px; max-height:250px;">
         </a>
-    </div>
-    <!-- <p>tagged: {{item.tags}}</p> -->
-  </template>
+        <div class="caption">
+            <strong>{{item.title}}</strong><br>
+            <!-- uploaded by: <strong>{{item.author}}</strong> -->
+            <!-- <p>tagged: {{item.tags}}</p> -->
 
-  <template for="tags">
+            <!-- task-specific tagging UI elements -->
+            <span mindtagger-adhoc-tags></span>
+        </div>
+    </div>
   </template>
 
 </mindtagger>

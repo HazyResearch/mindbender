@@ -39,25 +39,27 @@
 
 <section class="row">
 <!-- Rendering items -->
-<div mindtagger-insert-template="before-items"></div>
-<div mindtagger-insert-template="before-each-item"
-    ng-repeat-start="item in MindtaggerTask.items"></div>
-<div mindtagger-item="item"
-     class="panel panel-default"
-  ng-class="cursor ? 'mindtagger-cursor-item panel-primary' : 'panel-default'">
-    <div class="panel-body">
-      <big>
-        <div mindtagger-insert-template="each-item"></div>
-      </big>
+<span mindtagger-insert-template="before-items"></span>
+<span ng-repeat="item in MindtaggerTask.items">
+<span mindtagger-insert-template="before-each-item"></span>
+<span mindtagger-insert-template="each-item-container"
+    mindtagger-item="item" ng-class="cursor ? 'mindtagger-cursor-item' : ''">
+    <div class="panel panel-default"
+      ng-class="cursor ? 'mindtagger-cursor-item panel-primary' : 'panel-default'">
+        <div class="panel-body">
+          <big>
+            <div mindtagger-insert-template="each-item"></div>
+          </big>
+        </div>
+        <div class="panel-footer">
+          <!-- task-specific tagging UI elements -->
+          <span mindtagger-insert-template="tags"></span>
+        </div>
     </div>
-
-    <div class="panel-footer">
-      <!-- task-specific tagging UI elements -->
-      <span mindtagger-insert-template="tags"></span>
-    </div>
-</div>
-<div mindtagger-insert-template="after-each-item" ng-repeat-end></div>
-<div mindtagger-insert-template="after-items"></div>
+</span>
+<span mindtagger-insert-template="after-each-item"></span>
+</span>
+<span mindtagger-insert-template="after-items"></span>
 </section>
 
 <div mindtagger-pagination>
