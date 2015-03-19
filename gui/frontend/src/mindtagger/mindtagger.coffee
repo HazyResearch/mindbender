@@ -492,14 +492,21 @@ angular.module 'mindbenderApp.mindtagger', [
 
 # a shorthand for inserting a named fragment of the Mindtagger task specific template
 .directive 'mindtaggerInsertTemplate', ($compile, $document) ->
+    restrict: 'EA'
     link: pre: ($scope, $element, $attrs) ->
+        # find the template with the name under the closest mindtagger directive element
         template = $element.parents("mindtagger")
-            .find("template[for=#{$attrs.mindtaggerInsertTemplate}]").eq(0)
+            .children("template[for=#{$attrs.mindtaggerInsertTemplate}]").eq(0)
         if template.length > 0
-            console.log $attrs.mindtaggerInsertTemplate, template
+            # clone the contents of the template
             instance = $($.parseHTML template.html(), $document[0])
+            # attach it outside the current mindtagger directive element
+            # to support recursive use of mindtaggerInsertTemplate inside the template with the same name
             template.closest("mindtagger").after instance
-            $element.prepend (($compile instance) $scope)
+            # compile and prepend the instantiated template
+            $element.prepend ($compile instance) $scope
+        else
+            $element.remove()
 
 
 .directive 'mindtaggerNavbar', ->
