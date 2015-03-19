@@ -514,10 +514,10 @@ angular.module 'mindbenderApp.mindtagger', [
                 $element.remove()
 
 
-.directive 'mindtaggerNavbar', ->
-    restrict: 'EA', transclude: true, templateUrl: "mindtagger/navbar.html"
-.directive 'mindtaggerPagination', ->
-    restrict: 'EA', transclude: true, templateUrl: "mindtagger/pagination.html"
+.directive 'mindtaggerNavbarTop', ->
+    restrict: 'EA', transclude: true, templateUrl: "mindtagger/navbar-top.html"
+.directive 'mindtaggerNavbarBottom', ->
+    restrict: 'EA', transclude: true, templateUrl: "mindtagger/navbar-bottom.html"
 
 .directive 'mindtaggerItem', ($timeout) ->
     restrict: 'EA'
