@@ -136,8 +136,8 @@ angular.module 'mindbenderApp.mindtagger', [
 # a shorthand for inserting a named fragment of the Mindtagger task specific template
 .directive 'mindtaggerInsertTemplate', ->
     template: (tElement, tAttrs) -> """
-        <ng-include src="'mindtagger/tasks/'+ MindtaggerTask.name +
-            '/template-#{tAttrs.mindtaggerInsertTemplate}.html'"></ng-include>
+        <span ng-include="'mindtagger/tasks/'+ MindtaggerTask.name + '/template-#{
+            tAttrs.mindtaggerInsertTemplate}.html'"></span>
         """
 
 # TODO fold this into mindtaggerTask directive's controller
@@ -487,9 +487,21 @@ angular.module 'mindbenderApp.mindtagger', [
         $scope.tag = cursor.tag
         $scope.cursor = cursor.data
 
-.directive 'mindtagger', ($compile) ->
+.directive 'mindtagger', ($templateCache) ->
     restrict: 'E', transclude: true
     templateUrl: ($element, $attrs) -> "mindtagger/mode-#{$attrs.mode}.html"
+    compile: (tElement, tAttrs) ->
+        # collect all template fragment names mentioned in this directive's element
+        templateNamesUsed =
+            tElement.find("[mindtagger-insert-template]")
+                .map (i, e) -> $(e).attr("mindtagger-insert-template")
+                .toArray()
+        pre: ($scope, $element, $attrs) ->
+            # fill in placeholders for undefined templates
+            for templateName in templateNamesUsed
+                templatePath = "mindtagger/tasks/#{$scope.MindtaggerTask.name}/template-#{templateName}.html"
+                unless ($templateCache.get templatePath)?
+                    $templateCache.put templatePath, """<!-- empty template for="#{templateName}" -->"""
 
 .directive 'mindtaggerNavbar', ->
     restrict: 'EA', transclude: true, templateUrl: "mindtagger/navbar.html"
