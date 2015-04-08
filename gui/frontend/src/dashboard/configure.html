@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Configure Templates | DeepDive Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="template.js"></script>
+</head>
+<body>
+	<div class="header">Configure Templates</div>
+	<a href="index.html">< Dashboard</a>
+	<br><br>
+	<form action="" method="post">
+		<div class="templates">
+			1.)
+			<div class="template">
+				<div>
+					<input type="radio" name="formatted" value="1" class="template-format" checked>Formatted
+					<input type="radio" name="formatted" value="0" class="template-format">Custom
+				</div>
+				<select>
+					<option>Load a saved template</option>
+				</select>
+				<div>
+					<input type="text" name="name[0]" placeholder="Template name">
+				</div>
+				<div class="formatted">
+					<div><textarea name="query" placeholder="Query"></textarea></div>
+					<br>
+					<div class="variables">
+						Variables:
+						<table>
+							<tr>
+								<td>Name</td>
+								<td>Default value</td>
+							</tr>
+							<tr>
+								<td>$<input type="text" name="variable[0][name][]"></td>
+								<td>$<input type="text" name="variable[0][default][]"></td>
+							</tr>				
+						</table>
+						<img src="images/plus_green.png" onClick="Template.addVariable(this)">
+					</div>
+					<div class="graph">
+						<input type="checkbox" checked> Graph:
+						<div>X: <input type="text"></div>
+						<div>Y: <input type="text"></div>
+					</div>
+					<div class="clear"></div>
+				</div>
+				<div class="custom" style="display:none;">
+					<textarea name="custom[0]"></textarea>
+				</div>
+			</div>
+		</div>
+		<img src="images/plus_green.png" onClick="Template.addTemplate()">
+	</form>
+	<script>
+		Template.addBindings();
+	</script>
+</body>
+</html>
