@@ -104,11 +104,11 @@ table td, th {
 
 .report-list {
 	margin-left: 2px;
-	width: 280px;
+	width: 400px;
 	float: left;
 	border: 2px solid #000;
 	border-radius: 5px;
-	min-height: 600px;
+	min-height: 800px;
 	padding: 5px;
 	overflow: auto;
 	white-space: nowrap;

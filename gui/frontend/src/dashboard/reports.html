@@ -3,10 +3,7 @@
 <head>
 <title>View Reports | DeepDive Dashboard</title>
 <link rel="stylesheet" href="style.css">
-<!-- Bootstrap -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 
 </head>
 <body>
@@ -17,40 +14,38 @@
 	<div class="report-list">
 		<div class="list-title">Reports</div>
 		<ul class="pull-left">
-<li><p><a target="view" href="report-corpus_stats.html">corpus/stats</a></p></li>
-<li>variable rates.is_correct
+<li><p><a target="view" href="report-corpus_stats.html">Corpus Stats</a></p></li>
+<li>Variable rates.is_correct
 
 <ul>
-<li><a target="view" href="report-variable_inference_sample-frequent-extractions.html">inference/sample-frequent-extractions</a></li>
-<li><a target="view" href="report-variable_inference_sample-weighted-features.html">inference/sample-weighted-features</a></li>
-<li><a target="view" href="report-variable_supervision.html">supervision</a></li>
-<li><a target="view" href="report-variable_feature.html">feature</a></li>
-<li><a target="view" href="report-variable_feature_sample-frequent-features.html">feature/sample-frequent-features</a></li>
-<li><a target="view" href="report-histogram.html#variable_feature_histogram-candidates-per-feature.json">feature/histogram-candidates-per-feature</a></li>
-<li><a target="view" href="report-histogram.html#variable_feature_histogram-features-per-candidate.json">feature/histogram-features-per-candidate</a></li>
-<li><a target="view" href="report-variable_candidate.html">candidate</a></li>
-<li><a target="view" href="report-variable_candidate_sample-frequent-candidates.html">candidate/sample-frequent-candidates</a></li>
+<li><a target="view" href="report-variable_inference_sample-frequent-extractions.html">10 Most Frequent Extractions</a></li>
+<li><a target="view" href="report-variable_supervision.html">Supervision</a></li>
+<li><a target="view" href="report-variable_feature.html">Feature Extraction</a></li>
+<li><a target="view" href="report-variable_feature_sample-frequent-features.html">100 Most Frequent Feature Samples</a></li>
+<li><a target="view" href="report-histogram.html#variable_feature_histogram-candidates-per-feature.json">Histogram #candidates per feature</a></li>
+<li><a target="view" href="report-histogram.html#variable_feature_histogram-features-per-candidate.json">Histogram #features per candidate</a></li>
+<li><a target="view" href="report-variable_candidate.html">Candidate Extraction</a></li>
+<li><a target="view" href="report-variable_candidate_sample-frequent-candidates.html">10 Most Frequent Candidate Samples</a></li>
 </ul></li>
-<li>variable locations.is_correct
+<li>Variable locations.is_correct
 
 <ul>
-<li><a target="view" href="report-variable-2_supervision.html">supervision</a></li>
-<li><a target="view" href="report-variable-2_feature.html">feature</a></li>
-<li><a target="view" href="report-variable-2_feature_sample-frequent-features.html">feature/sample-frequent-features</a></li>
-<li><a target="view" href="report-histogram.html#variable-2_feature_histogram-candidates-per-feature.json">feature/histogram-candidates-per-feature</a></li>
-<li><a target="view" href="report-histogram.html#variable-2_feature_histogram-features-per-candidate.json">feature/histogram-features-per-candidate</a></li>
-<li><a target="view" href="report-variable-2_candidate.html">candidate</a></li>
-<li><a target="view" href="report-variable-2_candidate_sample-frequent-candidates.html">candidate/sample-frequent-candidates</a></li>
+<li><a target="view" href="report-variable-2_supervision.html">Supervision</a></li>
+<li><a target="view" href="report-variable-2_feature.html">Feature Extraction</a></li>
+<li><a target="view" href="report-variable-2_feature_sample-frequent-features.html">100 Most Frequent Feature Samples</a></li>
+<li><a target="view" href="report-histogram.html#variable-2_feature_histogram-candidates-per-feature.json">Histogram #candidates per feature</a></li>
+<li><a target="view" href="report-histogram.html#variable-2_feature_histogram-features-per-candidate.json">Histogram #features per candidate</a></li>
 </ul></li>
-<li>inference
+<li>Inference
 
 <ul>
-<li><a target="view" href="report-histogram.html#variable_inference_histogram-weights-of-feature.json">histogram-weights-of-feature</a></li>
+<li><a target="view" href="report-histogram.html#variable_inference_histogram-weights-of-feature.json">Histogram weights of feature</a></li>
+<li><a target="view" href="report-variable_inference_sample-weighted-features.html">Samples of Features with Weights</a></li>
 </ul></li>
 </ul>
 </div>
 
-	<iframe id="view" src="report-blank.html" name="view" style="width: 70%; min-height:600px; float:left;"></iframe>
+	<iframe id="view" src="report-corpus_stats.html" name="view" style="width: 60%; min-height:800px; float:left;"></iframe>
 	
 	<script type="text/javascript">
 		var report_title = "";
