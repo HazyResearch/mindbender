@@ -3,23 +3,20 @@
 <head>
 <title>View Reports | DeepDive Dashboard</title>
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-<script src="https://code.highcharts.com/highcharts.js"></script>
-<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-
 <!-- Bootstrap -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 
 </head>
 <body>
 	<div class="header">View Reports</div>
-	<a href="index.html">< Dashboard</a>
+	<a href="index.html" style="margin-left: 5px;">< Dashboard</a>
 	<br><br>
 	
-	<ul class="report-list pull-left">
+	<div class="report-list">
+		<div class="list-title">Reports</div>
+		<ul class="pull-left">
 <li><p><a target="view" href="report-corpus_stats.html">corpus/stats</a></p></li>
 <li>variable rates.is_correct
 
@@ -51,8 +48,16 @@
 <li><a target="view" href="report-histogram.html#variable_inference_histogram-weights-of-feature.json">histogram-weights-of-feature</a></li>
 </ul></li>
 </ul>
+</div>
 
-	<iframe src="report-blank.html" name="view" style="width: 70%; min-height:800px; float:right; border: none;"></iframe>
-
+	<iframe id="view" src="report-blank.html" name="view" style="width: 70%; min-height:600px; float:left;"></iframe>
+	
+	<script type="text/javascript">
+		var report_title = "";
+		$(".report-list li a").click(function() {
+			report_title = $(this).html();
+		});
+	</script>
 </body>
 </html>
+
