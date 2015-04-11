@@ -1,0 +1,37 @@
+{
+	"graph":1,"x":"weight","y":"num_features","is_binned":1,
+	"data":
+	[
+{"weight":"-999.9128 - -941.0944","num_features":2}
+,
+{"weight":"-823.4576 - -764.6392","num_features":1}
+,
+{"weight":"-705.8208 - -647.0024","num_features":1}
+,
+{"weight":"-529.3656 - -470.5472","num_features":1}
+,
+{"weight":"-411.7288 - -352.9104","num_features":4}
+,
+{"weight":"-352.9104 - -294.092","num_features":4}
+,
+{"weight":"-294.092 - -235.2736","num_features":4}
+,
+{"weight":"-235.2736 - -176.4552","num_features":6}
+,
+{"weight":"-176.4552 - -117.6368","num_features":6}
+,
+{"weight":"-117.6368 - -58.8184","num_features":33}
+,
+{"weight":"-58.8184 - 0","num_features":405452}
+,
+{"weight":"0","num_features":6395417}
+,
+{"weight":"7.19503e-05 - 58.8184","num_features":1190324}
+,
+{"weight":"58.8184 - 117.6368","num_features":11}
+,
+{"weight":"117.6368 - 176.4552","num_features":2}
+,
+{"weight":"176.4552 - 235.2736","num_features":1}
+]
+}

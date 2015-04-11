@@ -70,7 +70,19 @@ ReportChart.prototype.scatterPlot = function(chart) {
 }
 
 ReportChart.prototype.histogram = function(chart, num_bins) {
-	var bins = this.binData(num_bins);
+	var bins = {
+		labels: [],
+		buckets: []
+	};
+	if (this.json.is_binned) {
+		for (var x = 0; x < this.data.length; x++) {
+			bins.labels.push(this.json.data[this.x_label]);
+			bins.buckets.push(this.json.data[this.y_label]);
+		}
+	}
+	else {
+		bins = this.binData(num_bins);
+	}
 	
 	var self = this;
 	$("#"+chart).highcharts({

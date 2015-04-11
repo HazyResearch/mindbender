@@ -10,7 +10,7 @@ table {
 	border-collapse: collapse;
 }
 
-table td {
+table td, th {
 	border: 1px solid #000;
 	text-align: center;
 }
@@ -83,7 +83,7 @@ table td {
 
 #report-table {
 	float: left;
-	width: 500px;
+	width: 400px;
 }
 
 #report-table table {
@@ -97,11 +97,34 @@ table td {
 }
 
 .report-chart .chart {
-	margin-top: 10px;
 	border: 1px solid #000;
+	height: 300px;
+	width: 590px;
+}
+
+.report-list {
+	margin-left: 2px;
+	width: 280px;
+	float: left;
+	border: 2px solid #000;
+	border-radius: 5px;
+	min-height: 600px;
+	padding: 5px;
+	overflow: auto;
+	white-space: nowrap;
+}
+
+.report-list .list-title {
+	font-weight: bold;
 }
 
 #slider {
 	width: 200px;
-	margin-left: 210px;
+	margin-left: 200px;
+	margin-bottom: 10px;
+}
+
+iframe {
+	border: 2px solid #000;
+	border-radius: 5px;
 }
