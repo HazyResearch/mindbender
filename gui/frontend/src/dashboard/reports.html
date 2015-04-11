@@ -3,56 +3,33 @@
 <head>
 <title>View Reports | DeepDive Dashboard</title>
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-<script src="reports.js"></script>
+
+<!-- Bootstrap -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
 </head>
 <body>
 	<div class="header">View Reports</div>
 	<a href="index.html">< Dashboard</a>
 	<br><br>
 	
-	<div class="tabs">
-		<div>Report 1</div>
-		<div>Report 2</div>
-		<div>Report 3</div>
-	</div>
-	<div class="clear"></div><br>
-	<h1 id="report">Report 1</h1>
+	<ul class="report-list pull-left">
+	    <li><a target="view" href="report-blank.html">Blank</a></li>
+	    <li><a target="view" href="report-histogram.html#report.json">Histogram</a></li>
+	</ul>
+
+	<iframe src="report-blank.html" name="view" style="width: 80%; min-height:500px; float:right;"></iframe>
 	
-	<div id="report-table">
-	
-	</div>
-	<div class="report-chart">
-		<div id="scatter_plot" class="chart"></div>
-		<div id="histogram" class="chart"></div>
-		<div id="slider"></div>
-	</div>
-	
-	
-	<script>
-		function init() {
-			$.get("reports.json", function(json) {
-				var report_chart = new ReportChart(json);
-				report_chart.scatterPlot("scatter_plot");
-				report_chart.histogram("histogram", Math.sqrt(json.data.length, 1/3));
-				report_chart.buildTable("report-table");
-				$("#slider").slider({
-					value: Math.sqrt(json.data.length, 1/3),
-					slide: function(event, ui) {
-						report_chart.histogram("histogram", ui.value);
-					}					
-				});
-			});
-		}
-		
-		$(".tabs div").click(function() {
+	<script type="text/javascript">
+		$(".report-list li").click(function() {
 			$("#report").html($(this).html());
-			init();
 		});
-		init();
 	</script>
 </body>
 </html>
