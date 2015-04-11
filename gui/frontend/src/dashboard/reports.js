@@ -74,16 +74,16 @@ ReportChart.prototype.histogram = function(chart, num_bins) {
 		labels: [],
 		buckets: []
 	};
-	if (this.json.is_binned) {
-		for (var x = 0; x < this.data.length; x++) {
-			bins.labels.push(this.json.data[this.x_label]);
-			bins.buckets.push(this.json.data[this.y_label]);
-		}
-	}
-	else {
+	if (num_bins) {
 		bins = this.binData(num_bins);
 	}
-	
+	else {
+		for (var x = 0; x < this.data.length; x++) {
+			bins.labels.push(this.json.data[x][this.x_label]);
+			bins.buckets.push(this.json.data[x][this.y_label]);
+		}
+	}
+
 	var self = this;
 	$("#"+chart).highcharts({
 		chart: {
