@@ -1,3 +1,4 @@
+`
 function ReportChart(json) {
 	this.json = json;
 	
@@ -140,3 +141,4 @@ ReportChart.prototype.buildTable = function(id) {
 	table += "</table>";
 	document.getElementById(id).innerHTML = table;	
 }
+`

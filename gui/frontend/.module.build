@@ -21,8 +21,13 @@ cd src
 compile from=.coffee to=.js   with=compile-coffee src=../build/src/%s out=../build/%s **/*.coffee
 compile from=.less   to=.css  with=compile-less   src=../build/src/%s out=../build/%s **/*.less
 compile from=.html   to=.html with=:              src=../build/%s     out=../build/%s **/*.html
+compile from=.css    to=.css  with=:              src=../build/%s     out=../build/%s **/*.css
+compile from=.png    to=.png  with=:              src=../build/%s     out=../build/%s **/*.png
 compile from=.json   to=.json with=:              src=../build/%s     out=../build/%s **/*.json
 cd ..
+
+# remove all dangling symlinks
+find build -type l ! -exec [ -e {} ] \; -exec rm -fv {} +
 
 # concatenate all .js files
 cd build

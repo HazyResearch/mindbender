@@ -1,3 +1,4 @@
+`
 function Template() {
 }
 
@@ -5,10 +6,10 @@ Template.addVariable = function(img) {
 	var table = $(img).parent().find("table");
 	var num = $(table).find("tr").length - 1;
 	
-	$(table).append('<tr> \
-		<td>$<input type="text" name="variable[' + num + '][name][]"></td> \
-		<td>$<input type="text" name="variable[' + num + '][default][]"></td> \
-	</tr>');
+	$(table).append('<tr>' +
+		'<td>$<input type="text" name="variable[' + num + '][name][]"></td>' +
+		'<td>$<input type="text" name="variable[' + num + '][default][]"></td>' +
+	'</tr>');
 }
 
 Template.addTemplate = function() {
@@ -26,3 +27,4 @@ Template.addBindings = function() {
 		$(this).parent().parent().find(".custom").toggle();
 	});
 }
+`

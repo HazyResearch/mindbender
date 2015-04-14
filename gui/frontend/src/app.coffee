@@ -2,9 +2,10 @@
 angular.module 'mindbenderApp', [
     'ngRoute'
     'mindbenderApp.mindtagger'
+    'mindbenderApp.dashboard'
 ]
 .config ($routeProvider) ->
-    $routeProvider.otherwise redirectTo: '/mindtagger'
+    $routeProvider.otherwise redirectTo: '/dashboard/'
 
 ## Workaround to get source mapping for uncaught exceptions
 ## See: http://stackoverflow.com/a/25642699
