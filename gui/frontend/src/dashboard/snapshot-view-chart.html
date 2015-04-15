@@ -2,16 +2,11 @@
 <html>
 <head>
 <title>View Reports | DeepDive Dashboard</title>
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-<script src="https://code.highcharts.com/highcharts.js"></script>
-<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-<script src="reports.js"></script>
+<link rel="stylesheet" href="dashboard/style.css">
 </head>
 <body>
 	<div class="header">View Reports</div>
-	<a href="index.html">< Dashboard</a>
+	<a href="#/dashboard/">< Dashboard</a>
 	<br><br>
 	
 	<div class="tabs">
@@ -34,8 +29,10 @@
 	
 	<script>
 		function init() {
-			$.get("reports.json", function(json) {
+			console.log("test");
+			$.get("dashboard/reports.json", function(json) {
 				var report_chart = new ReportChart(json);
+				
 				report_chart.scatterPlot("scatter_plot");
 				report_chart.histogram("histogram", Math.sqrt(json.data.length, 1/3));
 				report_chart.buildTable("report-table");
@@ -52,6 +49,7 @@
 			$("#report").html($(this).html());
 			init();
 		});
+
 		init();
 	</script>
 </body>

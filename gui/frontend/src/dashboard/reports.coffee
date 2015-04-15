@@ -8,6 +8,7 @@ function ReportChart(json) {
 	this.data = json.data.map(function(point) { return [point[keys[0]], point[keys[1]]] });
 }
 
+
 ReportChart.prototype.areaChart = function(chart) {
 	var self = this;
 	$("#"+chart).highcharts({
@@ -41,6 +42,7 @@ ReportChart.prototype.areaChart = function(chart) {
 
 ReportChart.prototype.scatterPlot = function(chart) {
 	var self = this;
+	
 	$("#"+chart).highcharts({
 		chart: {
 			type: 'scatter'
@@ -141,4 +143,6 @@ ReportChart.prototype.buildTable = function(id) {
 	table += "</table>";
 	document.getElementById(id).innerHTML = table;	
 }
+
+window.ReportChart = ReportChart;
 `
