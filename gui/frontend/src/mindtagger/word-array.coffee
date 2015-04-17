@@ -106,7 +106,7 @@ angular.module 'mindbenderApp.mindtagger.wordArray', [
                     (words, $scope) ->
                         froms = asArray $scope.$eval $attrs.froms
                         tos   = asArray $scope.$eval $attrs.tos
-                        if from? and tos? and froms.length == tos.length
+                        if froms? and tos? and froms.length == tos.length
                             for from,i in froms
                                 from = +from
                                 to = +tos[i] + 1
