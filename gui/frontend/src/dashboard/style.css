@@ -33,18 +33,19 @@ table td {
 	padding: 5px;
 	font-size: 20pt;
 	width: 160px;
-	height: 200px;
+	height: 230px;
 	text-align: center;
 	border: 1px solid #000;
 	float: left;
 	margin-left: 50px;
+	text-align: center;
 }
 
 .template {
 	margin-bottom: 20px;
 	border: 1px solid #000;
 	padding: 10px;
-	width: 710px;
+	width: 900px;
 }
 
 .template select, input[type=text] {
@@ -57,11 +58,11 @@ table td {
 	height: 200px;
 }
 	
-.template .variables, .graph {
+.template .variables, .chart {
 	float: left;
 }
 
-.template .graph {
+.template .chart {
 	margin-left: 30px;
 }
 
