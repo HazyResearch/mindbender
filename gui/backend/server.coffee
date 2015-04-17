@@ -59,3 +59,7 @@ mindtaggerConfFiles = process.argv[2..]
 # initialize Mindtagger APIs in the app
 mindtaggerAPI = require "./mindtagger/mindtagger-api"
 mindtaggerAPI.init app, mindtaggerConfFiles
+
+# initialize Dashboard APIs
+dashboardAPI = require "./dashboard/dashboard-api"
+dashboardAPI.init app
