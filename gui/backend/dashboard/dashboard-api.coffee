@@ -9,20 +9,24 @@ _ = require "underscore"
 
 # Install Dashboard API handlers to the given ExpressJS app
 exports.init = (app) ->
-    # List Snapshots
-    app.get "/api/snapshot/", (req, res) ->
-        # TODO correct implementation
-        res.json """
+
+    ## Viewing Snapshots and Reports
+    exampleSnapshots = """
         20150415-1
         20150415-2
         20150415-3
         20150416-1
         """.trim().split(/\s+/)
+    # List Snapshots
+    app.get "/api/snapshot/", (req, res) ->
+        # TODO correct implementation
+        res.json exampleSnapshots
 
     # List Reports of a Snapshot
     app.get "/api/snapshot/:snapshotId", (req, res) ->
         snapshotId = req.param "snapshotId"
         # TODO correct implementation
+        return res.status(404).end() unless snapshotId in exampleSnapshots
         res.json  """
         corpus/stats
         variable
@@ -50,6 +54,7 @@ exports.init = (app) ->
             report: "#{snapshotId}/#{reportId}"
 
         # TODO correct implementation
+        return res.status 404 unless snapshotId in exampleSnapshots
         if /histogram/.test reportId
             # data-table type report
             _.extend report,
@@ -65,4 +70,141 @@ exports.init = (app) ->
                 </ul>
                 """
         res.json report
+
+
+    ## Creating New Snapshots
+    # List Report Templates
+    app.get "/api/report-templates/", (req, res) ->
+        # TODO correct implementation
+        res.json  """
+        corpus/stats
+        variable
+        variable/quality
+        variable/inference
+        variable/supervision
+        variable/feature
+        variable/feature/histogram-candidates-per-feature
+        variable/candidate
+        """.trim().split(/\s+/)
+
+    exampleSnapshotConfigs =
+        default: [
+                    {
+                        reportTemplate: "corpus"
+                    }
+                    {
+                        reportTemplate: "variable"
+                        params:
+                            variable: "gene.is_correct"
+                    }
+                    {
+                        reportTemplate: "variable"
+                        params:
+                            variable: "phenotype.is_correct"
+                    }
+                    {
+                        reportTemplate: "variable"
+                        params:
+                            variable: "genepheno.is_correct"
+                    }
+                ]
+        featuresOnly: [
+                    {
+                        reportTemplate: "variable/feature"
+                        params:
+                            variable: "gene.is_correct"
+                    }
+                    {
+                        reportTemplate: "variable/feature"
+                        params:
+                            variable: "phenotype.is_correct"
+                    }
+                    {
+                        reportTemplate: "variable/feature"
+                        params:
+                            variable: "genepheno.is_correct"
+                    }
+                ]
+        mentions: [
+                    {
+                        reportTemplate: "variable"
+                        params:
+                            variable: "gene.is_correct"
+                    }
+                    {
+                        reportTemplate: "variable"
+                        params:
+                            variable: "phenotype.is_correct"
+                    }
+                ]
+        relationships: [
+                    {
+                        reportTemplate: "variable"
+                        params:
+                            variable: "genepheno.is_correct"
+                    }
+                ]
+
+    # List Snapshot Configurations
+    app.get "/api/snapshot-config/", (req, res) ->
+        # TODO correct implementation
+        res.json exampleSnapshotConfigs
+        
+    # Create a New Snapshot Configuration or Update an Existing One
+    app.put "/api/snapshot-config/:configName", (req, res) ->
+        configName = req.param "configName"
+        return res.status(400).end() unless configName?.length > 0
+        isValidInstantiation = (inst) ->
+            inst.reportTemplate? and (not inst.params? or (_.size inst.params) > 0)
+        return res.status(400).end() unless _.every req.body, isValidInstantiation
+        # TODO correct implementation
+        exampleSnapshotConfigs[configName] = req.body
+        res
+            .status 201
+            .location "/api/snapshot-config/#{configName}"
+            .end()
+
+    # Read Contents of a Snapshot Configuration
+    app.get "/api/snapshot-config/:configName", (req, res) ->
+        configName = req.param "configName"
+        # TODO correct implementation
+        return res.status(404).end() unless exampleSnapshotConfigs[configName]?
+        res.json exampleSnapshotConfigs[configName]
+
+    # Delete a Snapshot Configuration
+    app.delete "/api/snapshot-config/:configName", (req, res) ->
+        configName = req.param "configName"
+        # TODO correct implementation
+        return res.status(404).end() unless exampleSnapshotConfigs[configName]?
+        delete exampleSnapshotConfigs[configName]
+        res
+            .status 204
+            .end()
+
+    # Create a New Snapshot
+    app.post "/api/snapshot", (req, res) ->
+        configName = req.body.snapshotConfig
+        # TODO correct implementation
+        return res.status(404).end() unless exampleSnapshotConfigs[configName]?
+        now = new Date
+        snapshotId = "#{now.getYear() + 1900}#{now.getMonth()+1}#{now.getDate()}"
+        suffix = 1
+        suffix += 1 while "#{snapshotId}-#{suffix}" in exampleSnapshots
+        snapshotId += "-#{suffix}"
+        exampleSnapshots.push snapshotId
+        res
+            .status 201
+            .location "/api/snapshot/#{snapshotId}"
+            .end()
+
+
+    # TODO
+    ## Authoring Report Templates
+    # Create a New Report Template or Update an Existing One
+    # Read a Report Template
+    # Delete a Report Template
+
+    ## Running Tasks
+
+    ## Authoring Task Templates
 
