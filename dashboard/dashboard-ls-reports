@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# dashboard-ls-reports -- List all reports in a snapshot of the DeepDive app
+# > dashboard-ls-reports SNAPSHOT [json]
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-04-21
+set -eu
+
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+
+cd "$DEEPDIVE_APP"/snapshot
+
+[[ $# -gt 0 ]] || usage "$0" "No SNAPSHOT given"
+Snapshot=$1; shift
+cd "$Snapshot" &>/dev/null && [[ -s reports.json ]] ||
+    error "$Snapshot: No such snapshot"
+
+case ${1:-} in
+    json)
+        cat reports.json
+        ;;
+    "") coffee -e '
+        fs = require "fs"
+        reports = JSON.parse fs.readFileSync "reports.json"
+        process.stdout.write "#{reportId}\n" for reportId of reports
+        '
+        ;;
+    *)
+        usage "$0" "$1: Unrecognized output format"
+esac

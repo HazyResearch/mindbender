@@ -1,6 +1,8 @@
 mindbender-snapshot                     bin/mindbender.d/
 mindbender-produce-reports              bin/mindbender.d/
 dashboard-ls-snapshots                  bin/mindbender.d/
+dashboard-ls-reports                    bin/mindbender.d/
+dashboard-report-content                bin/mindbender.d/
 find-deepdive-db-uri                    bin/mindbender.d/
 find-deepdive-app                       bin/mindbender.d/
 run-sql                                 bin/mindbender.d/
@@ -14,3 +16,4 @@ report-templates                        etc/
 snapshot-files                          etc/
 
 mindbender-dashboard                    bin/mindbender.d/
+Markdown_1.0.1/Markdown.pl              bin/mindbender.d/

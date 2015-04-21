@@ -21,6 +21,7 @@ MODULES += shell
 
 # keeping runtime dependencies
 RUNTIMEDEPENDSDIR = depends
+export DEPENDS_ON_NODE_VERSION = v0.12.2
 
 include buildkit/modules.mk
 buildkit/modules.mk:
