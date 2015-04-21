@@ -1,0 +1,50 @@
+<$
+## parameters this report expects
+: ${variable:?name of the variable}
+: ${expectation_threshold:=0.9}
+: ${num_top_extractions:=10}
+
+table=${variable%%.*}
+column=${variable#$table.}
+
+report-log "Counting number of extractions of variable ${variable}..."
+num_extractions=$(run-sql "
+    SELECT COUNT(*)
+    FROM ${table}_${column}_inference
+    WHERE expectation > ${expectation_threshold}
+")
+report-values num_extractions=$num_extractions
+
+if [[ -n "$words_column" ]]; then
+    report-log "Counting distinct extractions of variable ${variable}..."
+    num_distinct_extractions=$(run-sql "
+        SELECT COUNT(DISTINCT ${words_column})
+        FROM ${table}_${column}_inference
+        WHERE expectation > ${expectation_threshold}
+    ")
+    report-values num_distinct_extractions=$num_distinct_extractions
+
+    # TODO Good-Turing estimator
+fi
+
+if [[ -n "$doc_id_column" ]]; then
+    report-log "Counting number of documents with extractions of variable ${variable}..."
+    num_documents_with_extractions=$(run-sql "
+        SELECT COUNT(DISTINCT ${doc_id_column})
+        FROM ${table}_${column}_inference
+        WHERE expectation > ${expectation_threshold}
+    ")
+    report-values num_documents_with_extractions=$num_documents_with_extractions
+fi
+
+$>
+
+## Inference
+
+* **<$ printf "%'d" $num_extractions $>** extractions (candidates with expectation > <$ printf "%.2f" $expectation_threshold $>)
+<$ if [[ -n "$words_column" ]]; then $>
+* **<$ printf "%'d" $num_distinct_extractions $>** distinct extractions
+<$ fi $>
+<$ if [[ -n "$doc_id_column" ]]; then $>
+* **<$ printf "%'d" $num_documents_with_extractions $>** documents with extractions
+<$ fi $>

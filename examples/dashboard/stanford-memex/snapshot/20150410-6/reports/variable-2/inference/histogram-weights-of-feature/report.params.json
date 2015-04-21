@@ -1,0 +1,1 @@
+{"variable":"locations.is_correct","expectation_threshold":0.9,"candidate_id_column":"mention_id","words_column":"words","doc_id_column":"doc_id","num_top_extractions":10,"num_histogram_bins":20,"enable_freedman_diaconis_histogram":false,"feature_weights_table":"dd_inference_result_variables_mapped_weights"}

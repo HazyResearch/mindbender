@@ -1,0 +1,1 @@
+{"variable":"rates.is_correct","expectation_threshold":0.9,"candidate_id_column":"mention_id","words_column":"words","doc_id_column":"doc_id","num_top_extractions":10,"num_most_frequent_extractions":10}

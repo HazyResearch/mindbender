@@ -8,4 +8,4 @@ set -eu
 DEEPDIVE_APP=$(find-deepdive-app)
 export DEEPDIVE_APP
 
-error "Not implemented yet"
+exec mindbender-gui "$@"

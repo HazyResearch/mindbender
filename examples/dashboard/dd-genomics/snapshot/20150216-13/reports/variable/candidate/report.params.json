@@ -1,0 +1,1 @@
+{"variable":"gene_mentions.is_correct","expectation_threshold":0.9,"words_column":"words","doc_id_column":"doc_id","num_top_candidates":10}

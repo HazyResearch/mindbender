@@ -1,0 +1,161 @@
+2015-04-10 10:38:56 raiders4	Producing reports under snapshot/20150410-6/
+2015-04-10 10:38:56 raiders4	 about DeepDive database postgresql://raphaelh@raiders4:6432/memex_mar2015_large...
+2015-04-10 10:38:56 raiders4	Instantiated snapshot/20150410-6/reports/variable (variable=rates.is_correct)
+2015-04-10 10:38:56 raiders4	Producing snapshot/20150410-6/reports/variable/labeling-precision-escort
+2015-04-10 10:39:05 raiders4	Producing snapshot/20150410-6/reports/variable/labeling-precision-titles
+ERROR:  column p.text does not exist
+LINE 5:          , p.text 
+                   ^
+cat: reports/variable/labeling-precision-titles/README.md: No such file or directory
+2015-04-10 10:39:05 raiders4	Producing snapshot/20150410-6/reports/variable/labeling-recall-titles
+ERROR:  column p.text does not exist
+LINE 5:          , p.text 
+                   ^
+cat: reports/variable/labeling-recall-titles/README.md: No such file or directory
+2015-04-10 10:39:06 raiders4	Producing snapshot/20150410-6/reports/variable
+2015-04-10 10:39:06 raiders4	Producing snapshot/20150410-6/reports/variable/quality
+2015-04-10 10:39:06 raiders4	Producing snapshot/20150410-6/reports/variable/inference/histogram-weights-of-feature
+2015-04-10 10:39:07 raiders4	Counting number of features and range of weights...
+2015-04-10 10:39:45 raiders4	Found 1,595,852 features with non-zero weights
+2015-04-10 10:39:45 raiders4	Using the specified 20 bins...
+2015-04-10 10:39:45 raiders4	Creating histogram of weights (bin width=58.81840000000000000000)
+2015-04-10 10:39:49 raiders4	Producing snapshot/20150410-6/reports/variable/inference
+2015-04-10 10:39:49 raiders4	Counting number of extractions of variable rates.is_correct...
+2015-04-10 10:39:51 raiders4	Counting distinct extractions of variable rates.is_correct...
+2015-04-10 10:39:53 raiders4	Counting number of documents with extractions of variable rates.is_correct...
+2015-04-10 10:39:55 raiders4	Producing snapshot/20150410-6/reports/variable/inference/sample-frequent-extractions
+2015-04-10 10:39:55 raiders4	Finding 10 most frequent extractions of variable rates.is_correct...
+2015-04-10 10:39:57 raiders4	Producing snapshot/20150410-6/reports/variable/inference/sample-weighted-features
+2015-04-10 10:40:02 raiders4	Producing snapshot/20150410-6/reports/variable/supervision
+2015-04-10 10:40:03 raiders4	Producing snapshot/20150410-6/reports/variable/feature/histogram-candidates-per-feature
+2015-04-10 10:40:04 raiders4	Producing snapshot/20150410-6/reports/variable/feature/histogram-features-per-candidate
+2015-04-10 10:40:05 raiders4	Producing snapshot/20150410-6/reports/variable/feature
+2015-04-10 10:40:07 raiders4	Producing snapshot/20150410-6/reports/variable/feature/sample-frequent-features
+2015-04-10 10:40:08 raiders4	Producing snapshot/20150410-6/reports/variable/candidate
+2015-04-10 10:40:08 raiders4	Counting number of candidates of variable rates.is_correct...
+2015-04-10 10:40:09 raiders4	Counting distinct candidates of variable rates.is_correct...
+2015-04-10 10:40:46 raiders4	Counting number of documents with candidates of variable rates.is_correct...
+2015-04-10 10:40:55 raiders4	Producing snapshot/20150410-6/reports/variable/candidate/sample-frequent-candidates
+2015-04-10 10:40:55 raiders4	Finding 10 most frequent candidates of variable rates.is_correct...
+2015-04-10 10:41:23 raiders4	Produced snapshot/20150410-6/reports/variable
+2015-04-10 10:41:23 raiders4	Instantiated snapshot/20150410-6/reports/variable-2 (variable=locations.is_correct)
+2015-04-10 10:41:23 raiders4	Producing snapshot/20150410-6/reports/variable-2/labeling-precision-escort
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 11:       FROM locations_is_correct_inference li
+                    ^
+cat: reports/variable-2/labeling-precision-escort/README.md: No such file or directory
+2015-04-10 10:41:24 raiders4	Producing snapshot/20150410-6/reports/variable-2/labeling-precision-titles
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 12:       FROM locations_is_correct_inference li
+                    ^
+cat: reports/variable-2/labeling-precision-titles/README.md: No such file or directory
+2015-04-10 10:41:24 raiders4	Producing snapshot/20150410-6/reports/variable-2/labeling-recall-titles
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 11:       FROM locations_is_correct_inference li
+                    ^
+cat: reports/variable-2/labeling-recall-titles/README.md: No such file or directory
+2015-04-10 10:41:24 raiders4	Producing snapshot/20150410-6/reports/variable-2
+2015-04-10 10:41:25 raiders4	Producing snapshot/20150410-6/reports/variable-2/quality
+2015-04-10 10:41:25 raiders4	Producing snapshot/20150410-6/reports/variable-2/inference/histogram-weights-of-feature
+2015-04-10 10:41:25 raiders4	Counting number of features and range of weights...
+2015-04-10 10:41:26 raiders4	Found 1,595,852 features with non-zero weights
+2015-04-10 10:41:26 raiders4	Using the specified 20 bins...
+2015-04-10 10:41:26 raiders4	Creating histogram of weights (bin width=58.81840000000000000000)
+2015-04-10 10:41:29 raiders4	Producing snapshot/20150410-6/reports/variable-2/inference
+2015-04-10 10:41:29 raiders4	Counting number of extractions of variable locations.is_correct...
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 4:     FROM locations_is_correct_inference
+                 ^
+2015-04-10 10:41:29 raiders4	Counting distinct extractions of variable locations.is_correct...
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 4:         FROM locations_is_correct_inference
+                     ^
+2015-04-10 10:41:29 raiders4	Counting number of documents with extractions of variable locations.is_correct...
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 4:         FROM locations_is_correct_inference
+                     ^
+2015-04-10 10:41:30 raiders4	Producing snapshot/20150410-6/reports/variable-2/inference/sample-frequent-extractions
+2015-04-10 10:41:30 raiders4	Finding 10 most frequent extractions of variable locations.is_correct...
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 4:         FROM locations_is_correct_inference
+                     ^
+2015-04-10 10:41:30 raiders4	Producing snapshot/20150410-6/reports/variable-2/inference/sample-weighted-features
+2015-04-10 10:41:35 raiders4	Producing snapshot/20150410-6/reports/variable-2/supervision
+2015-04-10 11:17:51 raiders4	Producing snapshot/20150410-6/reports/variable-2/feature/histogram-candidates-per-feature
+2015-04-10 11:18:28 raiders4	Producing snapshot/20150410-6/reports/variable-2/feature/histogram-features-per-candidate
+2015-04-10 11:18:32 raiders4	Producing snapshot/20150410-6/reports/variable-2/feature
+2015-04-10 11:19:18 raiders4	Producing snapshot/20150410-6/reports/variable-2/feature/sample-frequent-features
+2015-04-10 11:19:51 raiders4	Producing snapshot/20150410-6/reports/variable-2/candidate
+2015-04-10 11:19:51 raiders4	Counting number of candidates of variable locations.is_correct...
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 4:     FROM locations_is_correct_inference
+                 ^
+2015-04-10 11:19:51 raiders4	Counting distinct candidates of variable locations.is_correct...
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 4:         FROM locations_is_correct_inference
+                     ^
+2015-04-10 11:19:51 raiders4	Counting number of documents with candidates of variable locations.is_correct...
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 4:         FROM locations_is_correct_inference
+                     ^
+2015-04-10 11:19:52 raiders4	Producing snapshot/20150410-6/reports/variable-2/candidate/sample-frequent-candidates
+2015-04-10 11:19:52 raiders4	Finding 10 most frequent candidates of variable locations.is_correct...
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 4:         FROM locations_is_correct_inference
+                     ^
+2015-04-10 11:19:52 raiders4	Produced snapshot/20150410-6/reports/variable-2
+2015-04-10 11:19:53 raiders4	Instantiated snapshot/20150410-6/reports/variable-3 (variable=names.is_true)
+2015-04-10 11:19:53 raiders4	Producing snapshot/20150410-6/reports/variable-3/labeling-precision-escort
+ERROR:  relation "names_is_true_inference" does not exist
+LINE 11:       FROM names_is_true_inference li
+                    ^
+cat: reports/variable-3/labeling-precision-escort/README.md: No such file or directory
+2015-04-10 11:19:53 raiders4	Producing snapshot/20150410-6/reports/variable-3/labeling-precision-titles
+ERROR:  relation "names_is_true_inference" does not exist
+LINE 12:       FROM names_is_true_inference li
+                    ^
+cat: reports/variable-3/labeling-precision-titles/README.md: No such file or directory
+2015-04-10 11:19:53 raiders4	Producing snapshot/20150410-6/reports/variable-3/labeling-recall-titles
+ERROR:  relation "names_is_true_inference" does not exist
+LINE 11:       FROM names_is_true_inference li
+                    ^
+cat: reports/variable-3/labeling-recall-titles/README.md: No such file or directory
+2015-04-10 11:19:54 raiders4	Producing snapshot/20150410-6/reports/variable-3
+2015-04-10 11:19:54 raiders4	Producing snapshot/20150410-6/reports/variable-3/quality
+2015-04-10 11:19:54 raiders4	Producing snapshot/20150410-6/reports/variable-3/inference/histogram-weights-of-feature
+2015-04-10 11:19:55 raiders4	Counting number of features and range of weights...
+2015-04-10 11:19:55 raiders4	Found 1,595,852 features with non-zero weights
+2015-04-10 11:19:55 raiders4	Using the specified 20 bins...
+2015-04-10 11:19:55 raiders4	Creating histogram of weights (bin width=58.81840000000000000000)
+2015-04-10 11:19:58 raiders4	Producing snapshot/20150410-6/reports/variable-3/inference
+2015-04-10 11:19:58 raiders4	Counting number of extractions of variable names.is_true...
+ERROR:  relation "names_is_true_inference" does not exist
+LINE 4:     FROM names_is_true_inference
+                 ^
+2015-04-10 11:19:59 raiders4	Counting distinct extractions of variable names.is_true...
+ERROR:  relation "names_is_true_inference" does not exist
+LINE 4:         FROM names_is_true_inference
+                     ^
+2015-04-10 11:19:59 raiders4	Counting number of documents with extractions of variable names.is_true...
+ERROR:  relation "names_is_true_inference" does not exist
+LINE 4:         FROM names_is_true_inference
+                     ^
+2015-04-10 11:19:59 raiders4	Producing snapshot/20150410-6/reports/variable-3/inference/sample-frequent-extractions
+2015-04-10 11:19:59 raiders4	Finding 10 most frequent extractions of variable names.is_true...
+ERROR:  relation "names_is_true_inference" does not exist
+LINE 4:         FROM names_is_true_inference
+                     ^
+2015-04-10 11:20:00 raiders4	Producing snapshot/20150410-6/reports/variable-3/inference/sample-weighted-features
+2015-04-10 11:20:04 raiders4	Producing snapshot/20150410-6/reports/variable-3/supervision
+ERROR:  column "is_true" does not exist
+LINE 2:             SELECT COUNT(*) FROM names WHERE is_true = true 
+                                                     ^
+ERROR:  column "is_true" does not exist
+LINE 2:             SELECT COUNT(*) FROM names WHERE is_true = false
+                                                     ^
+ERROR:  column "is_true" does not exist
+LINE 2:             SELECT COUNT(*) FROM names WHERE is_true IS NULL
+                                                     ^
+2015-04-10 11:20:05 raiders4	Producing snapshot/20150410-6/reports/variable-3/feature/histogram-candidates-per-feature
+ERROR:  canceling statement due to user request
+2015-04-10 15:00:56 raiders4	Producing snapshot/20150410-6/reports/variable-3/feature/histogram-features-per-candidate
