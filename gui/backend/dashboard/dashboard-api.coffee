@@ -26,17 +26,15 @@ sendJSONArray = (res, stream, next, mapper = String) ->
 sendStdoutOf = (res, command, args, errorStatus = 404) ->
     res.type "json"
     proc = spawn command, args
-    proc.on "exit", (code) ->
-        try res.sendStatus errorStatus if code != 0
-        res.end()
+    proc.on "exit", (code) -> try res.sendStatus errorStatus if code != 0
+    proc.on "close", (code) -> res.end()
     proc.stdout.on "readable", ->
         while (data = proc.stdout.read())?
             res.write data
 sendStdoutLinesAsJSONArray = (res, command, args, errorStatus = 404) ->
     proc = spawn command, args
-    proc.on "exit", (code) ->
-        try res.sendStatus errorStatus if code != 0
-        res.end()
+    proc.on "exit", (code) -> try res.sendStatus errorStatus if code != 0
+    proc.on "close", (code) -> res.end()
     sendJSONArray res, byline proc.stdout
 
 # Install Dashboard API handlers to the given ExpressJS app
