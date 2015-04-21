@@ -6,6 +6,18 @@
 
 util = require "util"
 _ = require "underscore"
+{spawn} = require "child_process"
+byline = require "byline"
+
+# shorthand for sending JSON array responses without buffering
+sendJSONArray = (res, stream, mapper) ->
+    res.type "json"
+    first = yes
+    stream.on "readable", ->
+        while (item = stream.read())?
+            res.write if first then first = no; "[" else ","
+            res.write JSON.stringify mapper item
+    stream.on "end", -> res.end "]"
 
 # Install Dashboard API handlers to the given ExpressJS app
 exports.init = (app) ->
@@ -19,8 +31,8 @@ exports.init = (app) ->
         """.trim().split(/\s+/)
     # List Snapshots
     app.get "/api/snapshot/", (req, res) ->
-        # TODO correct implementation
-        res.json exampleSnapshots
+        ls = spawn "dashboard-ls-snapshots"
+        sendJSONArray res, (byline ls.stdout), String
 
     # List Reports of a Snapshot
     app.get "/api/snapshot/:snapshotId", (req, res) ->

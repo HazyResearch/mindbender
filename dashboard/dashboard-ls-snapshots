@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# dashboard-ls-snapshots -- List all snapshots in the DeepDive app
+# > dashboard-ls-snapshots
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-04-21
+set -eu
+
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+
+cd "$DEEPDIVE_APP"/snapshot
+
+# we recognize as a snapshot when a directory under snapshot/
+# contains a non-empty reports.json file
+find * -maxdepth 0 \
+    -type d \
+    -exec [ -s {}/reports.json ] \; \
+    -print
