@@ -1,0 +1,376 @@
+{
+  "variable rates.is_correct": {
+    "path": "reports/variable",
+    "report": "variable",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id"
+    }
+  },
+  "variable/quality rates.is_correct": {
+    "path": "reports/variable/quality",
+    "report": "variable/quality",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id"
+    }
+  },
+  "variable/inference/histogram-weights-of-feature rates.is_correct": {
+    "path": "reports/variable/inference/histogram-weights-of-feature",
+    "report": "variable/inference/histogram-weights-of-feature",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_extractions": 10,
+      "num_histogram_bins": 20,
+      "enable_freedman_diaconis_histogram": false,
+      "feature_weights_table": "dd_inference_result_variables_mapped_weights"
+    }
+  },
+  "variable/inference rates.is_correct": {
+    "path": "reports/variable/inference",
+    "report": "variable/inference",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_extractions": 10
+    },
+    "values": {
+      "num_extractions": 2168626,
+      "num_distinct_extractions": 49835,
+      "num_documents_with_extractions": 1293096
+    }
+  },
+  "variable/inference/sample-frequent-extractions rates.is_correct": {
+    "path": "reports/variable/inference/sample-frequent-extractions",
+    "report": "variable/inference/sample-frequent-extractions",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_extractions": 10,
+      "num_most_frequent_extractions": 10
+    }
+  },
+  "variable/inference/sample-weighted-features rates.is_correct": {
+    "path": "reports/variable/inference/sample-weighted-features",
+    "report": "variable/inference/sample-weighted-features",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_extractions": 10,
+      "num_top_weighted_features": 10
+    }
+  },
+  "variable/supervision rates.is_correct": {
+    "path": "reports/variable/supervision",
+    "report": "variable/supervision",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id"
+    },
+    "values": {
+      "num_labeled_positively": 490,
+      "num_labeled_negatively": 4585,
+      "num_unlabeled": 7895
+    }
+  },
+  "variable/feature/histogram-candidates-per-feature rates.is_correct": {
+    "path": "reports/variable/feature/histogram-candidates-per-feature",
+    "report": "variable/feature/histogram-candidates-per-feature",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "features_array_column": "features",
+      "features_table": "",
+      "features_column": ""
+    }
+  },
+  "variable/feature/histogram-features-per-candidate rates.is_correct": {
+    "path": "reports/variable/feature/histogram-features-per-candidate",
+    "report": "variable/feature/histogram-features-per-candidate",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "features_array_column": "features",
+      "features_table": "",
+      "features_column": ""
+    }
+  },
+  "variable/feature rates.is_correct": {
+    "path": "reports/variable/feature",
+    "report": "variable/feature",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "features_array_column": "features",
+      "features_table": "",
+      "features_column": ""
+    },
+    "values": {
+      "num_features": 117612,
+      "num_distinct_features": 31485
+    }
+  },
+  "variable/feature/sample-frequent-features rates.is_correct": {
+    "path": "reports/variable/feature/sample-frequent-features",
+    "report": "variable/feature/sample-frequent-features",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "features_array_column": "features",
+      "features_table": "",
+      "features_column": "",
+      "num_most_frequent_features": 100
+    }
+  },
+  "variable/candidate rates.is_correct": {
+    "path": "reports/variable/candidate",
+    "report": "variable/candidate",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_candidates": 10
+    },
+    "values": {
+      "num_candidates": 41154465,
+      "num_distinct_candidates": 2706725,
+      "num_documents_with_candidates": 17521295
+    }
+  },
+  "variable/candidate/sample-frequent-candidates rates.is_correct": {
+    "path": "reports/variable/candidate/sample-frequent-candidates",
+    "report": "variable/candidate/sample-frequent-candidates",
+    "params": {
+      "variable": "rates.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_candidates": 10,
+      "num_most_frequent_candidates": 10
+    }
+  },
+  "variable locations.is_correct": {
+    "path": "reports/variable-2",
+    "report": "variable",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id"
+    }
+  },
+  "variable/quality locations.is_correct": {
+    "path": "reports/variable-2/quality",
+    "report": "variable/quality",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id"
+    }
+  },
+  "variable/inference/histogram-weights-of-feature locations.is_correct": {
+    "path": "reports/variable-2/inference/histogram-weights-of-feature",
+    "report": "variable/inference/histogram-weights-of-feature",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_extractions": 10,
+      "num_histogram_bins": 20,
+      "enable_freedman_diaconis_histogram": false,
+      "feature_weights_table": "dd_inference_result_variables_mapped_weights"
+    }
+  },
+  "variable/inference locations.is_correct": {
+    "path": "reports/variable-2/inference",
+    "report": "variable/inference",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_extractions": 10
+    },
+    "values": {
+      "num_extractions": "",
+      "num_distinct_extractions": "",
+      "num_documents_with_extractions": ""
+    }
+  },
+  "variable/inference/sample-frequent-extractions locations.is_correct": {
+    "path": "reports/variable-2/inference/sample-frequent-extractions",
+    "report": "variable/inference/sample-frequent-extractions",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_extractions": 10,
+      "num_most_frequent_extractions": 10
+    }
+  },
+  "variable/inference/sample-weighted-features locations.is_correct": {
+    "path": "reports/variable-2/inference/sample-weighted-features",
+    "report": "variable/inference/sample-weighted-features",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_extractions": 10,
+      "num_top_weighted_features": 10
+    }
+  },
+  "variable/supervision locations.is_correct": {
+    "path": "reports/variable-2/supervision",
+    "report": "variable/supervision",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id"
+    },
+    "values": {
+      "num_labeled_positively": 2192822,
+      "num_labeled_negatively": 23740409,
+      "num_unlabeled": 60981578
+    }
+  },
+  "variable/feature/histogram-candidates-per-feature locations.is_correct": {
+    "path": "reports/variable-2/feature/histogram-candidates-per-feature",
+    "report": "variable/feature/histogram-candidates-per-feature",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "features_array_column": "features",
+      "features_table": "",
+      "features_column": ""
+    }
+  },
+  "variable/feature/histogram-features-per-candidate locations.is_correct": {
+    "path": "reports/variable-2/feature/histogram-features-per-candidate",
+    "report": "variable/feature/histogram-features-per-candidate",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "features_array_column": "features",
+      "features_table": "",
+      "features_column": ""
+    }
+  },
+  "variable/feature locations.is_correct": {
+    "path": "reports/variable-2/feature",
+    "report": "variable/feature",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "features_array_column": "features",
+      "features_table": "",
+      "features_column": ""
+    },
+    "values": {
+      "num_features": 613223190,
+      "num_distinct_features": 22654652
+    }
+  },
+  "variable/feature/sample-frequent-features locations.is_correct": {
+    "path": "reports/variable-2/feature/sample-frequent-features",
+    "report": "variable/feature/sample-frequent-features",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "features_array_column": "features",
+      "features_table": "",
+      "features_column": "",
+      "num_most_frequent_features": 100
+    }
+  },
+  "variable/candidate locations.is_correct": {
+    "path": "reports/variable-2/candidate",
+    "report": "variable/candidate",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_candidates": 10
+    },
+    "values": {
+      "num_candidates": "",
+      "num_distinct_candidates": "",
+      "num_documents_with_candidates": ""
+    }
+  },
+  "variable/candidate/sample-frequent-candidates locations.is_correct": {
+    "path": "reports/variable-2/candidate/sample-frequent-candidates",
+    "report": "variable/candidate/sample-frequent-candidates",
+    "params": {
+      "variable": "locations.is_correct",
+      "expectation_threshold": 0.9,
+      "candidate_id_column": "mention_id",
+      "words_column": "words",
+      "doc_id_column": "doc_id",
+      "num_top_candidates": 10,
+      "num_most_frequent_candidates": 10
+    }
+  }
+}

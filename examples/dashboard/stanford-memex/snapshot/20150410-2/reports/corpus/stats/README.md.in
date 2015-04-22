@@ -1,0 +1,14 @@
+<$
+report-log "Counting number of documents and sentences..."
+num_documents=$(run-sql " SELECT COUNT(DISTINCT "$document_id_column") FROM $table ")
+num_sentences=$(run-sql " SELECT COUNT(*) FROM $table ")
+
+# store the numbers
+report-values \
+    num_documents=$num_documents \
+    num_sentences=$num_sentences \
+    #
+$>
+
+* **<$ printf "%'d" $num_documents $>** documents
+* **<$ printf "%'d" $num_sentences $>** sentences

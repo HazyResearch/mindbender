@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -eu
+
+# grab a copy of the Markdown parser
+[[ -s Markdown_1.0.1.zip ]] || {
+    curl -RLO http://daringfireball.net/projects/downloads/Markdown_1.0.1.zip
+    unzip -o Markdown_1.0.1.zip
+}

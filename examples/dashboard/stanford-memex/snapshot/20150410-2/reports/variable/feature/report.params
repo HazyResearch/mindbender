@@ -1,0 +1,3 @@
+optional features_array_column   features    "name of the column in the variable table holding features as array"
+optional features_table          ""          "name of the table holding one feature per row for the variable"
+optional features_column         ""          "name of the column of the feature_table holding the feature id"

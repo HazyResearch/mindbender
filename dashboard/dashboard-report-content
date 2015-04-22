@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# dashboard-report-content -- Get JSON representation of a snapshot report
+# > dashboard-report-content SNAPSHOT REPORT...
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-04-21
+set -eu
+
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+
+cd "$DEEPDIVE_APP"/snapshot
+
+[[ $# -gt 0 ]] || usage "$0" "No SNAPSHOT given"
+Snapshot=$1; shift
+cd "$Snapshot" &>/dev/null && [[ -s reports.json ]] ||
+    error "$Snapshot: No such snapshot"
+
+[[ $# -gt 0 ]] || usage "$0" "No REPORT given"
+coffee -e '
+fs = require "fs"
+path = require "path"
+{execFileSync} = require "child_process"
+[snapshotId, reportIds...] = process.argv[4..]
+reports = JSON.parse fs.readFileSync "reports.json"
+output = {}
+for reportId in reportIds
+    report = reports[reportId]
+    unless report?
+        console.error "#{reportId}: No such report in snapshot #{snapshotId}"
+        continue
+    output[reportId] = report
+
+    ## augment the report object with content
+
+    # HTML from Markdown
+    markdownPath = "#{report.path}/README.md"
+    report.markdown = String fs.readFileSync markdownPath
+    report.html = try String execFileSync "Markdown.pl", [markdownPath]
+
+    # data table
+    for filename in fs.readdirSync report.path
+        console.error filename
+        continue unless /\.json$/.test filename
+        continue if /^report\./.test filename
+        try
+            t = JSON.parse fs.readFileSync "#{report.path}/#{filename}"
+            report.table ?= {}
+            tableName = filename.replace /\.json$/, ""
+            report.table[tableName] = t
+
+console.log JSON.stringify output
+' "$Snapshot" "$@"

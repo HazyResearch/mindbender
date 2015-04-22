@@ -1,0 +1,10 @@
+# 2015-04-10T01:42:59 Producing reports under snapshot/20150410-2/
+# 2015-04-10T01:42:59 Instantiated snapshot/20150410-2/reports/corpus (table=sentences_escort)
+# 2015-04-10T01:42:59 Producing snapshot/20150410-2/reports/corpus/stats
+# 2015-04-10T01:42:59 Counting number of documents and sentences...
+# 2015-04-10T04:04:36 Produced snapshot/20150410-2/reports/corpus
+# 2015-04-10T04:04:38 Instantiated snapshot/20150410-2/reports/variable (variable=locations.is_correct)
+# 2015-04-10T04:04:38 Producing snapshot/20150410-2/reports/variable/labeling-precision-escort
+ERROR:  relation "locations_is_correct_inference" does not exist
+LINE 11:       FROM locations_is_correct_inference li
+                    ^

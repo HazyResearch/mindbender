@@ -1,0 +1,28 @@
+<$
+## parameters this report expects
+: ${variable:?name of the variable}
+table=${variable%%.*}
+column=${variable#$table.}
+
+num_labeled_positively=$(run-sql "SELECT COUNT(*) FROM ${table} WHERE ${column} = true ")
+num_labeled_negatively=$(run-sql "SELECT COUNT(*) FROM ${table} WHERE ${column} = false")
+num_unlabeled=$(run-sql "SELECT COUNT(*) FROM ${table} WHERE ${column} IS NULL")
+
+report-values \
+    num_labeled_positively=$num_labeled_positively \
+    num_labeled_negatively=$num_labeled_negatively \
+    num_unlabeled=$num_unlabeled \
+    #
+$>
+
+## Supervision
+
+* **<$ printf "%'d" $num_labeled_positively $>** positively labeled candidates
+* **<$ printf "%'d" $num_labeled_negatively $>** negatively labeled candidates
+* **<$ printf "%'d" $num_unlabeled $>** unlabeled candidates
+
+<!--
+* TODO scatter plot showing distribution of positive/negative candidates firing top k frequent features
+    * with opacity proportional to #supervised / #fired
+    * with size or color intensity proportional to #fired
+-->

@@ -27,8 +27,19 @@ open snapshot/LATEST/README.md
 ```
 
 #### Launch Dashboard to use the reports interactively for deeper error analysis
+```bash
+cd your-deepdive-app
+mindbender dashboard
 ```
-mindbender dashboard  # (Under development)
+
+There are some examples included in this source tree:
+```bash
+cd examples/dashboard/dd-genomics
+mindbender dashboard
+```
+```bash
+cd examples/dashboard/stanford-memex
+mindbender dashboard
 ```
 
 
