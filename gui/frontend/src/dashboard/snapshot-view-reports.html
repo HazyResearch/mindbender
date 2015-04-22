@@ -1,0 +1,42 @@
+<div ng-include="'dashboard/header.html'"></div>
+	
+<div class="tabs">
+	<div ng-repeat="report in reports"><div ng-click="loadReport(report)">{{ report }}</div></div>
+</div>
+<div class="clear"></div><br>
+<h1 id="report">Report 1</h1>
+	
+<div id="report-table">
+	<table>
+		<tr>
+			<th ng-repeat="tableHeader in tableHeaders">{{ tableHeader }}</th>
+		</tr>
+		<tr ng-repeat="tableRow in tableRows">
+			<td ng-repeat="tableData in tableRow">{{ tableData }}</td>
+		</tr>
+	</table>
+</div>
+
+<div class="report-chart">
+	<div id="scatter_plot" class="chart"></div>
+	<div id="histogram" class="chart"></div>
+	<br style="clear:both;">
+	<div id="slider"></div>
+</div>
+	
+	
+<script>
+	function renderCharts(json) {
+		var report_chart = new ReportChart(json);
+				
+		report_chart.scatterPlot("scatter_plot");
+		report_chart.histogram("histogram", Math.sqrt(json.data.length, 1/3));
+		
+		$("#slider").slider({
+			value: Math.sqrt(json.data.length, 1/3),
+			slide: function(event, ui) {
+				report_chart.histogram("histogram", ui.value);
+			}
+		});
+	}
+</script>

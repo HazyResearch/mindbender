@@ -1,8 +1,9 @@
-<div class="header">View Snapshots</div>
+<div ng-include="'dashboard/header.html'"></div>
+
 <div class="row">
 	<ul>
 		<li ng-repeat="snapshot in snapshots">
-			<a href="#/snapshot/{{snapshot.name}}">{{snapshot.name}}</a>
+			<a href="#/snapshot/{{snapshot}}">{{snapshot}}</a>
 		</li>
 	</ul>
 </div>
