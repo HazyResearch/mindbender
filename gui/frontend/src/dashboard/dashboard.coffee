@@ -8,6 +8,7 @@ angular.module "mindbenderApp.dashboard", [
 
     $routeProvider.when "/snapshot-run",
         templateUrl: "dashboard/snapshot-run.html"
+        controller: "SnapshotRunCtrl"
 
     $routeProvider.when "/snapshot/",
         templateUrl: "dashboard/snapshot-list.html"
@@ -25,6 +26,43 @@ angular.module "mindbenderApp.dashboard", [
 .controller "IndexCtrl", ($scope) ->
     $scope.title = "DeepDive Dashboard"
     $scope.hideNav = true
+
+.controller "SnapshotRunCtrl", ($scope, $http) ->
+    $scope.title = "Snapshot Run"
+
+    $scope.loadConfigs = (switchToConfig) ->
+        $http.get "/api/snapshot-config/"
+            .success (data, status, headers, config) -> 
+                $scope.configs = data
+                if switchToConfig
+                    $scope.currentSnapshotConfig = switchToConfig
+
+    $scope.loadConfigs()
+
+    $http.get "/api/report-templates/"
+        .success (data, status, headers, config) -> 
+            $scope.templates = data 
+
+    $scope.$watch "currentSnapshotConfig", (newValue, oldValue) ->
+        if $scope.configs
+            $scope.configTemplates = $scope.configs[newValue]
+
+    $scope.addConfig = () ->
+        $http.put("/api/snapshot-config/" + $scope.newSnapshotName, "[]")
+        $scope.loadConfigs($scope.newSnapshotName)
+        $scope.newSnapshotName = ""
+
+    $scope.addTemplate = () ->
+        # Need Template API functionality
+        $scope.configTemplates.push({"reportTemplate":"", "params": {}})
+    
+    $scope.updateConfig = () ->
+        $http.put("/api/snapshot-config/" + $scope.currentSnapshotConfig, $scope.configTemplates)
+    
+    $scope.deleteConfig = () ->
+        $http.delete("/api/snapshot-config/" + $scope.currentSnapshotConfig)
+        delete $scope.configs[$scope.currentSnapshotConfig]
+        $scope.currentSnapshotConfig = ""
 
 .controller "SnapshotListCtrl", ($scope, $http) ->
     $scope.title = "View Snapshots"
