@@ -16,17 +16,10 @@ table td {
 }
 
 .header {
-	text-align: center;
 	font-weight: bold;
-	font-size: 30pt;
+	font-size: 25pt;
 }
-	
-.menu {
-	margin: 10px;
-	padding: 30px 10px;
-	border: 1px solid #000;
-	border-radius: 5px;
-}
+
 
 .menu .item {
 	background: linear-gradient(to bottom, rgba(112,112,112,0.56) 18%, rgba(0,0,0,0) 100%);
@@ -34,9 +27,7 @@ table td {
 	font-size: 20pt;
 	width: 160px;
 	height: 230px;
-	text-align: center;
 	border: 1px solid #000;
-	float: left;
 	margin-left: 50px;
 	text-align: center;
 }

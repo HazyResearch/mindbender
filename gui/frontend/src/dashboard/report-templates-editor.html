@@ -1,53 +1,54 @@
 <div ng-include="'dashboard/header.html'"></div>
 
-<select ng-model="currentTemplateName">
-	<option ng-repeat="templateName in templateList">{{ templateName }}</option>
-</select>
+<div class="well">
+	<select ng-model="currentTemplateName">
+		<option ng-repeat="templateName in templateList">{{ templateName }}</option>
+	</select>
 
-<form action="" method="post">
-	<div class="templates">
-		1.)
-		<div class="template">
-			<div>
-				<input type="radio" ng-model="template.formatted" name="formatted" ng-value="true" class="template-format"> Formatted
-				<input type="radio" ng-model="template.formatted" name="formatted" ng-value="false" class="template-format"> Custom
-			</div>
-			<select>
-				<option>Load a saved template</option>
-			</select>
-			<div>
-				<input type="text" name="name" placeholder="Template name" ng-value="template.name">
-			</div>
-			<div ng-switch="template.formatted">
-				<div class="formatted" ng-switch-when="true">
-					<div><textarea name="query" placeholder="Query"></textarea></div>
-					<br>
-					<div class="variables">
-						Variables:
-						<table>
-							<tr>
-								<td ng-repeat="field in variableFields">{{ field | capitalize }}</td>
-							</tr>
-							<tr ng-repeat="(i, variable) in template.variables">
-								<td ng-repeat="key in variableFields">
-									<input type="text" name="variable[i][key]" ng-value="variable[key]">
-								</td>
-							</tr>
-						</table>
-						<img src="dashboard/images/plus_green.png" ng-click="addVariable()">
-					</div>
-					<div class="chart">
-						<input type="checkbox" ng-checked="template.chart.show"> Graph:
-						<div>X: <input type="text" ng-value="template.chart.x"></div>
-						<div>Y: <input type="text" ng-value="template.chart.y"></div>
-					</div>
-					<div class="clear"></div>
+	<form action="" method="post">
+		<div class="templates">
+			1.)
+			<div class="template" style="background-color: #FEFEFE">
+				<div>
+					<input type="radio" ng-model="template.formatted" name="formatted" ng-value="true" class="template-format"> Formatted
+					<input type="radio" ng-model="template.formatted" name="formatted" ng-value="false" class="template-format"> Custom
 				</div>
-				<div class="custom" ng-switch-when="false">
-					<textarea name="custom"></textarea>
+				<select>
+					<option>Load a saved template</option>
+				</select>
+				<div>
+					<input type="text" name="name" placeholder="Template name" ng-value="template.name">
+				</div>
+				<div ng-switch="template.formatted">
+					<div class="formatted" ng-switch-when="true">
+						<div><textarea name="query" placeholder="Query"></textarea></div>
+						<br>
+						<div class="variables">
+							Variables:
+							<table>
+								<tr>
+									<td ng-repeat="field in variableFields">{{ field | capitalize }}</td>
+								</tr>
+								<tr ng-repeat="(i, variable) in template.variables">
+									<td ng-repeat="key in variableFields">
+										<input type="text" name="variable[i][key]" ng-value="variable[key]">
+									</td>
+								</tr>
+							</table>
+							<img src="dashboard/images/plus_green.png" ng-click="addVariable()">
+						</div>
+						<div class="chart">
+							<input type="checkbox" ng-checked="template.chart.show"> Graph:
+							<div>X: <input type="text" ng-value="template.chart.x"></div>
+							<div>Y: <input type="text" ng-value="template.chart.y"></div>
+						</div>
+						<div class="clear"></div>
+					</div>
+					<div class="custom" ng-switch-when="false">
+						<textarea name="custom"></textarea>
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
-</form>
-
+	</form>
+</div>

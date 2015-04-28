@@ -1,34 +1,14 @@
 <div ng-include="'dashboard/header.html'"></div>
 
-<div class="row menu">
-	<div class="col-sm-3">
-		<a href="#/snapshot-run/">
-			<div class="item">
-			    <div><img src="dashboard/images/run.png"></div>
-			    Run Snapshot
-			</div>
-		</a>
-	</div>
-	<div class="col-sm-3">
-		<a href="#/report-templates/edit">
-			<div class="item">
-		    	<div><img src="dashboard/images/gear.png"></div>
-		    	Configure Templates
-			</div>
-		</a>
-	</div>
-	<div class="col-sm-3">
-		<a href="#/snapshot/">
-			<div class="item">
-		   		<div><img src="dashboard/images/report.png"></div>
-		    	View Snapshots
-			</div>
-		</a>
-	</div>
-	<div class="col-sm-3">
-		<div class="item">
-			<div><img src="dashboard/images/task.png"></div>
-			Tasks
+<div class="container-fluid">
+	<div class="row menu well">
+		<div class="col-sm-3" ng-repeat="navLink in navLinks">
+			<a href="{{ navLink.url }}">
+				<div class="item">
+				    <div><img src="dashboard/images/{{ navLink.img }} "></div>
+				    {{ navLink.name }}
+				</div>
+			</a>
 		</div>
 	</div>
 </div>

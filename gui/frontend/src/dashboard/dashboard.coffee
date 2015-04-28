@@ -1,6 +1,14 @@
 angular.module "mindbenderApp.dashboard", [
 ]
 
+.run ($rootScope) ->
+    $rootScope.navLinks = [
+        { url: '/#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
+        { url: '/#/report-templates/edit', name: 'Configure Templates', img: 'gear.png' }
+        { url: '/#/snapshot', name: 'View Snapshots', img: 'report.png' }
+        { url: '/#/dashboard', name: 'Task', img: 'task.png' }
+    ]
+
 .config ($routeProvider) ->
     $routeProvider.when "/dashboard/",
         templateUrl: "dashboard/index.html"
@@ -24,7 +32,6 @@ angular.module "mindbenderApp.dashboard", [
 
 
 .controller "IndexCtrl", ($scope) ->
-    $scope.title = "DeepDive Dashboard"
     $scope.hideNav = true
 
 .controller "SnapshotRunCtrl", ($scope, $http) ->

@@ -1,5 +1,6 @@
 <div ng-include="'dashboard/header.html'"></div>
-	
+
+<div class="well">
 	Add new Snapshot Configuration: 
 	<div>
 		Name: <input type="text" ng-model="newSnapshotName"> <input type="button" value="Add" ng-Click="addConfig()">
@@ -25,3 +26,4 @@
 	<br><br>
 	<input type="submit" ng-show="currentSnapshotConfig" ng-click="updateConfig()" value="Update Configuration">
 	<input type="submit" ng-show="currentSnapshotConfig" ng-click="deleteConfig()" value="Delete Configuration">
+</div>

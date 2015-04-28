@@ -1,9 +1,11 @@
 <div ng-include="'dashboard/header.html'"></div>
 
-<div class="row">
-	<ul>
-		<li ng-repeat="snapshot in snapshots">
-			<a href="#/snapshot/{{snapshot}}">{{snapshot}}</a>
-		</li>
-	</ul>
+<div class="container-fluid">
+	<div class="row well">
+		<ul>
+			<li ng-repeat="snapshot in snapshots">
+				<a href="#/snapshot/{{snapshot}}">{{snapshot}}</a>
+			</li>
+		</ul>
+	</div>
 </div>
