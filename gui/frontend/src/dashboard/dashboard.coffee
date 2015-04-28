@@ -1,16 +1,17 @@
 angular.module "mindbenderApp.dashboard", [
 ]
 
-.run ($rootScope) ->
+.run ($rootScope, $location) ->
     $rootScope.navLinks = [
-        { url: '/#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
-        { url: '/#/report-templates/edit', name: 'Configure Templates', img: 'gear.png' }
-        { url: '/#/snapshot', name: 'View Snapshots', img: 'report.png' }
-        { url: '/#/dashboard', name: 'Task', img: 'task.png' }
+        { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
+        { url: '#/report-templates/edit', name: 'Configure Templates', img: 'gear.png' }
+        { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
+        { url: '#/dashboard', name: 'Task', img: 'task.png' }
     ]
+    $rootScope.location = $location
 
 .config ($routeProvider) ->
-    $routeProvider.when "/dashboard/",
+    $routeProvider.when "/dashboard",
         templateUrl: "dashboard/index.html"
         controller: "IndexCtrl"
 

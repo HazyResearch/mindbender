@@ -8,7 +8,7 @@
 		
 		<div class="collapse navbar-collapse">
       		<ul class="nav navbar-nav">
-        		<li ng-repeat="navLink in navLinks"><a href="{{ navLink.url }}">{{ navLink.name}}</a></li>
+        		<li ng-repeat="navLink in navLinks" ng-class="{'active': '#'+location.$$path == navLink.url}"><a href="{{ navLink.url }}">{{ navLink.name }}</a></li>
         	</ul>
         </div>
     </div>
