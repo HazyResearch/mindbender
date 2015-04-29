@@ -1,18 +1,20 @@
 <div ng-include="'dashboard/header.html'"></div>
 	
-<div class="tabs">
-	<div ng-repeat="report in reports"><div ng-click="loadReport(report)">{{ report }}</div></div>
+<div>
+	<span ng-repeat="(report_key, report) in reports" class="report-button">
+		<button type="button" ng-click="loadReport(report_key)" class="btn btn-primary">{{ report_key }}</span>
+	</span>
 </div>
 <div class="clear"></div><br>
-<h1 id="report">Report 1</h1>
+<h1 id="report">{{ currentReport }}</h1>
 	
 <div id="report-table">
-	<table>
+	<table class="table table-striped" style="text-align:right">
 		<tr>
 			<th ng-repeat="tableHeader in tableHeaders">{{ tableHeader }}</th>
 		</tr>
 		<tr ng-repeat="tableRow in tableRows">
-			<td ng-repeat="tableData in tableRow">{{ tableData }}</td>
+			<td ng-repeat="tableData in tableRow track by $index">{{ tableData }}</td>
 		</tr>
 	</table>
 </div>

@@ -83,18 +83,34 @@ angular.module "mindbenderApp.dashboard", [
 .controller "SnapshotReportsCtrl", ($scope, $http, $routeParams) ->
     $scope.title = "Snapshot " + $routeParams.snapshotId + ": Reports"
     
-    $scope.loadReport = (r) ->
-        $http.get "/api/snapshot/" + $routeParams.snapshotId + "/histogram/.test"
+    $scope.loadReport = (report_key) ->
+        $http.get "/api/snapshot/" + $routeParams.snapshotId + "/" + report_key
         .success (data, status, headers, config) -> 
-            $scope.tableHeaders = ["num_candidates", "num_features"]
-            $scope.tableRows = data.data
-            $scope.json = {"graph": 1, "x": "num_candidates", "y":"num_features", "data": data.data}
+            table = $scope.convertToRowOrder(data[report_key].table['num_candidates_per_feature'])
+            $scope.currentReport = report_key
+            $scope.tableHeaders = table.headers
+            $scope.tableRows = table.data
+            $scope.json = {"graph": 1, "x": "num_candidates", "y":"num_features", "data": table.data}
             renderCharts($scope.json)
 
     $http.get "/api/snapshot/" + $routeParams.snapshotId
         .success (data, status, headers, config) -> 
             $scope.reports = data
 
+
+    $scope.convertToRowOrder = (table) ->
+        if table.headers
+            return table
+        else
+            new_table = { headers: Object.keys(table), data: [] }
+            for header in new_table.headers
+                for k, v of table[header]
+                    if !new_table.data[k]
+                        new_table.data[k] = []
+
+                    new_table.data[k].push(v)
+
+            return new_table
 
 
 .controller "EditTemplatesCtrl", ($scope, $http) ->

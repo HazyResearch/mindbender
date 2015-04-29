@@ -1,29 +1,41 @@
 <div ng-include="'dashboard/header.html'"></div>
 
 <div class="well">
-	Add new Snapshot Configuration: 
-	<div>
-		Name: <input type="text" ng-model="newSnapshotName"> <input type="button" value="Add" ng-Click="addConfig()">
-	</div>
-	<br>
-	Edit existing snapshot configuration:
-	<select ng-model="currentSnapshotConfig">
-		<option ng-repeat="(snapshotConfigName, v) in configs">{{ snapshotConfigName }}</option>
-	</select>
-	<br><br>
-	<div ng-repeat="configTemplate in configTemplates">
-		Template:
-		<select ng-model="configTemplate.reportTemplate" style="width:100px">
-			<option ng-repeat="template in templates">{{ template }}</option>
-		</select>
-
-		<div ng-repeat="(param, value) in configTemplate.params">
-			{{ param }} <input type="text" ng-model="configTemplate.params[param]">
+	<div class="form-inline">
+		<div class="input-group">
+			<span class="input-group-addon" style="font-weight:bold;">New snapshot configuration</span>
+			<input type="text" class="form-control" ng-model="newSnapshotName" placeholder="Name">
 		</div>
-		<hr style="margin-left:0px;width:300px">
+		<input type="button" class="btn btn-primary" value="Add Configuration" ng-Click="addConfig()">
+		<br><br>
+		<div class="input-group">
+			<span class="input-group-addon" style="font-weight:bold;">Edit existing snapshot configuration</span>
+			<select ng-model="currentSnapshotConfig" class="form-control">
+				<option ng-repeat="(snapshotConfigName, v) in configs">{{ snapshotConfigName }}</option>
+			</select>
+		</div>		
+		<br><br>
+		<div ng-repeat="configTemplate in configTemplates">
+			
+				<div class="input-group">
+					<span class="input-group-addon" style="font-weight:bold;">Template</span>
+					<select ng-model="configTemplate.reportTemplate" class="form-control">
+						<option ng-repeat="template in templates">{{ template }}</option>
+					</select>
+				</div>
+				<ul class="params">
+					<li ng-repeat="(param, value) in configTemplate.params">
+						<div class="input-group">
+							<span class="input-group-addon">{{ param }}</span>
+							<input type="text" class="form-control" ng-model="configTemplate.params[param]">
+						</div>
+					</li>
+				</ul>
+			<hr style="margin-left:0px;width:300px">
+		</div>
+		<input type="button" class="btn btn-primary" ng-show="currentSnapshotConfig" value="Add Template" ng-Click="addTemplate()">
+		<br><br>
+		<input type="submit" class="btn btn-success" ng-show="currentSnapshotConfig" ng-click="updateConfig()" value="Update Configuration">
+		<input type="submit" class="btn btn-danger" ng-show="currentSnapshotConfig" ng-click="deleteConfig()" value="Delete Configuration">
 	</div>
-	<input type="button" ng-show="currentSnapshotConfig" value="Add Template" ng-Click="addTemplate()">
-	<br><br>
-	<input type="submit" ng-show="currentSnapshotConfig" ng-click="updateConfig()" value="Update Configuration">
-	<input type="submit" ng-show="currentSnapshotConfig" ng-click="deleteConfig()" value="Delete Configuration">
 </div>

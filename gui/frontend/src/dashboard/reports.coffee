@@ -1,11 +1,10 @@
 `
 function ReportChart(json) {
 	this.json = json;
-	
-	var keys = Object.keys(json.data[0]);
-	this.x_label = keys[0];
-	this.y_label = keys[1];
-	this.data = json.data.map(function(point) { return [point[keys[0]], point[keys[1]]] });
+
+	this.x_label = json.y
+	this.y_label = json.x
+	this.data = json.data
 }
 
 

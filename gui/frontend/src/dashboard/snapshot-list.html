@@ -1,11 +1,12 @@
 <div ng-include="'dashboard/header.html'"></div>
 
 <div class="container-fluid">
-	<div class="row well">
-		<ul>
-			<li ng-repeat="snapshot in snapshots">
-				<a href="#/snapshot/{{ snapshot }}">{{ snapshot }}</a>
-			</li>
-		</ul>
+	<table class="table table-striped" style="width: 200px;">
+		<tr>
+			<th>Snapshot ID</th>
+		</tr>
+		<tr ng-repeat="snapshot in snapshots">
+			<td><a href="#/snapshot/{{ snapshot }}">{{ snapshot }}</a></td>
+		</tr>
 	</div>
 </div>

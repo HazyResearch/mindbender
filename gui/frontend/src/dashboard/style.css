@@ -10,10 +10,7 @@ table {
 	border-collapse: collapse;
 }
 
-table td {
-	border: 1px solid #000;
-	text-align: center;
-}
+
 
 .header {
 	font-weight: bold;
@@ -32,6 +29,10 @@ table td {
 	text-align: center;
 }
 
+.params {
+	margin-top: 10px;
+}
+
 .template {
 	margin-bottom: 20px;
 	border: 1px solid #000;
@@ -39,7 +40,7 @@ table td {
 	width: 900px;
 }
 
-.template select, input[type=text] {
+.template select {
 	width: 200px;
 	margin: 5px 0px;
 }
@@ -65,12 +66,9 @@ table td {
 	clear: both;
 }
 
-.tabs div {
-	float: left;
-	background-color: rgba(0,0,0,.1);
-	border: 1px solid #000;
-	padding: 3px;
-	cursor: pointer;
+.report-button {
+	display: inline-block;
+	margin: 2px;
 }
 
 #report-table {
