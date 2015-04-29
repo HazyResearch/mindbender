@@ -61,7 +61,7 @@ exports.init = (app) ->
     # Get Contents of a Report of a Snapshot
     app.get "/api/snapshot/:snapshotId/*", (req, res) ->
         snapshotId = req.param "snapshotId"
-        reportId = req.params[0]
+        [reportId] = req.params
         sendStdoutOf res, "dashboard-report-content", [snapshotId, reportId]
 
 
@@ -188,13 +188,25 @@ exports.init = (app) ->
             .sendStatus 201
 
 
-    # TODO
     ## Authoring Report Templates
     # Create a New Report Template or Update an Existing One
+    app.put "/api/report-template/*", (req, res) ->
+        [reportTemplateId] = req.params
+        sendStdoutOf res, "dashboard-report-template", ["put", reportTemplateId]
+
     # Read a Report Template
+    app.get "/api/report-template/*", (req, res) ->
+        [reportTemplateId] = req.params
+        sendStdoutOf res, "dashboard-report-template", ["get", reportTemplateId]
+
     # Delete a Report Template
+    app.delete "/api/report-template/*", (req, res) ->
+        [reportTemplateId] = req.params
+        sendStdoutOf res, "dashboard-report-template", ["delete", reportTemplateId]
 
     ## Running Tasks
+    # TODO
 
     ## Authoring Task Templates
+    # TODO
 

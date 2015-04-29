@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# dashboard-report-template -- Manipulate report templates
+# > dashboard-report-template get NAME
+# > dashboard-report-template put NAME <TEMPLATE_JSON
+# > dashboard-report-template delete NAME
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-04-29
+set -eu
+
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+
+[[ $# -gt 0 ]] || usage "$0" "No verb given"
+Command=$1; shift
+case $Command in
+    get|put|delete)
+        ;;
+    *)
+        usage "$0" "get, put, or delete must be given"
+esac
+
+[[ $# -gt 0 ]] || usage "$0" "No NAME given"
+TemplateName=$1; shift
+TemplateName=${TemplateName%/}
+
+reportTemplateImportOrder=(
+"$MINDBENDER_HOME"/etc/report-templates
+"$DEEPDIVE_APP"/report-templates
+)
+
+case $Command in
+    get) # encode report template into a JSON object
+        tmp=$(mktemp -d ${TMPDIR:-/tmp}/dashboard-report-template.XXXXXX)
+        trap "rm -rf $tmp" EXIT
+        export JSON_FILE=-  # to use report-values for constructing JSON
+
+        # find the report-template
+        for dir in "${reportTemplateImportOrder[@]}"; do
+            reportTemplatePath="$dir/$TemplateName"
+            [[ -d "$reportTemplatePath" ]] || continue
+
+            # TODO It's probably a very good idea to implement this JSON construction in another language as this is already pretty slow.  A small obstacle would be interpreting the report.params files.
+            # encode parameters by interpreting report.params
+            required() {
+                local name=$1; shift
+                local desc=$1; shift
+                JSON_FILE=$tmp/params.json report-values \
+                    "$name=$(report-values \
+                        inheritedFrom=$inheritedFrom \
+                        isRequired=true \
+                        description="$desc")"
+            }
+            optional() {
+                local name=$1; shift
+                local valueDefault=$1; shift
+                local desc=$1; shift
+                JSON_FILE=$tmp/params.json report-values \
+                    "$name=$(report-values \
+                        inheritedFrom=$inheritedFrom \
+                        isRequired=false \
+                        defaultValue="$valueDefault" \
+                        description="$desc")"
+            }
+            echo '{}' >$tmp/params.json
+            (
+            list-breadcrumb-paths "$TemplateName" |
+            while read path; do
+                (
+                path=${path%/}
+                cd "$dir/$path"
+                [[ -e report.params ]] || continue
+                # record provenance of inherited parameters
+                if [[ "$path" = "$TemplateName" ]]
+                then inheritedFrom=null
+                else inheritedFrom=$path
+                fi
+                # interpret report.params
+                source report.params
+                )
+            done
+            )
+            JSON_FILE=$tmp/template.json report-values \
+                params="$(cat $tmp/params.json)"
+
+            cd "$reportTemplatePath"
+
+            # encode markdownTemplate
+            if [[ -e README.md.in ]]; then
+                JSON_FILE=$tmp/template.json report-values \
+                    markdownTemplate="$(cat README.md.in)"
+            fi
+
+            # encode sqlTemplate
+            if [[ -e report.sql.in ]]; then
+                JSON_FILE=$tmp/template.json report-values \
+                    sqlTemplate="$(cat report.sql.in)"
+            fi
+            break
+        done
+
+        # finally, output the template JSON object
+        cat $tmp/template.json
+        ;;
+
+    put) # decode report template from given JSON object
+        # TODO
+        error "Not implemented yet"
+        ;;
+
+    delete) # delete given report template
+        # TODO
+        error "Not implemented yet"
+        ;;
+esac

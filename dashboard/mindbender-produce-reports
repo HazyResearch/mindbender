@@ -86,24 +86,6 @@ merge-order-specs() {
     } >"$out"
     mv -f "$out" "$a"
 }
-list-breadcrumb-paths() {
-    local path=$1
-    local prefix= head= tail=
-    while [[ -n "$path" ]]; do
-        case $path in
-            */*)
-                tail=${path#*/}
-                head=${path%$tail}
-                path=${path#$head}
-                ;;
-            *)
-                head=$path
-                path=
-        esac
-        prefix+=$head
-        echo "$prefix"
-    done
-}
 assign-unique-serial() {
     local prefix=$1             # prefix string
     local satisfiesCondition=$2 # command for testing collisions

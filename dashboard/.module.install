@@ -3,6 +3,7 @@ mindbender-produce-reports              bin/mindbender.d/
 dashboard-ls-snapshots                  bin/mindbender.d/
 dashboard-ls-reports                    bin/mindbender.d/
 dashboard-report-content                bin/mindbender.d/
+dashboard-report-template               bin/mindbender.d/
 find-deepdive-db-uri                    bin/mindbender.d/
 find-deepdive-app                       bin/mindbender.d/
 run-sql                                 bin/mindbender.d/
@@ -13,6 +14,7 @@ compile-xdocs                           bin/mindbender.d/
 json-for                                bin/mindbender.d/
 transpose-json                          bin/mindbender.d/
 html-table-for                          bin/mindbender.d/
+list-breadcrumb-paths                   bin/mindbender.d/
 
 reports.conf                            etc/
 report-templates                        etc/
