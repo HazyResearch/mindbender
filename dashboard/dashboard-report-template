@@ -109,7 +109,9 @@ case $Command in
         ;;
 
     delete) # delete given report template
-        # TODO
-        error "Not implemented yet"
+        reportTemplatePath="$DEEPDIVE_APP"/report-templates/"$TemplateName"
+        [[ -d "$reportTemplatePath" ]] ||
+            error "$TemplateName: No deletable report template found"
+        rm -rf "$reportTemplatePath"
         ;;
 esac
