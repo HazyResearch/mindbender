@@ -18,6 +18,7 @@ list-breadcrumb-paths                   bin/mindbender.d/
 
 reports.conf                            etc/
 report-templates                        etc/
+report-sql-template.sh                  etc/
 snapshot-files                          etc/
 
 mindbender-dashboard                    bin/mindbender.d/

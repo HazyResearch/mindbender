@@ -31,11 +31,13 @@ sendStdoutOf = (res, command, args, errorStatus = 404) ->
     proc.stdout.on "readable", ->
         while (data = proc.stdout.read())?
             res.write data
+    proc
 sendStdoutLinesAsJSONArray = (res, command, args, errorStatus = 404) ->
     proc = spawn command, args
     proc.on "exit", (code) -> try res.sendStatus errorStatus if code != 0
     proc.on "close", (code) -> res.end()
     sendJSONArray res, byline proc.stdout
+    proc
 
 # Install Dashboard API handlers to the given ExpressJS app
 exports.init = (app) ->
@@ -193,6 +195,8 @@ exports.init = (app) ->
     app.put "/api/report-template/*", (req, res) ->
         [reportTemplateId] = req.params
         sendStdoutOf res, "dashboard-report-template", ["put", reportTemplateId]
+            # XXX it's silly to parse and stringify the body right away
+            .stdin.write JSON.stringify req.body
 
     # Read a Report Template
     app.get "/api/report-template/*", (req, res) ->
