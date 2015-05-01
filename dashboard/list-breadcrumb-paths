@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# list-breadcrumb-paths -- list all prefixes including itself of a given path
+# For example, running `list-breadcrumb-paths /foo/bar` outputs three lines: /, /foo, /foo/bar
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-04-29
+set -eu
+
+path=$1
+prefix= head= tail=
+while [[ -n "$path" ]]; do
+    case $path in
+        */*)
+            tail=${path#*/}
+            head=${path%$tail}
+            path=${path#$head}
+            ;;
+        *)
+            head=$path
+            path=
+    esac
+    prefix+=$head
+    echo "$prefix"
+done

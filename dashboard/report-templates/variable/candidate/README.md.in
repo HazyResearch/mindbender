@@ -1,7 +1,6 @@
 <$
 ## parameters this report expects
 : ${variable:?name of the variable}
-: ${num_top_mentions:=10}
 
 table=${variable%%.*}
 column=${variable#$table.}
@@ -20,16 +19,6 @@ if [[ -n "$words_column" ]]; then
         FROM ${table}_${column}_inference
     ")
     report-values num_distinct_candidates=$num_distinct_candidates
-
-    # most frequent candidates
-    report-log "Finding $num_top_candidates most frequent candidates of variable ${variable}..."
-    run-sql "
-        SELECT ${words_column}, COUNT(*) AS count
-        FROM ${table}_${column}_inference
-        GROUP BY ${words_column}
-        ORDER BY count DESC, ${words_column}
-        LIMIT $num_top_candidates
-    " CSV HEADER >top_candidates.csv
 fi
 
 if [[ -n "$doc_id_column" ]]; then
@@ -53,7 +42,3 @@ $>
 * **<$ printf "%'d" $num_documents_with_candidates $>** documents with candidates
 <$ fi $>
 
-<$ if [[ -n "$words_column" ]]; then $>
-### Most frequent candidates
-<$ html-table-for top_candidates.csv $>
-<$ fi $>

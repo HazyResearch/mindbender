@@ -24,17 +24,6 @@ if [[ -n "$words_column" ]]; then
     ")
     report-values num_distinct_extractions=$num_distinct_extractions
 
-    # most frequent extractions
-    report-log "Finding $num_top_extractions most frequent extractions of variable ${variable}..."
-    run-sql "
-        SELECT ${words_column}, COUNT(*) AS count
-        FROM ${table}_${column}_inference
-        WHERE expectation > ${expectation_threshold}
-        GROUP BY ${words_column}
-        ORDER BY count DESC, ${words_column}
-        LIMIT $num_top_extractions
-    " CSV HEADER >top_extractions.csv
-
     # TODO Good-Turing estimator
 fi
 
@@ -58,9 +47,4 @@ $>
 <$ fi $>
 <$ if [[ -n "$doc_id_column" ]]; then $>
 * **<$ printf "%'d" $num_documents_with_extractions $>** documents with extractions
-<$ fi $>
-
-<$ if [[ -n "$words_column" ]]; then $>
-### Most frequent extractions
-<$ html-table-for top_extractions.csv $>
 <$ fi $>

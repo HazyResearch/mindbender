@@ -86,24 +86,6 @@ merge-order-specs() {
     } >"$out"
     mv -f "$out" "$a"
 }
-list-breadcrumb-paths() {
-    local path=$1
-    local prefix= head= tail=
-    while [[ -n "$path" ]]; do
-        case $path in
-            */*)
-                tail=${path#*/}
-                head=${path%$tail}
-                path=${path#$head}
-                ;;
-            *)
-                head=$path
-                path=
-        esac
-        prefix+=$head
-        echo "$prefix"
-    done
-}
 assign-unique-serial() {
     local prefix=$1             # prefix string
     local satisfiesCondition=$2 # command for testing collisions
@@ -129,11 +111,14 @@ list-all-reports() {
             # consider a directory as a report if any of these statisfy:
             # - an executable report.sh exists
             # - a README.md.in file exists
-            find "$@" \
+            local p=
+            for p; do find "$p" \
                 \( -name report.sh \
                 -o -name README.md.in \
-                \) 2>/dev/null || true
+                \) 2>/dev/null | sort || true
+            done
         }
+        # TODO use list-all-reports recursively to support nested reports.order
         if [[ -s reports.order ]]; then
             # if the order is specified, list paths carefully 
             local listed=$(mktemp -d "${TMPDIR:-/tmp}"/order-by.XXXXXXX)
@@ -149,16 +134,17 @@ list-all-reports() {
                 (
                     set --; while read globPattern; do set -- "$@" $globPattern; done
                     [[ $# -eq 0 ]] || list-reports "$@"
-                ) | tee "$listed"/bottom >>"$listed"/either
+                ) | tee -a "$listed"/either >"$listed"/bottom
                 # print the rest in the middle excluding those either in top or bottom
-                list-reports * | sort | grep -vxFf "$listed"/either
+                sort -r <"$listed"/either >"$listed"/either-reversed  # XXX workaround for FreeBSD grep
+                list-reports * | grep -vxFf "$listed"/either-reversed
                 # finally, print the bottom
                 cat "$listed"/bottom
             }
             rm -rf "$listed"
         else
             # otherwise, just enumerate reports
-            list-reports * | sort
+            list-reports *
         fi |
         while read file; do dirname "$file"; done |
         awk '!seen[$0]++ {print}'  # only show the first occurences
@@ -437,6 +423,7 @@ set -o pipefail
 trap 'report-log "Aborting due to an error"; error "Failed producing reports"' ERR
 {
 report-log "Producing reports under $SnapshotDir/"
+report-log " about DeepDive database $(find-deepdive-db-uri)..."
 
 # use dashboard configuration to produce reports
 begin-report
