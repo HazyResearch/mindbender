@@ -141,7 +141,6 @@ angular.module "mindbenderApp.dashboard", [
             path_splits.push([$scope.convertReportKey(k), k])
 
         $scope.nav = $scope.buildTree([], path_splits)
-        console.log($scope.nav)
 
 
     $scope.convertToRowOrder = (table) ->
@@ -161,7 +160,7 @@ angular.module "mindbenderApp.dashboard", [
 
 .controller "EditTemplatesCtrl", ($scope, $http) ->
     $scope.title = "Configure Templates"
-    $scope.variableFields = ['name', 'required', 'default', 'description']
+    $scope.variableFields = ['defaultValue', 'isRequired', 'description']
 
     $http.get "/api/report-templates/"
         .success (data, status, headers, config) -> 
@@ -169,9 +168,21 @@ angular.module "mindbenderApp.dashboard", [
 
     $scope.$watch "currentTemplateName", (newValue, oldValue) ->
         if newValue
-            $http.get "/api/report-templates/" + newValue
+            $http.get "/api/report-template/" + newValue
                 .success (data, status, headers, config) -> 
-                    $scope.template = data
+                    $scope.template = $.extend({}, data);
+                    $scope.template.params = []
+                    for param in Object.keys(data.params)
+                        $scope.template.params.push($.extend({ name: param }, data.params[param]))
+
+                    if data.markdownTemplate
+                        $scope.formatted = false
+                    else
+                        $scope.formatted = true
+
+    $scope.addVariable = () ->
+        $scope.template.params.push({})
+
 
 .filter 'capitalize', () ->
     (input) ->

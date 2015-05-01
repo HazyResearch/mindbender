@@ -27,37 +27,13 @@ table {
 	text-align: center;
 }
 
-.params {
+.template {
 	margin-top: 10px;
 }
 
-.template {
-	margin-bottom: 20px;
-	border: 1px solid #000;
-	padding: 10px;
-	width: 900px;
-}
-
-.template select {
-	width: 200px;
-	margin: 5px 0px;
-}
-
 .template textarea {
-	width: 700px;
+	width: 100%;
 	height: 200px;
-}
-	
-.template .variables, .template .chart {
-	float: left;
-}
-
-.template .chart {
-	margin-left: 30px;
-}
-
-.custom textarea {
-	height: 400px;
 }
 
 .clear {
