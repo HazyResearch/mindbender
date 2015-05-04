@@ -27,8 +27,8 @@ case $Command in
 esac
 
 reportTemplateImportOrder=(
-"$MINDBENDER_HOME"/etc/report-templates
 "$DEEPDIVE_APP"/report-templates
+"$MINDBENDER_HOME"/etc/report-templates
 )
 
 # TODO speed up JSON generation
@@ -39,12 +39,12 @@ case $Command in
             \( -name "README.md.in" \
             -o -name "report.sql.in" \
             \) -print |
-        sed 's:/[^/]*$::' | sort -u |
+        sed 's:^.*/report-templates/::; s:/[^/]*$::' |
+        sort -u |
         while read template; do
-            name=${template##*/report-templates/}
             echo ","
             # TODO need to do complete JSON escaping
-            printf '"%s"\n' "$name"
+            printf '"%s"\n' "$template"
         done | tail -n +2
         echo "]"
         ;;
