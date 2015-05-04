@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # dashboard-report-template -- Manipulate report templates
+# > dashboard-report-template ls
 # > dashboard-report-template get NAME
 # > dashboard-report-template put NAME <TEMPLATE_JSON
 # > dashboard-report-template delete NAME
@@ -14,22 +15,40 @@ export DEEPDIVE_APP
 [[ $# -gt 0 ]] || usage "$0" "No verb given"
 Command=$1; shift
 case $Command in
+    ls)
+        ;;
     get|put|delete)
+        [[ $# -gt 0 ]] || usage "$0" "No NAME given"
+        TemplateName=$1; shift
+        TemplateName=${TemplateName%/}
         ;;
     *)
         usage "$0" "get, put, or delete must be given"
 esac
-
-[[ $# -gt 0 ]] || usage "$0" "No NAME given"
-TemplateName=$1; shift
-TemplateName=${TemplateName%/}
 
 reportTemplateImportOrder=(
 "$MINDBENDER_HOME"/etc/report-templates
 "$DEEPDIVE_APP"/report-templates
 )
 
+# TODO speed up JSON generation
 case $Command in
+    ls) # list report templates in JSON array
+        echo "["
+        find "${reportTemplateImportOrder[@]}" \
+            \( -name "README.md.in" \
+            -o -name "report.sql.in" \
+            \) -print |
+        sed 's:/[^/]*$::' | sort -u |
+        while read template; do
+            name=${template##*/report-templates/}
+            echo ","
+            # TODO need to do complete JSON escaping
+            printf '"%s"\n' "$name"
+        done | tail -n +2
+        echo "]"
+        ;;
+
     get) # encode report template into a JSON object
         tmp=$(mktemp -d ${TMPDIR:-/tmp}/dashboard-report-template.XXXXXX)
         trap "rm -rf $tmp" EXIT

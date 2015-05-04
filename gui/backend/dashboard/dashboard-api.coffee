@@ -69,18 +69,9 @@ exports.init = (app) ->
 
     ## Creating New Snapshots
     # List Report Templates
+    # TODO fix the singular/plural issue of report-template[s]
     app.get "/api/report-templates/", (req, res) ->
-        # TODO correct implementation
-        res.json  """
-        corpus/stats
-        variable
-        variable/quality
-        variable/inference
-        variable/supervision
-        variable/feature
-        variable/feature/histogram-candidates-per-feature
-        variable/candidate
-        """.trim().split(/\s+/)
+        sendStdoutOf res, "dashboard-report-template", ["ls"]
 
     exampleSnapshotConfigs =
         default: [
