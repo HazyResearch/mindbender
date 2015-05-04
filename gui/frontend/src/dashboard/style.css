@@ -36,6 +36,10 @@ table {
 	height: 200px;
 }
 
+.template input[disabled] {
+	background-color: #DDD;
+}
+
 .clear {
 	clear: both;
 }
