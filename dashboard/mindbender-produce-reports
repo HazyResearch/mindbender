@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # mindbender-produce-reports -- produce all reports by instantiating what's enumerated in the dashboard configuration
 # Usage:
-# > mindbender produce-reports SNAPSHOT_DIR
+# > mindbender produce-reports SNAPSHOT_DIR SNAPSHOT_CONFIG
 #
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2015-02-08
@@ -9,6 +9,9 @@ set -eu
 
 [[ $# -gt 0 ]] || usage "$0" "Missing SNAPSHOT_DIR"
 SnapshotDir=$1; shift
+
+[[ $# -gt 0 ]] || usage "$0" "Missing SNAPSHOT_CONFIG"
+SnapshotConfiguration=$1; shift
 
 # find path to the DeepDive app based on the snapshot path
 DEEPDIVE_APP=$(find-deepdive-app)
@@ -19,17 +22,14 @@ reportTemplateImportOrder=(
 "$DEEPDIVE_APP"/report-templates
 )
 
-# make sure there is a reports.conf dashboard configuration in DeepDive app as well as the given snapshot
-if ! [[ -e "$DEEPDIVE_APP"/reports.conf ]]; then
-    # install default reports.conf if not there
-    cp -f "$MINDBENDER_HOME"/etc/reports.conf "$DEEPDIVE_APP"/
-    error "Default reports.conf was installed to the DeepDive app $DEEPDIVE_APP" || true
-fi
-cp -f "$DEEPDIVE_APP"/reports.conf "$SnapshotDir"/
+# make sure there is a dashboard snapshot configuration in DeepDive app as well as the given snapshot
+[[ -e "$SnapshotConfiguration" ]] || error "$SnapshotConfiguration: SNAPSHOT_CONFIG does not exist"
+cp -f "$SnapshotConfiguration" "$SnapshotDir"/
+snapshotConfigurationName=$(basename "$SnapshotConfiguration")
 
 # move into the given snapshot
 cd "$SnapshotDir" || error "$SnapshotDir: No such snapshot"
-[[ -r reports.conf ]] || error "$SnapshotDir/reports.conf: missing configuration"
+[[ -r "$snapshotConfigurationName" ]] || error "$snapshotConfigurationName: missing configuration"
 
 # TODO factor out these shell functions into separate scripts, and add unit tests
 
@@ -427,7 +427,7 @@ report-log " about DeepDive database $(find-deepdive-db-uri)..."
 
 # use dashboard configuration to produce reports
 begin-report
-( . reports.conf )
+( . "$snapshotConfigurationName" )
 end-report
 
 numReports=$(wc -l <reports.paths || echo 0)

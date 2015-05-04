@@ -24,27 +24,21 @@ esac
 
 case $Command in
     ls)
-        tmp=$(mktemp -d ${TMPDIR:-/tmp}/dashboard-snapshot-config.XXXXXXX)
-        trap "rm -rf $tmp" EXIT
-        export JSON_FILE=-  # to use report-values for constructing JSON
-
-        for ConfigFile in reports{,-*}.conf; do
+        echo "["
+        for ConfigFile in snapshot-*.conf; do
             [[ -e "$ConfigFile" ]] || continue
-            ConfigName=${ConfigFile#reports}
-            ConfigName=${ConfigName#-}
+            ConfigName=${ConfigFile#snapshot-}
             ConfigName=${ConfigName%.conf}
-            JSON_FILE=$tmp/ls.json report-values \
-                "$ConfigName"="$(report-values \
-                    modified="$(date -r "$ConfigFile" +%FT%T%z)" \
-                    #
-                )"
-        done
-        cat $tmp/ls.json
+            echo ","
+            # TODO handle JSON escapes correctly
+            printf '"%s"\n' "$ConfigName"
+        done | tail -n +2
+        echo "]"
         ;;
 
     get) # encode report template into a JSON object
         ConfigName=${1:-}; shift || true
-        ConfigFile=reports"${ConfigName:+-$ConfigName}".conf
+        ConfigFile=snapshot-"$ConfigName".conf
         [[ -e "$ConfigFile" ]] || error "$ConfigName: No such snapshot configuration"
         export JSON_FILE=-  # to use report-values for constructing JSON
 

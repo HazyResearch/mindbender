@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # mindbender-snapshot -- Produce a snapshot of the current DeepDive app
-# > mindbender snapshot
+# > mindbender snapshot [SNAPSHOT_CONFIG]
 #
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2015-02-09
@@ -10,6 +10,17 @@ set -eu
 DEEPDIVE_APP=$(find-deepdive-app)
 export DEEPDIVE_APP
 cd "$DEEPDIVE_APP"
+
+SnapshotConfiguration=${1:-"$DEEPDIVE_APP"/snapshot-default.conf}
+[[ $# -eq 0 ]] || shift
+
+if ! [[ -e "$SnapshotConfiguration" ]]; then
+    # install default snapshot configuration if not there
+    # TODO derive one from application.conf instead of hard coded one
+    cp -f "$MINDBENDER_HOME"/etc/snapshot-default.conf "$DEEPDIVE_APP"/
+    error "Default dashboard snapshot configuration was installed to the DeepDive app $DEEPDIVE_APP" || true
+    SnapshotConfiguration="$DEEPDIVE_APP"/snapshot-default.conf
+fi
 
 # create a fresh snapshot directory
 SnapshotDir=snapshot/$(date +%Y%m%d)
@@ -28,7 +39,7 @@ xargs -I{} -- cp -a {} "$SnapshotDir"/files/
 # TODO avoid copying files more than once into snapshot and create symlink to a master copy instead
 
 # produce reports for the snapshot
-mindbender-produce-reports "$SnapshotDir"
+mindbender-produce-reports "$SnapshotDir" "$SnapshotConfiguration"
 
 # place a symlink to the latest snapshot
 ln -sfnv "${SnapshotDir#snapshot/}" snapshot/LATEST

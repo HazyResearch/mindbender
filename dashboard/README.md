@@ -13,7 +13,7 @@ After each run of a DeepDive app, `mindbender snapshot` command can be used to p
 
 * **Reports**.
   Each snapshot will contain a set of reports that summarize various aspects about the data products of the DeepDive run or the code that produced them.
-    * The set of reports to be produced are controlled by a *dashboard configuration* (described in the next section).
+    * The set of reports to be produced are controlled by a *snapshot configuration* (described in the next section).
     * `reports/` directory contains all the individually produced reports.
     * `README.md` merges those of the individual reports.
     * `reports.json` aggregates all the important values reported by individual reports in a machine-friendlier JSON format.
@@ -26,20 +26,20 @@ After each run of a DeepDive app, `mindbender snapshot` command can be used to p
 
 
 
-## Dashboard Configuration
+## Dashboard Snapshot Configuration
 
-The list of reports each new snapshot produces should be configured in a *dashboard configuration*.
+The list of reports each new snapshot produces should be configured in a *snapshot configuration*.
 
-* A dashboard configuration is a plain text file named `reports.conf` that resides at the root of the target DeepDive app.
+* A dashboard snapshot configuration is a plain text file named `snapshot-*.conf` that resides at the root of the target DeepDive app.
 * Any text after a `#` character is ignored, so comments can be written there.
 * Each of its line begins with either:
     * `section`, followed by a section title, or
     * `report`, followed by a name referring to a *report template* (described in the next section), and zero or more named parameters separated by white space.
-* Each time a new snapshot is created, a copy of this dashboard configuration will be retained in the snapshot.
+* Each time a new snapshot is created, a copy of this snapshot configuration will be retained in the snapshot.
 
-Here's an example dashboard configuration that produces four reports.
+Here's an example snapshot configuration that produces four reports.
 ```bash
-### dashboard configuration
+### dashboard snapshot configuration
 
 # show statistics about the corpus stored in table "sentences"
 report corpus   table=sentences column_document=doc_id column_sentence=sent_id
@@ -63,7 +63,7 @@ Each report in a snapshot is produced by a *report template*.
     * It resides under either:
         * `report-templates/` of the target DeepDive app (app-specific), or
         * `dashboard/report-templates/` of Mindbender's source tree (built-in).
-    * It is referred from the dashboard configuration with the path name relative to `report-templates/`.
+    * It is referred from the snapshot configuration with the path name relative to `report-templates/`.
     * It must contain one or more of the following:
         * An executable file named `report.sh`.
         * An executable document `README.md.in`.
@@ -74,7 +74,7 @@ Each report in a snapshot is produced by a *report template*.
 * **Parameters**.
   It takes zero or more named parameters (i.e., `name=value` pairs).
     * The parameters should be declared in the `report.params` file.
-    * Each `report` line in the dashboard configuration provides value bindings for these parameters.
+    * Each `report` line in the snapshot configuration provides value bindings for these parameters.
     * This allows a template to be instantiated with different sets of parameters to produce multiple reports.
     * The `report.params` file must be formatted in the following way:
         * Each line declares a parameter,
@@ -108,7 +108,7 @@ Each report in a snapshot is produced by a *report template*.
 
 ### How Each Report Is Produced
 
-Suppose a line in the dashboard configuration refers to report template `variable/inference` with a named parameter `variable=has_spouse.is_correct`.
+Suppose a line in the snapshot configuration refers to report template `variable/inference` with a named parameter `variable=has_spouse.is_correct`.
 Following steps are taken to produce the report.
 
 1. **Instantiation**.
@@ -116,7 +116,7 @@ Following steps are taken to produce the report.
     * If the same report template is instantiated more than once (most likely with different parameters), the path of the report will be suffixed with a unique serial number, to isolate each report instance from others, e.g., `reports/variable/inference-2/`, `reports/variable/inference-3/`, etc.
     * All files in the template directory for `variable/inference` are cloned into the report instance, preserving the structure within the template.
 2. **Parameters**.
-   All parameters given by the dashboard configuration are checked against the `report.params` specification
+   All parameters given by the snapshot configuration are checked against the `report.params` specification
     * If there are `report.params` in the parent directories of the report template, parameters declared in them will also be checked.
       For example, `variable/report.params` as well as `variable/inference/report.params` will be used.
     * Finally, all parameter values are recorded in `report.params.json` in JSON format as well as `.report.params.sh` in a shell script.
@@ -145,7 +145,7 @@ Because it is often necessary to augment part of an existing report with app-spe
 
 * **Nested Report Templates**.
   A report template may be nested under another template.
-  When instantiating the parent template from the dashboard configuration,
+  When instantiating the parent template from the snapshot configuration,
     * All nested ones will be instantiated with the same set of parameters.
       All `report.params` specifications found along the path to each nested one will be used to check and supply default values for the parameters.
     * App-specific as well as built-in nested templates will all be instantiated.
@@ -167,12 +167,12 @@ Because it is often necessary to augment part of an existing report with app-spe
         candidate
         ```
 
-    * Currently, there's a limitation that nested `reports.order` have no effect, and only the one at the top of the template directly mentioned from the dashboard configuration is taken into account.
+    * Currently, there's a limitation that nested `reports.order` have no effect, and only the one at the top of the template directly mentioned from the snapshot configuration is taken into account.
 
 
-For example, consider the "Variables" section of the previous dashboard configuration.
+For example, consider the "Variables" section of the previous snapshot configuration.
 ```bash
-### dashboard configuration (instantiating each template individually)
+### dashboard snapshot configuration (instantiating each template individually)
 section "Variables"
 report variable/inference    variable=has_spouse.is_correct
 report variable/supervision  variable=has_spouse.is_correct top_positive=10 top_negative=10
@@ -181,11 +181,11 @@ report variable/candidate    variable=has_spouse.is_correct
 ```
 This could be rewritten as a single line as shown below:
 ```bash
-### dashboard configuration (instantiating group of nested templates)
+### dashboard snapshot configuration (instantiating group of nested templates)
 section "Variables"
 report variable              variable=has_spouse.is_correct top_positive=10 top_negative=10
 ```
-Furthermore, when more templates are added to `variable`, they will also get produced automatically without adding numerous lines for every instantiation of `variable` in the dashboard configuration.
+Furthermore, when more templates are added to `variable`, they will also get produced automatically without adding numerous lines for every instantiation of `variable` in the snapshot configuration.
 
 
 
