@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# dashboard-snapshot-config -- Manipulate report templates
+# > dashboard-snapshot-config ls
+# > dashboard-snapshot-config get NAME
+# > dashboard-snapshot-config put NAME <CONFIG_JSON
+# > dashboard-snapshot-config delete NAME
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-05-01
+set -eu
+
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+cd "$DEEPDIVE_APP"
+
+[[ $# -gt 0 ]] || usage "$0" "No verb given"
+Command=$1; shift
+case $Command in
+    ls|get|put|delete)
+        ;;
+    *)
+        usage "$0" "get, put, or delete must be given"
+esac
+
+case $Command in
+    ls)
+        tmp=$(mktemp -d ${TMPDIR:-/tmp}/dashboard-snapshot-config.XXXXXXX)
+        trap "rm -rf $tmp" EXIT
+        export JSON_FILE=-  # to use report-values for constructing JSON
+
+        for ConfigFile in reports{,-*}.conf; do
+            [[ -e "$ConfigFile" ]] || continue
+            ConfigName=${ConfigFile#reports}
+            ConfigName=${ConfigName#-}
+            ConfigName=${ConfigName%.conf}
+            JSON_FILE=$tmp/ls.json report-values \
+                "$ConfigName"="$(report-values \
+                    modified="$(date -r "$ConfigFile" +%FT%T%z)" \
+                    #
+                )"
+        done
+        cat $tmp/ls.json
+        ;;
+
+    get) # encode report template into a JSON object
+        ConfigName=${1:-}; shift || true
+        ConfigFile=reports"${ConfigName:+-$ConfigName}".conf
+        [[ -e "$ConfigFile" ]] || error "$ConfigName: No such snapshot configuration"
+        export JSON_FILE=-  # to use report-values for constructing JSON
+
+        # get ready to interpret the 
+        report() {
+            local name=$1; shift
+            echo ","
+            report-values \
+                reportTemplate="$name" \
+                params="$(report-values "$@")"
+        }
+        section() {
+            : # ignored
+        }
+        echo "["
+        (source "$ConfigFile") | tail -n +2
+        echo "]"
+        ;;
+
+    put) # decode report template from given JSON object
+        reportTemplatePath="$DEEPDIVE_APP"/report-templates/"$TemplateName"
+        mkdir -p "$reportTemplatePath"
+        cd "$reportTemplatePath"
+
+        # clean up existing artifacts before decoding
+        rm -f report.sql.in
+
+        # decode the input JSON object and create corresponding files
+        coffee -e '
+            fs = require "fs"
+            _ = require "underscore"
+            [jsonFile] = process.argv[4..]
+
+            ## read and parse input report template object
+            reportTemplate = JSON.parse fs.readFileSync jsonFile
+
+            ## write files under the report template file
+            # XXX string escaping is ugly and very convoluted, but is contained in the next line
+            esc = (s) -> "'\''" + (
+                    unless s? then ""
+                    else (String s).replace /'\''/g, "'\''\\'\'\''"
+                ) + "'\''"
+            # shorthand for conditionally writing pieces of report template
+            write = (fileName, content) ->
+                if content?
+                    fs.writeFileSync fileName, content
+                    yes
+            write "report.params", (
+                if (_.size reportTemplate.params) > 0
+                    for name,{isRequired,defaultValue,description} of reportTemplate.params
+                        if isRequired
+                            "required #{esc name} #{esc description}"
+                        else
+                            "optional #{esc name} #{esc defaultValue} #{esc description}"
+            )?.join "\n"
+            write "README.md.in", reportTemplate.markdownTemplate
+            write "report.sql.in", reportTemplate.sqlTemplate
+            # TODO keep chart/graph parameters somewhere
+        ' /dev/stdin
+
+        # clean up conflicting artifacts after decoding
+        if [[ -e report.sql.in ]]; then
+            # place the default report.sh when there's a report.sql.in
+            cp -f "$MINDBENDER_HOME"/etc/report-sql-template.sh report.sh
+        fi
+        ;;
+
+    delete) # delete given report template
+        reportTemplatePath="$DEEPDIVE_APP"/report-templates/"$TemplateName"
+        [[ -d "$reportTemplatePath" ]] ||
+            error "$TemplateName: No deletable report template found"
+        rm -rf "$reportTemplatePath"
+        ;;
+esac

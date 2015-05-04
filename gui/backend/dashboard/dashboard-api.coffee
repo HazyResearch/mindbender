@@ -69,18 +69,9 @@ exports.init = (app) ->
 
     ## Creating New Snapshots
     # List Report Templates
+    # TODO fix the singular/plural issue of report-template[s]
     app.get "/api/report-templates/", (req, res) ->
-        # TODO correct implementation
-        res.json  """
-        corpus/stats
-        variable
-        variable/quality
-        variable/inference
-        variable/supervision
-        variable/feature
-        variable/feature/histogram-candidates-per-feature
-        variable/candidate
-        """.trim().split(/\s+/)
+        sendStdoutOf res, "dashboard-report-template", ["ls"]
 
     exampleSnapshotConfigs =
         default: [
@@ -142,8 +133,7 @@ exports.init = (app) ->
 
     # List Snapshot Configurations
     app.get "/api/snapshot-config/", (req, res) ->
-        # TODO correct implementation
-        res.json exampleSnapshotConfigs
+        sendStdoutOf res, "dashboard-snapshot-config", ["ls"]
         
     # Create a New Snapshot Configuration or Update an Existing One
     app.put "/api/snapshot-config/:configName", (req, res) ->
@@ -161,9 +151,7 @@ exports.init = (app) ->
     # Read Contents of a Snapshot Configuration
     app.get "/api/snapshot-config/:configName", (req, res) ->
         configName = req.param "configName"
-        # TODO correct implementation
-        return res.sendStatus 404 unless exampleSnapshotConfigs[configName]?
-        res.json exampleSnapshotConfigs[configName]
+        sendStdoutOf res, "dashboard-snapshot-config", ["get", configName]
 
     # Delete a Snapshot Configuration
     app.delete "/api/snapshot-config/:configName", (req, res) ->
