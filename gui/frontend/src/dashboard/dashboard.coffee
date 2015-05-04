@@ -61,9 +61,16 @@ angular.module "mindbenderApp.dashboard", [
         $scope.newSnapshotName = ""
 
     $scope.addTemplate = () ->
-        # Need Template API functionality
         $scope.configTemplates.push({"reportTemplate":"", "params": {}})
-    
+
+    $scope.updateParams = (configTemplate) ->
+        $http.get "/api/report-template/" + configTemplate.reportTemplate
+            .success (data, status, headers, config) -> 
+                for param in Object.keys(data.params)
+                    data.params[param] = data.params[param]['defaultValue']
+
+                configTemplate.params = data.params
+
     $scope.updateConfig = () ->
         $http.put("/api/snapshot-config/" + $scope.currentSnapshotConfig, $scope.configTemplates)
     
@@ -80,23 +87,80 @@ angular.module "mindbenderApp.dashboard", [
             $scope.snapshots = data
 
 
-.controller "SnapshotReportsCtrl", ($scope, $http, $routeParams) ->
-    $scope.title = "Snapshot " + $routeParams.snapshotId + ": Reports"
+.controller "SnapshotReportsCtrl", ($scope, $http, $routeParams, $sce) ->
+    $scope.title = "Snapshot " + $routeParams.snapshotId
+    $scope.loading = false
+    $scope.hideLoader = true
     
+
     $scope.loadReport = (report_key) ->
+        $scope.loading = true
+        $scope.table = false
+        $scope.markdown = $sce.trustAsHtml("")
+
         $http.get "/api/snapshot/" + $routeParams.snapshotId + "/" + report_key
-        .success (data, status, headers, config) -> 
-            table = $scope.convertToRowOrder(data[report_key].table['num_candidates_per_feature'])
-            $scope.currentReport = report_key
-            $scope.tableHeaders = table.headers
-            $scope.tableRows = table.data
-            $scope.json = {"graph": 1, "x": "num_candidates", "y":"num_features", "data": table.data}
-            renderCharts($scope.json)
+            .success (data, status, headers, config) -> 
+                $scope.loading = true
+                $scope.currentReport = report_key
+
+                if data[report_key].table
+                    $scope.markdown = $sce.trustAsHtml("")
+                    table_name = Object.keys(data[report_key].table)[0]
+                    table = $scope.convertToRowOrder(data[report_key].table[table_name])
+                    $scope.tableHeaders = table.headers
+                    $scope.tableRows = table.data
+                    $scope.json = {x: table.headers[0], y: table.headers[1], data: table.data}
+                    renderCharts($scope.json)
+                else
+                    $scope.markdown = $sce.trustAsHtml(data[report_key].markdown)
+                
+                $scope.loading = false
 
     $http.get "/api/snapshot/" + $routeParams.snapshotId
         .success (data, status, headers, config) -> 
             $scope.reports = data
+            $scope.sortReports(Object.keys(data))
 
+    $scope.buildTree = (params, path_splits) ->
+        result = {}
+
+        for full_split in path_splits
+            split = full_split[0]
+            i = 0
+            on_path = true
+            for k in params
+                if split[i] != k
+                    on_path = false
+                i += 1
+
+            if on_path && split.length > i
+                new_params = params.slice()
+                new_params.push(split[i])
+                children = $scope.buildTree(new_params, path_splits)
+                result[split[i]] = children
+
+                if Object.keys(children).length == 0
+                    result[split[i]]['$leaf'] = true 
+
+                tmp = full_split[1].split(" ")
+
+                result[split[i]]['$report_key'] = tmp[0].split("/").slice(0, new_params.length).join("/") + " " + tmp[1]
+
+        return result
+
+    $scope.convertReportKey = (report_key) ->
+        var_split = report_key.split(" ")
+        path_split = var_split[0].split("/")
+        path_split[0] += " (" + var_split[1] + ")"
+        return path_split
+
+    $scope.sortReports = (report_keys) ->
+        path_splits = []
+        
+        for k in report_keys 
+            path_splits.push([$scope.convertReportKey(k), k])
+
+        $scope.nav = $scope.buildTree([], path_splits)
 
     $scope.convertToRowOrder = (table) ->
         if table.headers
@@ -115,28 +179,73 @@ angular.module "mindbenderApp.dashboard", [
 
 .controller "EditTemplatesCtrl", ($scope, $http) ->
     $scope.title = "Configure Templates"
-    $scope.variableFields = ['name', 'required', 'default', 'description']
 
-    $scope.templateList = ["template1", "template2"]
-    $scope.template = {
-        name: "my template"
-        formatted: true
-        variables: [
-            { name: "test", required: "a", default: "def", description: "Description" }
-        ]
-        chart: {show: true, x: "test x", y: "test y"}
-    }
+    $scope.loadTemplates = (switchToTemplate) ->
+        $http.get "/api/report-templates/"
+            .success (data, status, headers, config) -> 
+                $scope.templateList = data
+                if switchToTemplate
+                    $scope.currentTemplateName = switchToTemplate
+
+    $scope.loadTemplates()
 
     $scope.$watch "currentTemplateName", (newValue, oldValue) ->
         if newValue
-            $scope.template = {
-                name: "my template 2"
-                formatted: true
-                variables: [
-                    { name: "test", required: "a", default: "def", description: "Description" }
-                ]
-                chart: {show: true, x: "test x", y: "test y"}
-            }
+            $http.get "/api/report-template/" + newValue
+                .success (data, status, headers, config) -> 
+                    $scope.template = $.extend({}, data);
+                    $scope.template.params = []
+                    for param in Object.keys(data.params)
+                        $scope.template.params.push($.extend({ name: param }, data.params[param]))
+
+                    if data.markdownTemplate
+                        $scope.formatted = false
+                    else
+                        $scope.formatted = true
+
+                    if data.chart
+                        $scope.template.hasChart = true
+                    else
+                        $scope.template.hasChart = false
+
+    $scope.addVariable = () ->
+        $scope.template.params.push({})
+
+    $scope.formatTemplateForUpdate = () ->
+        params = {}
+        
+        for param in $scope.template.params
+            params[param.name] = $.extend({}, param);
+            delete params[param.name]['name']
+
+        template = { params: params }
+        if $scope.formatted
+            template.sqlTemplate = $scope.template.sqlTemplate
+        else
+            template.markdownTemplate = $scope.template.markdownTemplate
+
+        if $scope.template.hasChart
+            template.chart = $scope.template.chart
+
+        return template
+
+    $scope.updateTemplate = () ->
+        $scope.updateTemplateName($scope.currentTemplateName)
+
+    $scope.updateTemplateName = (name, callback) ->
+        template = $scope.formatTemplateForUpdate()
+        $http.put("/api/report-template/" + name, template)
+            .success (data, status, headers, config) ->
+                if callback 
+                    callback()
+
+    $scope.deleteTemplate = () ->
+        $http.delete("/api/report-template/" + $scope.currentTemplateName)
+
+    $scope.copyTemplate = () ->
+        $scope.updateTemplateName($scope.template.copyTemplateName, -> 
+            $scope.loadTemplates($scope.template.copyTemplateName)
+        )
 
 .filter 'capitalize', () ->
     (input) ->

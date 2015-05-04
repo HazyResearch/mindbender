@@ -1,0 +1,12 @@
+<ul>
+	<li ng-repeat="(k, v) in nav">
+		<span style="display:inline-block;">
+			<span ng-hide="v.$leaf" ng-click="v.$show = !v.$show">
+				<i ng-hide="v.$show" class="fa fa-chevron-right"></i>
+				<i ng-show="v.$show" class="fa fa-chevron-down"></i>
+			</span>
+		</span>
+		<span ng-click="loadReport(v.$report_key)" ng-style="currentReport == v.$report_key && { 'font-weight': 'bold' }">{{ k }}</span>
+		<div ng-show="v.$show" ng-init="nav = v;" ng-include="'dashboard/nav.html'"></div>  
+	</li>
+</ul>

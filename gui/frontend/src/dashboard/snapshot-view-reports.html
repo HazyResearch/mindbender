@@ -1,31 +1,41 @@
 <div ng-include="'dashboard/header.html'"></div>
-	
-<div>
-	<span ng-repeat="(report_key, report) in reports" class="report-button">
-		<button type="button" ng-click="loadReport(report_key)" class="btn btn-primary">{{ report_key }}</span>
-	</span>
-</div>
-<div class="clear"></div><br>
-<h1 id="report">{{ currentReport }}</h1>
-	
-<div id="report-table">
-	<table class="table table-striped" style="text-align:right">
-		<tr>
-			<th ng-repeat="tableHeader in tableHeaders">{{ tableHeader }}</th>
-		</tr>
-		<tr ng-repeat="tableRow in tableRows">
-			<td ng-repeat="tableData in tableRow track by $index">{{ tableData }}</td>
-		</tr>
-	</table>
-</div>
 
-<div class="report-chart">
-	<div id="scatter_plot" class="chart"></div>
-	<div id="histogram" class="chart"></div>
-	<br style="clear:both;">
-	<div id="slider"></div>
+<h3 id="report" style="margin-top:10px;height:20px;">{{ currentReport }}</h1>
+
+<div class="row" id="report-charts">
+	<div class="col-md-2">
+		<div id="nav">
+			<div class="tree" onmouseover="document.body.style.overflow='hidden';" onmouseout="document.body.style.overflow='auto';">
+				<div ng-include="'dashboard/nav.html'" ng-model="nav"></div>
+			</div>
+		</div>
+	</div>
+	<div ng-show="loading && markdown" class="col-md-10">
+		<img src="dashboard/images/loading.gif">
+	</div>
+	<div class="col-md-10" ng-show="markdown">
+		<div ng-bind-html="markdown"></div>
+	</div>
+	<div class="col-md-4" ng-class="{hidden_chart: markdown }">
+		<table class="table table-striped" style="text-align:right">
+			<tr>
+				<th ng-repeat="tableHeader in tableHeaders">{{ tableHeader }}</th>
+			</tr>
+			<tr ng-repeat="tableRow in tableRows">
+				<td ng-repeat="tableData in tableRow track by $index">{{ tableData }}</td>
+			</tr>
+		</table>
+	</div>
+	<div class="col-md-6" ng-class="{hidden_chart: markdown }">
+		<div class="chart">
+			<div id="scatter_plot"></div>
+		</div>
+		<div class="chart">
+			<div id="histogram"></div>
+			<div id="slider"></div>
+		</div>
+	</div>
 </div>
-	
 	
 <script>
 	function renderCharts(json) {
@@ -38,6 +48,12 @@
 			value: Math.sqrt(json.data.length, 1/3),
 			slide: function(event, ui) {
 				report_chart.histogram("histogram", ui.value);
+			}
+		});
+
+		$('#nav').affix({
+			offset: {
+				top: $('#nav').offset().top
 			}
 		});
 	}

@@ -1,54 +1,85 @@
 <div ng-include="'dashboard/header.html'"></div>
 
-<div class="well">
-	<select ng-model="currentTemplateName">
-		<option ng-repeat="templateName in templateList">{{ templateName }}</option>
-	</select>
+<div class="form-inline">
+	<div class="input-group">
+		<span class="input-group-addon" style="font-weight:bold;">Template</span>
+		<select ng-model="currentTemplateName" class="form-control">
+			<option ng-repeat="templateName in templateList">{{ templateName }}</option>
+		</select>
+	</div>
+</div>
+
 
 	<form action="" method="post">
-		<div class="templates">
-			1.)
-			<div class="template" style="background-color: #FEFEFE">
-				<div>
-					<input type="radio" ng-model="template.formatted" name="formatted" ng-value="true" class="template-format"> Formatted
-					<input type="radio" ng-model="template.formatted" name="formatted" ng-value="false" class="template-format"> Custom
+		<div class="template">
+			<div class="form-inline">
+				<div class="input-group">
+					<span class="input-group-addon" style="font-weight:bold;">Type</span>
+					<span style="display:inline-block;margin-left:10px">
+						<label class="radio-inline">
+							<input type="radio" ng-model="formatted" name="formatted" ng-value="true"> Formatted
+							</label>
+						<label class="radio-inline">
+							<input type="radio" ng-model="formatted" name="formatted" ng-value="false"> Custom
+						</label>
+					</span>
 				</div>
-				<select>
-					<option>Load a saved template</option>
-				</select>
-				<div>
-					<input type="text" name="name" placeholder="Template name" ng-value="template.name">
+			</div>
+			<br>
+			<div ng-switch="formatted" ng-show="template">
+				<div class="formatted" ng-switch-when="true">
+					<textarea ng-model="template.sqlTemplate" placeholder="SQL Query"></textarea>
 				</div>
-				<div ng-switch="template.formatted">
-					<div class="formatted" ng-switch-when="true">
-						<div><textarea name="query" placeholder="Query"></textarea></div>
-						<br>
-						<div class="variables">
-							Variables:
-							<table>
-								<tr>
-									<td ng-repeat="field in variableFields">{{ field | capitalize }}</td>
-								</tr>
-								<tr ng-repeat="(i, variable) in template.variables">
-									<td ng-repeat="key in variableFields">
-										<input type="text" name="variable[i][key]" ng-value="variable[key]">
-									</td>
-								</tr>
-							</table>
-							<img src="dashboard/images/plus_green.png" ng-click="addVariable()">
-						</div>
-						<div class="chart">
-							<input type="checkbox" ng-checked="template.chart.show"> Graph:
-							<div>X: <input type="text" ng-value="template.chart.x"></div>
-							<div>Y: <input type="text" ng-value="template.chart.y"></div>
-						</div>
-						<div class="clear"></div>
+				<div class="custom" ng-switch-when="false">
+					<textarea ng-model="template.markdownTemplate" placeholder="Markdown"></textarea>
+				</div>
+				<div class="row">
+					<div class="col-md-9">
+						<h4>Parameters</h4>
+						<table class="table table-striped" style="margin-bottom: 5px">
+							<tr>
+								<th>Name</th>
+								<th>Default Value</th>
+								<th>Description</th>
+								<th>Required</th>
+							</tr>
+							<tr ng-repeat="(param, details) in template.params">
+								<td><input type="text" ng-model="template.params[param].name"></td>
+								<td><input type="text" ng-model="template.params[param].defaultValue" style="width:100px"></td>
+								<td><input type="text" style="width:250px" ng-model="template.params[param].description"></td>
+								<td style="text-align: center"><input type="checkbox" ng-model="template.params[param].isRequired"></td>
+							</tr>
+						</table>
+						<img src="dashboard/images/plus_green.png" ng-click="addVariable()">
 					</div>
-					<div class="custom" ng-switch-when="false">
-						<textarea name="custom"></textarea>
+					<div class="col-md-3" ng-switch-when="true">
+						<h4>Chart</h4>
+						<input type="checkbox" ng-model="template.hasChart"> Chart:
+						<div>X: <input type="text" ng-model="template.chart.x"></div>
+						<div>Y: <input type="text" ng-model="template.chart.y" style="margin-top:5px;"></div>
+					</div>
+				</div>
+				<br>
+				<input type="button" class="btn btn-success" ng-click="updateTemplate()" value="Update Template">
+				<input type="button" class="btn btn-danger" ng-click="deleteTemplate()" value="Delete Template">
+				<input type="button" class="btn btn-primary" value="Copy Template" data-toggle="modal" data-target="#copyTemplateModal" style="float:right">
+				<div class="modal fade" id="copyTemplateModal" tabindex="-1" role="dialog" aria-hidden="true">
+					<div class="modal-dialog">
+						<div class="modal-content">
+							<div class="modal-header">
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+								<h4 class="modal-title">Copy Template</h4>
+							</div>
+							<div class="modal-body">
+					        	New template name: <input type="text" ng-model="template.copyTemplateName" class="form-control">
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="copyTemplate()">Create Template</button>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 	</form>
-</div>
+	<br><br>

@@ -23,6 +23,7 @@ compile from=.less   to=.css  with=compile-less   src=../build/src/%s out=../bui
 compile from=.html   to=.html with=:              src=../build/%s     out=../build/%s **/*.html
 compile from=.css    to=.css  with=:              src=../build/%s     out=../build/%s **/*.css
 compile from=.png    to=.png  with=:              src=../build/%s     out=../build/%s **/*.png
+compile from=.gif    to=.gif  with=:              src=../build/%s     out=../build/%s **/*.gif
 compile from=.json   to=.json with=:              src=../build/%s     out=../build/%s **/*.json
 cd ..
 
