@@ -15,11 +15,11 @@
 			</select>
 		</div>		
 		<br><br>
-		<div ng-repeat="configTemplate in configTemplates">
+		<div ng-repeat="(k, configTemplate) in configTemplates">
 			
 				<div class="input-group">
 					<span class="input-group-addon" style="font-weight:bold;">Template</span>
-					<select ng-model="configTemplate.reportTemplate" class="form-control">
+					<select ng-model="configTemplate.reportTemplate" ng-change="updateParams(configTemplate)" class="form-control">
 						<option ng-repeat="template in templates">{{ template }}</option>
 					</select>
 				</div>
