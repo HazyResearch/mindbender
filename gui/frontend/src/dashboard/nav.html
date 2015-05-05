@@ -6,7 +6,7 @@
 				<i ng-show="v.$show" class="fa fa-chevron-down"></i>
 			</span>
 		</span>
-		<span ng-click="loadReport(v.$report_key)" ng-style="currentReport == v.$report_key && { 'font-weight': 'bold' }">{{ k }}</span>
+		<span ng-click="loadReportFromNav(v)" ng-style="currentReport == v.$report_key && { 'font-weight': 'bold' }">{{ k }}</span>
 		<div ng-show="v.$show" ng-init="nav = v;" ng-include="'dashboard/nav.html'"></div>  
 	</li>
 </ul>

@@ -23,9 +23,10 @@ angular.module "mindbenderApp.dashboard", [
         templateUrl: "dashboard/snapshot-list.html"
         controller: "SnapshotListCtrl"
 
-    $routeProvider.when "/snapshot/:snapshotId",
+    $routeProvider.when "/snapshot/:snapshotId/",
         templateUrl: "dashboard/snapshot-view-reports.html"
-        controller: "SnapshotReportsCtrl"
+        controller: "SnapshotReportsCtrl",
+        reloadOnSearch: false
 
     $routeProvider.when "/report-templates/edit",
         templateUrl: "dashboard/report-templates-editor.html"
@@ -87,16 +88,22 @@ angular.module "mindbenderApp.dashboard", [
             $scope.snapshots = data
 
 
-.controller "SnapshotReportsCtrl", ($scope, $http, $routeParams, $sce) ->
+.controller "SnapshotReportsCtrl", ($scope, $http, $routeParams, $location, $sce) ->
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
     $scope.hideLoader = true
-    
+
+    $scope.loadReportFromNav = (nav) ->
+        if nav.$show || nav.$leaf
+            $scope.loadReport(nav.$report_key)
+        else
+            nav.$show = true
 
     $scope.loadReport = (report_key) ->
         $scope.loading = true
         $scope.table = false
         $scope.markdown = $sce.trustAsHtml("")
+        $location.search('report', report_key)
 
         $http.get "/api/snapshot/" + $routeParams.snapshotId + "/" + report_key
             .success (data, status, headers, config) -> 
@@ -120,6 +127,17 @@ angular.module "mindbenderApp.dashboard", [
         .success (data, status, headers, config) -> 
             $scope.reports = data
             $scope.sortReports(Object.keys(data))
+
+            $scope.$watch (-> $location.search()['report']), (newValue, oldValue) ->
+                search_report = $location.search()['report']
+                if search_report && !$scope.loading
+                    $scope.loadReport(search_report)
+                    search_report_split = $scope.convertReportKey(search_report)
+                    traverse_nav = $scope.nav
+                    for s in search_report_split
+                        traverse_nav[s]['$show'] = true
+                        traverse_nav = traverse_nav[s]
+
 
     $scope.buildTree = (params, path_splits) ->
         result = {}
@@ -145,6 +163,8 @@ angular.module "mindbenderApp.dashboard", [
                 tmp = full_split[1].split(" ")
 
                 result[split[i]]['$report_key'] = tmp[0].split("/").slice(0, new_params.length).join("/") + " " + tmp[1]
+                if i == 0
+                    result[split[i]]['$show'] = true
 
         return result
 
@@ -184,6 +204,7 @@ angular.module "mindbenderApp.dashboard", [
         $http.get "/api/report-templates/"
             .success (data, status, headers, config) -> 
                 $scope.templateList = data
+
                 if switchToTemplate
                     $scope.currentTemplateName = switchToTemplate
 
