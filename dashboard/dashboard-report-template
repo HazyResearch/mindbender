@@ -152,7 +152,7 @@ case $Command in
                     yes
             write "report.params", (
                 if (_.size reportTemplate.params) > 0
-                    for name,{isRequired,defaultValue,description} of reportTemplate.params
+                    for name,{isRequired,defaultValue,description,inheritedFrom} of reportTemplate.params when not inheritedFrom?
                         if isRequired
                             "required #{esc name} #{esc description}"
                         else
@@ -160,7 +160,9 @@ case $Command in
             )?.join "\n"
             write "README.md.in", reportTemplate.markdownTemplate
             write "report.sql.in", reportTemplate.sqlTemplate
-            # TODO keep chart/graph parameters somewhere
+            # keep chart parameters
+            write "report.chart",
+                JSON.stringify reportTemplate.chart if reportTemplate.chart?
         ' /dev/stdin
 
         # clean up conflicting artifacts after decoding

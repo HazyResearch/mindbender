@@ -44,10 +44,14 @@ for reportId in reportIds
         continue unless /\.json$/.test filename
         continue if /^report\./.test filename
         try
-            t = JSON.parse fs.readFileSync "#{report.path}/#{filename}"
-            report.table ?= {}
-            tableName = filename.replace /\.json$/, ""
-            report.table[tableName] = t
+            d = {}
+            d.table = JSON.parse fs.readFileSync "#{report.path}/#{filename}"
+            report.data ?= {}
+            dataName = filename.replace /\.json$/, ""
+            try # parsing charting info
+                chartPath = "#{report.path}/#{dataName}.chart"
+                d.chart = JSON.parse fs.readFileSync chartPath
+            report.data[dataName] = d
 
 console.log JSON.stringify output
 ' "$Snapshot" "$@"

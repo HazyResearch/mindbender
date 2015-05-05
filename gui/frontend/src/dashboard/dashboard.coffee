@@ -109,17 +109,26 @@ angular.module "mindbenderApp.dashboard", [
             .success (data, status, headers, config) -> 
                 $scope.loading = true
                 $scope.currentReport = report_key
+                report = data[report_key]
 
-                if data[report_key].table
-                    $scope.markdown = $sce.trustAsHtml("")
-                    table_name = Object.keys(data[report_key].table)[0]
-                    table = $scope.convertToRowOrder(data[report_key].table[table_name])
+                if report.data?
+                    $scope.html = $sce.trustAsHtml("")
+                    data_name = Object.keys(report.data)[0]
+                    {table, chart} = report.data[data_name]
+                    table = $scope.convertToRowOrder(table)
                     $scope.tableHeaders = table.headers
                     $scope.tableRows = table.data
-                    $scope.json = {x: table.headers[0], y: table.headers[1], data: table.data}
-                    renderCharts($scope.json)
+                    if ($scope.chart = chart)?
+                        $scope.json = {
+                            x: chart.x
+                            y: chart.y
+                            data: table.data
+                        }
+                        renderCharts($scope.json)
+                    else
+                        # TODO clear chart
                 else
-                    $scope.markdown = $sce.trustAsHtml(data[report_key].markdown)
+                    $scope.html = $sce.trustAsHtml(report.html ? report.markdown)
                 
                 $scope.loading = false
 
