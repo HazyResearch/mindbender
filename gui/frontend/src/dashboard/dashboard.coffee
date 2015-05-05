@@ -127,15 +127,17 @@ angular.module "mindbenderApp.dashboard", [
         .success (data, status, headers, config) -> 
             $scope.reports = data
             $scope.sortReports(Object.keys(data))
-            
-            search_report = $location.search()['report']
-            if search_report
-                $scope.loadReport(search_report)
-                search_report_split = $scope.convertReportKey(search_report)
-                traverse_nav = $scope.nav
-                for s in search_report_split
-                    traverse_nav[s]['$show'] = true
-                    traverse_nav = traverse_nav[s]
+
+            $scope.$watch (-> $location.search()['report']), (newValue, oldValue) ->
+                search_report = $location.search()['report']
+                if search_report && !$scope.loading
+                    $scope.loadReport(search_report)
+                    search_report_split = $scope.convertReportKey(search_report)
+                    traverse_nav = $scope.nav
+                    for s in search_report_split
+                        traverse_nav[s]['$show'] = true
+                        traverse_nav = traverse_nav[s]
+
 
     $scope.buildTree = (params, path_splits) ->
         result = {}
@@ -161,6 +163,8 @@ angular.module "mindbenderApp.dashboard", [
                 tmp = full_split[1].split(" ")
 
                 result[split[i]]['$report_key'] = tmp[0].split("/").slice(0, new_params.length).join("/") + " " + tmp[1]
+                if i == 0
+                    result[split[i]]['$show'] = true
 
         return result
 
