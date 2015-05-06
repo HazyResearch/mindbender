@@ -10,13 +10,13 @@
 			</div>
 		</div>
 	</div>
-	<div ng-show="loading && markdown" class="col-md-10">
+	<div ng-show="loading && html" class="col-md-10">
 		<img src="dashboard/images/loading.gif">
 	</div>
-	<div class="col-md-10" ng-show="markdown">
-		<div ng-bind-html="markdown"></div>
+	<div class="col-md-10" ng-show="html">
+		<div ng-bind-html="html"></div>
 	</div>
-	<div class="col-md-4" ng-class="{hidden_chart: markdown }">
+	<div class="col-md-4" ng-class="{hidden_chart: html }">
 		<table class="table table-striped" style="text-align:right">
 			<tr>
 				<th ng-repeat="tableHeader in tableHeaders">{{ tableHeader }}</th>
@@ -26,7 +26,7 @@
 			</tr>
 		</table>
 	</div>
-	<div class="col-md-6" ng-class="{hidden_chart: markdown }">
+	<div class="col-md-6" ng-class="{hidden_chart: html }">
 		<div class="chart">
 			<div id="scatter_plot"></div>
 		</div>
