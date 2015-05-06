@@ -11,7 +11,7 @@
 		<div class="input-group">
 			<span class="input-group-addon" style="font-weight:bold;">Edit existing snapshot configuration</span>
 			<select ng-model="currentSnapshotConfig" class="form-control">
-				<option ng-repeat="(snapshotConfigName, v) in configs">{{ snapshotConfigName }}</option>
+				<option ng-repeat="snapshotConfigName in configs">{{ snapshotConfigName }}</option>
 			</select>
 		</div>		
 		<br><br>

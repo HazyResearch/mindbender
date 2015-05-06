@@ -53,8 +53,10 @@ angular.module "mindbenderApp.dashboard", [
             $scope.templates = data 
 
     $scope.$watch "currentSnapshotConfig", (newValue, oldValue) ->
-        if $scope.configs
-            $scope.configTemplates = $scope.configs[newValue]
+        if newValue
+            $http.get "/api/snapshot-config/" + newValue
+                .success (data, status, headers, config) -> 
+                    $scope.configTemplates = data
 
     $scope.addConfig = () ->
         $http.put("/api/snapshot-config/" + $scope.newSnapshotName, "[]")
