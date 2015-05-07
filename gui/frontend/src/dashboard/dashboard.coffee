@@ -18,20 +18,25 @@ angular.module "mindbenderApp.dashboard", [
                 { url: '#/dashboard', name: 'Task', img: 'task.png' }
             ]
             do @updateNavLinkForSnapshots
+            $rootScope.isNavLinkActive = (navLink) ->
+                matchesLocation = ({url}) -> url is "##{$location.$$url}"
+                (matchesLocation navLink) or
+                    not (_.isEmpty navLink.links) and
+                        (_.any navLink.links, matchesLocation)
             $rootScope.location = $location
 
         updateNavLinkForSnapshots: (snapshotParams) =>
             # query string to append
             qs =
-                if 0 == _.size snapshotParams then ""
-                else "?#{"#{k}=#{v}" for k,v of snapshotParams}"
+                if _.isEmpty snapshotParams then ""
+                else "?#{"#{encodeURIComponent k}=#{encodeURIComponent v}" for k,v of snapshotParams}"
             # how to populate snapshot links for navbar
             updateLinks = =>
                 navLinkForSnapshots = _.find $rootScope.navLinks, name: "View Snapshots"
                 navLinkForSnapshots.links =
                     for snapshotId in $rootScope.mostRecentSnapshots
                         # TODO use different style to indicate whether snapshotParams is applicable to this snapshot or not
-                        { url: "#/snapshot/#{snapshotId}#{qs}", name: snapshotId }
+                        { url: "#/snapshot/#{snapshotId}/#{qs}", name: snapshotId }
                 if $rootScope.mostRecentSnapshots > NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
                     navLinkForSnapshots.links = [
                         navLinkForSnapshots.links...
