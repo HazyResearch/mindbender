@@ -1,4 +1,5 @@
 angular.module "mindbenderApp.dashboard", [
+    "ui.ace"
 ]
 
 .run ($rootScope, $location) ->

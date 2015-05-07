@@ -17,6 +17,8 @@
     "angular-bootstrap": "0.11.2",
     "angular-hotkeys": "netj/angular-hotkeys#master",
     "highcharts-release": "4.1.5",
+    "ace-builds": "1.1.9",
+    "angular-ui-ace": "0.2.3",
     "bootstrap": "3.2.0",
     "fontawesome": "4.2.0",
     "underscore": "1.7.0",

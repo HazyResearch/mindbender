@@ -26,10 +26,32 @@
 		<br>
 		<div ng-switch="formatted" ng-show="template">
 			<div class="formatted" ng-switch-when="true">
-				<textarea ng-model="template.sqlTemplate" placeholder="SQL Query"></textarea>
+				<textarea ng-model="template.sqlTemplate" placeholder="SQL Query"
+				    ui-ace="{
+                                        mode: 'sql',
+                                        theme: 'terminal',
+                                        useWrapMode: true,
+                                        require: ['ace/ext/language_tools'],
+                                        advanced: {
+                                            enableSnippets: true,
+                                            enableBasicAutocompletion: true,
+                                            enableLiveAutocompletion: true
+                                        }
+                                    }"></textarea>
 			</div>
 			<div class="custom" ng-switch-when="false">
-				<textarea ng-model="template.markdownTemplate" placeholder="Markdown"></textarea>
+				<textarea ng-model="template.markdownTemplate" placeholder="Markdown"
+				    ui-ace="{
+                                        mode: 'markdown',
+                                        theme: 'github',
+                                        useWrapMode: true,
+                                        require: ['ace/ext/language_tools'],
+                                        advanced: {
+                                            enableSnippets: true,
+                                            enableBasicAutocompletion: true,
+                                            enableLiveAutocompletion: true
+                                        }
+                                    }"></textarea>
 			</div>
 			<div class="row">
 				<div class="col-md-9">
