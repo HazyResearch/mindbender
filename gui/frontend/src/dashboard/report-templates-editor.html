@@ -29,8 +29,9 @@
 				<textarea ng-model="template.sqlTemplate" placeholder="SQL Query"
 				    ui-ace="{
                                         mode: 'sql',
-                                        theme: 'terminal',
+                                        theme: 'tomorrow_night_bright',
                                         useWrapMode: true,
+                                        rendererOptions: { minLines: 10, maxLines: 30, },
                                         require: ['ace/ext/language_tools'],
                                         advanced: {
                                             enableSnippets: true,
@@ -43,8 +44,9 @@
 				<textarea ng-model="template.markdownTemplate" placeholder="Markdown"
 				    ui-ace="{
                                         mode: 'markdown',
-                                        theme: 'github',
+                                        theme: 'tomorrow_night_bright',
                                         useWrapMode: true,
+                                        rendererOptions: { minLines: 10, maxLines: 30, },
                                         require: ['ace/ext/language_tools'],
                                         advanced: {
                                             enableSnippets: true,
