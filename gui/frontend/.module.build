@@ -35,24 +35,7 @@ cd build
 ln -sfn ../node_modules
 shopt -s nullglob
 files=(
-node_modules/source-map-support/browser-source-map-support.js
-
-bower_components/modernizr/modernizr.js
-bower_components/underscore/underscore.js
-
-bower_components/jquery/dist/jquery.js
-bower_components/jquery-ui/jquery-ui.js
-bower_components/bootstrap/dist/js/bootstrap.js
-bower_components/jquery-csv/src/jquery.csv.js
-bower_components/jquery.scrollTo/jquery.scrollTo.js
-
-bower_components/angular/angular.js
-bower_components/angular-route/angular-route.js
-bower_components/angular-bootstrap/ui-bootstrap.js
-bower_components/angular-bootstrap/ui-bootstrap-tpls.js
-bower_components/angular-hotkeys/build/hotkeys.js
-
-bower_components/highcharts-release/highcharts.js
+$(sed 's/#.*//' <../js-include.paths)
 
 {!(bower_components|node_modules)/**/,}!(*_test|${appName}|${appName}.*).js
 )
@@ -60,7 +43,7 @@ shopt -u nullglob
 
 # See if any files have changed and we need to compile .js again
 hasChanged=false
-for input in "${files[@]}"; do
+for input in ../js-include.paths "${files[@]}"; do
     [[ -e "$input" ]] || { echo >&2 "$input: Not found"; false; }
     [[ "$input" -nt ${appName}.js ]] || continue
     echo >&2 "$input has changed, recompiling ${appName}.js"
