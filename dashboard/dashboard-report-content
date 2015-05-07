@@ -24,6 +24,7 @@ path = require "path"
 [snapshotId, reportIds...] = process.argv[4..]
 reports = JSON.parse fs.readFileSync "reports.json"
 output = {}
+count = 0
 for reportId in reportIds
     report = reports[reportId]
     unless report?
@@ -52,6 +53,7 @@ for reportId in reportIds
                 chartPath = "#{report.path}/#{dataName}.chart"
                 d.chart = JSON.parse fs.readFileSync chartPath
             report.data[dataName] = d
-
+    count += 1
+process.exit 1 if count == 0
 console.log JSON.stringify output
 ' "$Snapshot" "$@"

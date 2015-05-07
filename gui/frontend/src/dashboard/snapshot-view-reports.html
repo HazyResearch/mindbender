@@ -10,6 +10,15 @@
 			</div>
 		</div>
 	</div>
+
+	<div ng-if="reportLoadError" class="col-md-10">
+		<div class="alert alert-danger">
+			<h3>Report Not Found</h3>
+			{{ reportLoadError }}
+		</div>
+	</div>
+
+	<div ng-if="!reportLoadError">
 	<div ng-show="loading && html" class="col-md-10">
 		<img src="dashboard/images/loading.gif">
 	</div>
@@ -34,6 +43,7 @@
 			<div id="histogram"></div>
 			<div id="slider"></div>
 		</div>
+	</div>
 	</div>
 </div>
 	

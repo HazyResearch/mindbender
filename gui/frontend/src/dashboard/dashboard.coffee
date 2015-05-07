@@ -151,19 +151,28 @@ angular.module "mindbenderApp.dashboard", [
         else
             nav.$show = true
 
+    reportNotFound = (report_key) ->
+        $scope.reportLoadError =
+            "#{report_key} does not exist in snapshot #{$routeParams.snapshotId}"
+
     $scope.loadReport = (report_key) ->
         $scope.loading = true
+        $scope.reportLoadError = null
         $scope.table = false
         $scope.markdown = $sce.trustAsHtml("")
         $location.search('report', report_key)
+        reportIdFull = "#{$routeParams.snapshotId}/#{report_key}"
 
-        $http.get "/api/snapshot/" + $routeParams.snapshotId + "/" + report_key
+        # TODO check report_key from $scope.reports first
+
+        $http.get "/api/snapshot/#{reportIdFull}"
             .success (data, status, headers, config) -> 
-                $scope.loading = true
+                $scope.loading = false
                 $scope.currentReport = report_key
                 report = data[report_key]
-
+                return reportNotFound report_key unless report?
                 if report.data?
+                    # data-table (formatted) report
                     $scope.html = $sce.trustAsHtml("")
                     data_name = Object.keys(report.data)[0]
                     {table, chart} = report.data[data_name]
@@ -171,6 +180,7 @@ angular.module "mindbenderApp.dashboard", [
                     $scope.tableHeaders = table.headers
                     $scope.tableRows = table.data
                     if ($scope.chart = chart)?
+                        # with chart
                         $scope.json = {
                             x: chart.x
                             y: chart.y
@@ -178,12 +188,18 @@ angular.module "mindbenderApp.dashboard", [
                         }
                         renderCharts($scope.json)
                     else
+                        # without chart
                         # TODO clear chart
                 else
+                    # free-text (custom) report
                     $scope.html = $sce.trustAsHtml(report.html ? report.markdown)
-                
-                $scope.loading = false
                 Dashboard.updateNavLinkForSnapshots $location.search()
+
+            .error (data, status, headers, config) ->
+                $scope.loading = false
+                $scope.currentReport = report_key
+                $scope.reportLoadError = status
+                console.error "#{reportIdFull}: #{status} error while loading"
 
     $http.get "/api/snapshot/" + $routeParams.snapshotId
         .success (data, status, headers, config) -> 
@@ -191,14 +207,18 @@ angular.module "mindbenderApp.dashboard", [
             $scope.sortReports(Object.keys(data))
 
             $scope.$watch (-> $location.search()['report']), (newValue, oldValue) ->
-                search_report = $location.search()['report']
-                if search_report && !$scope.loading
+                return if $scope.loading
+                search_report = $location.search().report
+                return unless search_report?
+                if $scope.reports[search_report]?
                     $scope.loadReport(search_report)
                     search_report_split = $scope.convertReportKey(search_report)
                     traverse_nav = $scope.nav
                     for s in search_report_split
                         traverse_nav[s]['$show'] = true
                         traverse_nav = traverse_nav[s]
+                else
+                    reportNotFound search_report
 
 
     $scope.buildTree = (params, path_splits) ->
