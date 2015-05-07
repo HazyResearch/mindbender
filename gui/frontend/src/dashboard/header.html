@@ -21,7 +21,10 @@
                 <li ng-repeat="link in navLink.links"
                     ng-class="{divider : link.isDivider}">
                     <!-- TODO different style -->
-                    <a ng-if="!link.isDivider" href="{{ link.url }}">{{ link.name }}</a>
+                    <a ng-if="!link.isDivider" href="{{ link.url }}">
+                        <strong ng-if=" isNavLinkActive(link)">{{ link.name }}</strong>
+                        <span   ng-if="!isNavLinkActive(link)">{{ link.name }}</span>
+                    </a>
                 </li>
             </ul>
         </li>
