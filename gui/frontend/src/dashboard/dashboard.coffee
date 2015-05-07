@@ -1,15 +1,60 @@
 angular.module "mindbenderApp.dashboard", [
     "ui.ace"
+    'ui.bootstrap'
 ]
 
-.run ($rootScope, $location) ->
-    $rootScope.navLinks = [
-        { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
-        { url: '#/report-templates/edit', name: 'Configure Templates', img: 'gear.png' }
-        { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
-        { url: '#/dashboard', name: 'Task', img: 'task.png' }
-    ]
-    $rootScope.location = $location
+.service "Dashboard", ($rootScope, $location, $http) ->
+    NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW = 10
+
+    class Dashboard
+        constructor: ->
+            console.log "Dashboard initializing"
+
+            # prepare array of links for navbar
+            $rootScope.navLinks = [
+                { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
+                { url: '#/report-templates/edit', name: 'Configure Templates', img: 'gear.png' }
+                { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
+                { url: '#/dashboard', name: 'Task', img: 'task.png' }
+            ]
+            do @updateNavLinkForSnapshots
+            $rootScope.location = $location
+
+        updateNavLinkForSnapshots: (snapshotParams) =>
+            # query string to append
+            qs =
+                if 0 == _.size snapshotParams then ""
+                else "?#{"#{k}=#{v}" for k,v of snapshotParams}"
+            # how to populate snapshot links for navbar
+            updateLinks = =>
+                navLinkForSnapshots = _.find $rootScope.navLinks, name: "View Snapshots"
+                navLinkForSnapshots.links =
+                    for snapshotId in $rootScope.mostRecentSnapshots
+                        # TODO use different style to indicate whether snapshotParams is applicable to this snapshot or not
+                        { url: "#/snapshot/#{snapshotId}#{qs}", name: snapshotId }
+                if $rootScope.mostRecentSnapshots > NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
+                    navLinkForSnapshots.links = [
+                        navLinkForSnapshots.links...
+                        { isDivider: yes }
+                        { url: navLinkForSnapshots.url, name: "View All" }
+                    ]
+            # after getting the snapshots from backend
+            if $rootScope.mostRecentSnapshots?
+                do updateLinks
+            else
+                $rootScope.mostRecentSnapshots = []
+                @getSnapshotList()
+                    .success (snapshots) =>
+                        $rootScope.mostRecentSnapshots = _.first (snapshots.reverse()), NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
+                        do updateLinks
+
+        getSnapshotList: =>
+            $http.get "/api/snapshot"
+
+        # TODO move some common parts to the Dashboard class
+
+    # the singleton instance registered as an Angular service
+    new Dashboard
 
 .config ($routeProvider) ->
     $routeProvider.when "/dashboard",
@@ -33,11 +78,10 @@ angular.module "mindbenderApp.dashboard", [
         templateUrl: "dashboard/report-templates-editor.html"
         controller: "EditTemplatesCtrl"
 
-
-.controller "IndexCtrl", ($scope) ->
+.controller "IndexCtrl", ($scope, Dashboard) ->
     $scope.hideNav = true
 
-.controller "SnapshotRunCtrl", ($scope, $http) ->
+.controller "SnapshotRunCtrl", ($scope, $http, Dashboard) ->
     $scope.title = "Snapshot Run"
 
     $scope.loadConfigs = (switchToConfig) ->
@@ -83,7 +127,7 @@ angular.module "mindbenderApp.dashboard", [
         delete $scope.configs[$scope.currentSnapshotConfig]
         $scope.currentSnapshotConfig = ""
 
-.controller "SnapshotListCtrl", ($scope, $http) ->
+.controller "SnapshotListCtrl", ($scope, $http, Dashboard) ->
     $scope.title = "View Snapshots"
 
     $http.get "/api/snapshot"
@@ -91,7 +135,7 @@ angular.module "mindbenderApp.dashboard", [
             $scope.snapshots = data
 
 
-.controller "SnapshotReportsCtrl", ($scope, $http, $routeParams, $location, $sce) ->
+.controller "SnapshotReportsCtrl", ($scope, $http, $routeParams, $location, $sce, Dashboard) ->
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
     $scope.hideLoader = true
@@ -134,6 +178,7 @@ angular.module "mindbenderApp.dashboard", [
                     $scope.html = $sce.trustAsHtml(report.html ? report.markdown)
                 
                 $scope.loading = false
+                Dashboard.updateNavLinkForSnapshots $location.search()
 
     $http.get "/api/snapshot/" + $routeParams.snapshotId
         .success (data, status, headers, config) -> 
@@ -209,7 +254,7 @@ angular.module "mindbenderApp.dashboard", [
             return new_table
 
 
-.controller "EditTemplatesCtrl", ($scope, $http) ->
+.controller "EditTemplatesCtrl", ($scope, $http, Dashboard) ->
     $scope.title = "Configure Templates"
 
     $scope.loadTemplates = (switchToTemplate) ->
