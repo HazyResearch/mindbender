@@ -18,6 +18,6 @@ bower_components/angular-hotkeys/build/hotkeys.js
 bower_components/highcharts-release/highcharts.js
 
 bower_components/ace-builds/src-noconflict/ace.js
-../src/ace-shim.js
+src/ace-shim.js
 bower_components/ace-builds/src-noconflict/ext-language_tools.js
 bower_components/angular-ui-ace/ui-ace.js

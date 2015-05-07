@@ -6,12 +6,18 @@ set -eu
 . build-webapp.sh
 shouldUglify=${shouldUglify:-false}
 
+# Make sure we have a correct build/ directory
+[[ -L build/node_modules && -L build/bower_components ]] || rm -rf build
+mkdir -p build
+ln -sfn ../node_modules     build/
+ln -sfn ../bower_components build/
+
 # Install all dependencies if necessary
 if [[ node_modules -ot package.json ||
         node_modules -ot bower.json ||
-        build/bower_components -ot bower.json ]]; then
+        bower_components -ot bower.json ]]; then
     npm install
-    touch node_modules build/bower_components
+    touch node_modules bower_components
 fi
 export PATH="$PWD/node_modules/.bin:$PATH"
 export NODE_PATH="$PWD/node_modules${NODE_PATH:+:$NODE_PATH}"
@@ -32,14 +38,25 @@ find build -type l ! -exec [ -e {} ] \; -exec rm -fv {} +
 
 # concatenate all .js files
 cd build
-ln -sfn ../node_modules
 shopt -s nullglob
 files=(
 $(sed 's/#.*//' <../js-include.paths)
 
-{!(bower_components|node_modules)/**/,}!(*_test|${appName}|${appName}.*).js
+{!(bower_components|node_modules|src)/**/,}!(*_test|${appName}|${appName}.*).js
 )
 shopt -u nullglob
+
+# symlink files mentioned in js-include.paths that come from other than bower_components or node_modules
+for path in "${files[@]}"; do
+    ! [[ -e "$path" ]] || continue
+    if [[ -e "../$path" ]]; then
+        mkdir -p "$(dirname "$path")"
+        relsymlink ../"$path" "$path"
+    else
+        echo >&2 "$path: Not found"
+        false
+    fi
+done
 
 # See if any files have changed and we need to compile .js again
 hasChanged=false
