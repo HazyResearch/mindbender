@@ -235,7 +235,9 @@ angular.module "mindbenderApp.dashboard", [
                 $scope.snapshot = data
                 $scope.reports = data.reports
                 $scope.sortReports(Object.keys(data.reports))
-                updateNavLinkForSnapshots()
+                loadReportAndUpdateSideNav()
+                Dashboard.updateNavLinkForSnapshots()
+
     $scope.$watch (-> $location.search().report), (newValue, oldValue) ->
         loadReportAndUpdateSideNav()
 
