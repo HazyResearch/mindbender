@@ -110,7 +110,11 @@ cd ..
 
 # Some extra files to build
 # custom Ace editor modes
-compile from=.js.in to=.js  with=compile-xdocs  src/ace/**/*.in
+compile-in() {
+    local src=$1 out=$2
+    compile-xdocs "$src"
+}
+compile from=.js.in to=.js  with=compile-in  src/ace/**/*.in
 rsync -aHv --omit-dir-times \
     --exclude=*.{in,out} src/ace/ \
     bower_components/ace-builds/src-noconflict/
