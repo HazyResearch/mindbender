@@ -142,11 +142,11 @@ exports.init = (app) ->
         isValidInstantiation = (inst) ->
             inst.reportTemplate? and (not inst.params? or (_.size inst.params) > 0)
         return res.sendStatus 400 unless _.every req.body, isValidInstantiation
-        # TODO correct implementation
-        exampleSnapshotConfigs[configName] = req.body
         res
             .location "/api/snapshot-config/#{configName}"
-            .sendStatus 201
+            .status 201
+        sendStdoutOf res, "dashboard-snapshot-config", ["put", configName]
+            .stdin.write JSON.stringify req.body
 
     # Read Contents of a Snapshot Configuration
     app.get "/api/snapshot-config/:configName", (req, res) ->
@@ -156,11 +156,7 @@ exports.init = (app) ->
     # Delete a Snapshot Configuration
     app.delete "/api/snapshot-config/:configName", (req, res) ->
         configName = req.param "configName"
-        # TODO correct implementation
-        return res.sendStatus 404 unless exampleSnapshotConfigs[configName]?
-        delete exampleSnapshotConfigs[configName]
-        res
-            .sendStatus 204
+        sendStdoutOf res, "dashboard-snapshot-config", ["delete", configName]
 
     # Create a New Snapshot
     app.post "/api/snapshot", (req, res) ->
@@ -182,6 +178,9 @@ exports.init = (app) ->
     # Create a New Report Template or Update an Existing One
     app.put "/api/report-template/*", (req, res) ->
         [reportTemplateId] = req.params
+        res
+            .location "/api/report-template/#{reportTemplateId}"
+            .status 201
         sendStdoutOf res, "dashboard-report-template", ["put", reportTemplateId]
             # XXX it's silly to parse and stringify the body right away
             .stdin.write JSON.stringify req.body
