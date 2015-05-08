@@ -11,15 +11,22 @@ DEEPDIVE_APP=$(find-deepdive-app)
 export DEEPDIVE_APP
 cd "$DEEPDIVE_APP"
 
-SnapshotConfiguration=${1:-"$DEEPDIVE_APP"/snapshot-default.conf}
+ConfigName=${1:-default}
 [[ $# -eq 0 ]] || shift
 
-if ! [[ -e "$SnapshotConfiguration" ]]; then
+# figure out snapshot configuration file name
+if [[ -e "$ConfigName" ]]; then
+    snapshotConfiguration=$ConfigName
+else
+    snapshotConfiguration="$DEEPDIVE_APP"/snapshot-"$ConfigName".conf
+fi
+
+if ! [[ -e "$snapshotConfiguration" ]]; then
     # install default snapshot configuration if not there
     # TODO derive one from application.conf instead of hard coded one
     cp -f "$MINDBENDER_HOME"/etc/snapshot-default.conf "$DEEPDIVE_APP"/
     error "Default dashboard snapshot configuration was installed to the DeepDive app $DEEPDIVE_APP" || true
-    SnapshotConfiguration="$DEEPDIVE_APP"/snapshot-default.conf
+    snapshotConfiguration="$DEEPDIVE_APP"/snapshot-default.conf
 fi
 
 # create a fresh snapshot directory
@@ -31,6 +38,10 @@ done
 SnapshotDir="$SnapshotDir-$serial"
 mkdir -p "$SnapshotDir"/files
 
+# display the snapshot ID
+echo "${SnapshotDir#snapshot/}"
+# TODO maintain a symlink
+
 # keep a copy of important deepdive artifacts
 [[ -e snapshot-files ]] ||
     cp -f "$MINDBENDER_HOME"/etc/snapshot-files .
@@ -39,7 +50,7 @@ xargs -I{} -- cp -a {} "$SnapshotDir"/files/
 # TODO avoid copying files more than once into snapshot and create symlink to a master copy instead
 
 # produce reports for the snapshot
-mindbender-produce-reports "$SnapshotDir" "$SnapshotConfiguration"
+mindbender-produce-reports "$SnapshotDir" "$snapshotConfiguration"
 
 # place a symlink to the latest snapshot
 ln -sfnv "${SnapshotDir#snapshot/}" snapshot/LATEST

@@ -43,14 +43,6 @@ sendStdoutLinesAsJSONArray = (res, command, args, errorStatus = 404) ->
 exports.init = (app) ->
 
     ## Viewing Snapshots and Reports
-    # TODO remove
-    exampleSnapshots = """
-        20150415-1
-        20150415-2
-        20150415-3
-        20150416-1
-        """.trim().split(/\s+/)
-
     # List Snapshots
     app.get "/api/snapshot/", (req, res) ->
         sendStdoutLinesAsJSONArray res, "dashboard-ls-snapshots"
@@ -72,64 +64,6 @@ exports.init = (app) ->
     # TODO fix the singular/plural issue of report-template[s]
     app.get "/api/report-templates/", (req, res) ->
         sendStdoutOf res, "dashboard-report-template", ["ls"]
-
-    exampleSnapshotConfigs =
-        default: [
-                    {
-                        reportTemplate: "corpus"
-                    }
-                    {
-                        reportTemplate: "variable"
-                        params:
-                            variable: "gene.is_correct"
-                    }
-                    {
-                        reportTemplate: "variable"
-                        params:
-                            variable: "phenotype.is_correct"
-                    }
-                    {
-                        reportTemplate: "variable"
-                        params:
-                            variable: "genepheno.is_correct"
-                    }
-                ]
-        featuresOnly: [
-                    {
-                        reportTemplate: "variable/feature"
-                        params:
-                            variable: "gene.is_correct"
-                    }
-                    {
-                        reportTemplate: "variable/feature"
-                        params:
-                            variable: "phenotype.is_correct"
-                    }
-                    {
-                        reportTemplate: "variable/feature"
-                        params:
-                            variable: "genepheno.is_correct"
-                    }
-                ]
-        mentions: [
-                    {
-                        reportTemplate: "variable"
-                        params:
-                            variable: "gene.is_correct"
-                    }
-                    {
-                        reportTemplate: "variable"
-                        params:
-                            variable: "phenotype.is_correct"
-                    }
-                ]
-        relationships: [
-                    {
-                        reportTemplate: "variable"
-                        params:
-                            variable: "genepheno.is_correct"
-                    }
-                ]
 
     # List Snapshot Configurations
     app.get "/api/snapshot-config/", (req, res) ->
@@ -161,17 +95,18 @@ exports.init = (app) ->
     # Create a New Snapshot
     app.post "/api/snapshot", (req, res) ->
         configName = req.body.snapshotConfig
-        # TODO correct implementation
-        return res.sendStatus 404 unless exampleSnapshotConfigs[configName]?
-        now = new Date
-        snapshotId = "#{now.getYear() + 1900}#{now.getMonth()+1}#{now.getDate()}"
-        suffix = 1
-        suffix += 1 while "#{snapshotId}-#{suffix}" in exampleSnapshots
-        snapshotId += "-#{suffix}"
-        exampleSnapshots.push snapshotId
-        res
-            .location "/api/snapshot/#{snapshotId}"
-            .sendStatus 201
+        proc = spawn "mindbender-snapshot", [configName]
+        lineStream = byline proc.stdout
+        lineStream
+            .once "data", (line) ->
+                snapshotId = line
+                res
+                    .location "/api/snapshot/#{snapshotId}"
+                    .sendStatus 201
+                lineStream.destroy()
+            .on "error", ->
+                res
+                    .sendStatus 500
 
 
     ## Authoring Report Templates
