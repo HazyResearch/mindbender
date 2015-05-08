@@ -9,6 +9,22 @@
 			</select>
 		</div>
 		<input type="button" class="btn btn-primary" value="Add Template" data-toggle="modal" data-target="#createTemplateModal">
+		<div class="modal fade" id="createTemplateModal" tabindex="-1" role="dialog" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">Create Template</h4>
+					</div>
+					<div class="modal-body">
+			        	<input type="text" ng-model="newTemplateName" class="form-control" placeholder="New template name">
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="createTemplate()">Create Template</button>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 	<form action="" method="post">
 		<div class="template">
@@ -33,7 +49,7 @@
 	                                        mode: 'sqlish',
 	                                        theme: 'tomorrow_night_bright',
 	                                        useWrapMode: true,
-                                            rendererOptions: { minLines: 10, maxLines: 30, },
+	                                        rendererOptions: { minLines: 10, maxLines: 30, },
 	                                        require: ['ace/ext/language_tools'],
 	                                        advanced: {
 	                                            enableSnippets: true,
@@ -48,8 +64,8 @@
 	                                        mode: 'markdownish',
 	                                        theme: 'tomorrow_night_bright',
 	                                        useWrapMode: true,
+	                                        rendererOptions: { minLines: 10, maxLines: 30, },
 	                                        require: ['ace/ext/language_tools'],
-                                            rendererOptions: { minLines: 10, maxLines: 30, },
 	                                        advanced: {
 	                                            enableSnippets: true,
 	                                            enableBasicAutocompletion: true,
@@ -84,25 +100,9 @@
 					</div>
 				</div>
 				<br>
-				<input type="button" class="btn btn-success" ng-click="updateTemplate()" value="Update Template" flash="rgba(0, 255, 0, .2)">
+				<input type="button" class="btn btn-success" ng-click="updateTemplate()" value="Update Template" flash="rgba(0, 255, 0, .4)">
 				<input type="button" class="btn btn-danger" ng-click="deleteTemplate()" value="Delete Template" flash="rgba(255, 0, 0, .2)">
 				<input type="button" class="btn btn-primary" value="Copy Template" data-toggle="modal" data-target="#copyTemplateModal" style="float:right">
-				<div class="modal fade" id="createTemplateModal" tabindex="-1" role="dialog" aria-hidden="true">
-					<div class="modal-dialog">
-						<div class="modal-content">
-							<div class="modal-header">
-								<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-								<h4 class="modal-title">Create Template</h4>
-							</div>
-							<div class="modal-body">
-					        	<input type="text" ng-model="template.newTemplateName" class="form-control" placeholder="New template name">
-							</div>
-							<div class="modal-footer">
-								<button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="createTemplate()">Create Template</button>
-							</div>
-						</div>
-					</div>
-				</div>
 				<div class="modal fade" id="copyTemplateModal" tabindex="-1" role="dialog" aria-hidden="true">
 					<div class="modal-dialog">
 						<div class="modal-content">
@@ -111,7 +111,7 @@
 								<h4 class="modal-title">Copy Template</h4>
 							</div>
 							<div class="modal-body">
-					        	<input type="text" ng-model="template.copyTemplateName" class="form-control" placeholder="New template name">
+					        	<input type="text" ng-model="copyTemplateName" class="form-control" placeholder="New template name">
 							</div>
 							<div class="modal-footer">
 								<button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="copyTemplate()">Create Template</button>
@@ -119,8 +119,6 @@
 						</div>
 					</div>
 				</div>
-
-
 			</div>
 		</div>
 	</form>
