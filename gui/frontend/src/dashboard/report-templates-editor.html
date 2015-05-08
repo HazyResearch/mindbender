@@ -85,6 +85,22 @@
 				<input type="button" class="btn btn-success" ng-click="updateTemplate()" value="Update Template" flash="rgba(0, 255, 0, .2)">
 				<input type="button" class="btn btn-danger" ng-click="deleteTemplate()" value="Delete Template" flash="rgba(255, 0, 0, .2)">
 				<input type="button" class="btn btn-primary" value="Copy Template" data-toggle="modal" data-target="#copyTemplateModal" style="float:right">
+				<div class="modal fade" id="createTemplateModal" tabindex="-1" role="dialog" aria-hidden="true">
+					<div class="modal-dialog">
+						<div class="modal-content">
+							<div class="modal-header">
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+								<h4 class="modal-title">Create Template</h4>
+							</div>
+							<div class="modal-body">
+					        	<input type="text" ng-model="template.newTemplateName" class="form-control" placeholder="New template name">
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="createTemplate()">Create Template</button>
+							</div>
+						</div>
+					</div>
+				</div>
 				<div class="modal fade" id="copyTemplateModal" tabindex="-1" role="dialog" aria-hidden="true">
 					<div class="modal-dialog">
 						<div class="modal-content">
@@ -101,6 +117,8 @@
 						</div>
 					</div>
 				</div>
+
+
 			</div>
 		</div>
 	</form>
