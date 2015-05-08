@@ -140,8 +140,9 @@ angular.module "mindbenderApp.dashboard", [
 
     $scope.createConfig = () ->
         $http.put("/api/snapshot-config/" + $scope.newSnapshotName, "[]")
-        $scope.loadConfigs($scope.newSnapshotName)
-        $scope.newSnapshotName = ""
+            .success (data, status, headers, config) ->
+                $scope.loadConfigs($scope.newSnapshotName)
+                $scope.newSnapshotName = ""
 
     $scope.runConfig = () ->
         $http.post("/api/snapshot", { snapshotConfig: $scope.currentSnapshotConfig })
