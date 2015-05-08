@@ -95,3 +95,7 @@ table {
 .ace_editor {
     min-height: 500px;
 }
+
+.flash {
+	transition: background-color 1s ease;
+}

@@ -31,14 +31,15 @@ angular.module "mindbenderApp.dashboard", [
 
     $routeProvider.when "/report-templates/edit",
         templateUrl: "dashboard/report-templates-editor.html"
-        controller: "EditTemplatesCtrl"
+        controller: "EditTemplatesCtrl",
+        reloadOnSearch: false
 
 
 .controller "IndexCtrl", ($scope) ->
     $scope.hideNav = true
 
 .controller "SnapshotRunCtrl", ($scope, $http) ->
-    $scope.title = "Snapshot Run"
+    $scope.title = "Run Snapshot"
 
     $scope.loadConfigs = (switchToConfig) ->
         $http.get "/api/snapshot-config/"
@@ -59,11 +60,6 @@ angular.module "mindbenderApp.dashboard", [
                 .success (data, status, headers, config) -> 
                     $scope.configTemplates = data
 
-    $scope.addConfig = () ->
-        $http.put("/api/snapshot-config/" + $scope.newSnapshotName, "[]")
-        $scope.loadConfigs($scope.newSnapshotName)
-        $scope.newSnapshotName = ""
-
     $scope.addTemplate = () ->
         $scope.configTemplates.push({"reportTemplate":"", "params": {}})
 
@@ -82,6 +78,19 @@ angular.module "mindbenderApp.dashboard", [
         $http.delete("/api/snapshot-config/" + $scope.currentSnapshotConfig)
         delete $scope.configs[$scope.currentSnapshotConfig]
         $scope.currentSnapshotConfig = ""
+
+    $scope.copyConfig = () ->
+        $http.put("/api/snapshot-config/" + $scope.copySnapshotName, $scope.configTemplates)
+            .success (data, status, headers, config) ->
+                $scope.loadConfigs($scope.copySnapshotName)
+
+    $scope.createConfig = () ->
+        $http.put("/api/snapshot-config/" + $scope.newSnapshotName, "[]")
+        $scope.loadConfigs($scope.newSnapshotName)
+        $scope.newSnapshotName = ""
+
+    $scope.runConfig = () ->
+        $http.post("/api/snapshot", { snapshotConfig: $scope.currentSnapshotConfig })
 
 .controller "SnapshotListCtrl", ($scope, $http) ->
     $scope.title = "View Snapshots"
@@ -105,12 +114,12 @@ angular.module "mindbenderApp.dashboard", [
     $scope.loadReport = (report_key) ->
         $scope.loading = true
         $scope.table = false
-        $scope.markdown = $sce.trustAsHtml("")
         $location.search('report', report_key)
 
         $http.get "/api/snapshot/" + $routeParams.snapshotId + "/" + report_key
             .success (data, status, headers, config) -> 
                 $scope.loading = true
+                $scope.chart = false
                 $scope.currentReport = report_key
                 report = data[report_key]
 
@@ -126,10 +135,9 @@ angular.module "mindbenderApp.dashboard", [
                             x: chart.x
                             y: chart.y
                             data: table.data
+                            headers: table.headers
                         }
                         renderCharts($scope.json)
-                    else
-                        # TODO clear chart
                 else
                     $scope.html = $sce.trustAsHtml(report.html ? report.markdown)
                 
@@ -209,7 +217,7 @@ angular.module "mindbenderApp.dashboard", [
             return new_table
 
 
-.controller "EditTemplatesCtrl", ($scope, $http) ->
+.controller "EditTemplatesCtrl", ($scope, $http, $location) ->
     $scope.title = "Configure Templates"
 
     $scope.loadTemplates = (switchToTemplate) ->
@@ -220,26 +228,30 @@ angular.module "mindbenderApp.dashboard", [
                 if switchToTemplate
                     $scope.currentTemplateName = switchToTemplate
 
+                $scope.$watch (-> $location.search()['template']), (newValue) ->   
+                    if newValue
+                        $scope.currentTemplateName = newValue
+                        $http.get "/api/report-template/" + $scope.currentTemplateName
+                            .success (data, status, headers, config) -> 
+                                $scope.template = $.extend({}, data);
+                                $scope.template.params = []
+                                for param in Object.keys(data.params)
+                                    $scope.template.params.push($.extend({ name: param }, data.params[param]))
+
+                                if data.markdownTemplate
+                                    $scope.formatted = false
+                                else
+                                    $scope.formatted = true
+
+                                if data.chart
+                                    $scope.template.hasChart = true
+                                else
+                                    $scope.template.hasChart = false
+
     $scope.loadTemplates()
 
-    $scope.$watch "currentTemplateName", (newValue, oldValue) ->
-        if newValue
-            $http.get "/api/report-template/" + newValue
-                .success (data, status, headers, config) -> 
-                    $scope.template = $.extend({}, data);
-                    $scope.template.params = []
-                    for param in Object.keys(data.params)
-                        $scope.template.params.push($.extend({ name: param }, data.params[param]))
-
-                    if data.markdownTemplate
-                        $scope.formatted = false
-                    else
-                        $scope.formatted = true
-
-                    if data.chart
-                        $scope.template.hasChart = true
-                    else
-                        $scope.template.hasChart = false
+    $scope.changeCurrentTemplate = () ->
+        $location.search('template', $scope.currentTemplateName)
 
     $scope.addVariable = () ->
         $scope.template.params.push({})
@@ -285,3 +297,14 @@ angular.module "mindbenderApp.dashboard", [
         input[0].toUpperCase() + input.substring(1)
 
 
+.directive 'flash', ['$document', ($document) ->
+    return {
+        link: (scope, element, attr) ->
+            element.on("click", (event) ->
+                $('.flash').css('background-color', attr['flash'])
+                setTimeout(() ->
+                    $('.flash').css('background-color', '#FFF')
+                , 1000)
+            )
+    }
+]
