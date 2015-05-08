@@ -1,105 +1,108 @@
 <div ng-include="'dashboard/header.html'"></div>
 
-<div class="form-inline">
-	<div class="input-group">
-		<span class="input-group-addon" style="font-weight:bold;">Template</span>
-		<select ng-model="currentTemplateName" class="form-control">
-			<option ng-repeat="templateName in templateList">{{ templateName }}</option>
-		</select>
-	</div>
-</div>
-<form action="" method="post">
-	<div class="template">
-		<div class="form-inline">
-			<div class="input-group">
-				<span class="input-group-addon" style="font-weight:bold;">Type</span>
-				<span style="display:inline-block;margin-left:10px">
-					<label class="radio-inline">
-						<input type="radio" ng-model="formatted" name="formatted" ng-value="true"> Formatted
-						</label>
-					<label class="radio-inline">
-						<input type="radio" ng-model="formatted" name="formatted" ng-value="false"> Custom
-					</label>
-				</span>
-			</div>
+	<div class="flash">
+	<div class="form-inline">
+		<div class="input-group">
+			<span class="input-group-addon" style="font-weight:bold;">Template</span>
+			<select ng-model="currentTemplateName" ng-change="changeCurrentTemplate()" class="form-control">
+				<option ng-repeat="templateName in templateList">{{ templateName }}</option>
+			</select>
 		</div>
-		<br>
-		<div ng-switch="formatted" ng-show="template">
-			<div class="formatted" ng-switch-when="true">
-				<textarea ng-model="template.sqlTemplate" placeholder="SQL Query"
-				    ui-ace="{
-                                        mode: 'sql',
-                                        theme: 'terminal',
-                                        useWrapMode: true,
-                                        require: ['ace/ext/language_tools'],
-                                        advanced: {
-                                            enableSnippets: true,
-                                            enableBasicAutocompletion: true,
-                                            enableLiveAutocompletion: true
-                                        }
-                                    }"></textarea>
-			</div>
-			<div class="custom" ng-switch-when="false">
-				<textarea ng-model="template.markdownTemplate" placeholder="Markdown"
-				    ui-ace="{
-                                        mode: 'markdown',
-                                        theme: 'github',
-                                        useWrapMode: true,
-                                        require: ['ace/ext/language_tools'],
-                                        advanced: {
-                                            enableSnippets: true,
-                                            enableBasicAutocompletion: true,
-                                            enableLiveAutocompletion: true
-                                        }
-                                    }"></textarea>
-			</div>
-			<div class="row">
-				<div class="col-md-9">
-					<h4>Parameters</h4>
-					<table class="table table-striped" style="margin-bottom: 5px">
-						<tr>
-							<th>Name</th>
-							<th>Default Value</th>
-							<th>Description</th>
-							<th>Required</th>
-						</tr>
-						<tr ng-repeat="(param, details) in template.params">
-							<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].name"></td>
-							<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].defaultValue" style="width:100px"></td>
-							<td><input type="text" ng-disabled="details.inheritedFrom" style="width:250px" ng-model="template.params[param].description"></td>
-							<td style="text-align: center"><input type="checkbox" ng-disabled="details.inheritedFrom" ng-model="template.params[param].isRequired"></td>
-						</tr>
-					</table>
-					<img src="dashboard/images/plus_green.png" ng-click="addVariable()">
+		<input type="button" class="btn btn-primary" value="Add Template" data-toggle="modal" data-target="#createTemplateModal">
+	</div>
+	<form action="" method="post">
+		<div class="template">
+			<div ng-switch="formatted" ng-show="template">
+				<div class="form-inline">
+					<div class="input-group">
+						<span class="input-group-addon" style="font-weight:bold;">Type</span>
+						<span style="display:inline-block;margin-left:10px">
+							<label class="radio-inline">
+								<input type="radio" ng-model="formatted" name="formatted" ng-value="true"> Formatted
+								</label>
+							<label class="radio-inline">
+								<input type="radio" ng-model="formatted" name="formatted" ng-value="false"> Custom
+							</label>
+						</span>
+					</div>
 				</div>
-				<div class="col-md-3" ng-switch-when="true">
-					<h4>Chart</h4>
-					<input type="checkbox" ng-model="template.hasChart"> Chart:
-					<div>X: <input type="text" ng-model="template.chart.x"></div>
-					<div>Y: <input type="text" ng-model="template.chart.y" style="margin-top:5px;"></div>
+				<br>
+				<div class="formatted" ng-switch-when="true">
+					<textarea ng-model="template.sqlTemplate" placeholder="SQL Query"
+					    ui-ace="{
+	                                        mode: 'sql',
+	                                        theme: 'terminal',
+	                                        useWrapMode: true,
+	                                        require: ['ace/ext/language_tools'],
+	                                        advanced: {
+	                                            enableSnippets: true,
+	                                            enableBasicAutocompletion: true,
+	                                            enableLiveAutocompletion: true
+	                                        }
+	                                    }"></textarea>
 				</div>
-			</div>
-			<br>
-			<input type="button" class="btn btn-success" ng-click="updateTemplate()" value="Update Template">
-			<input type="button" class="btn btn-danger" ng-click="deleteTemplate()" value="Delete Template">
-			<input type="button" class="btn btn-primary" value="Copy Template" data-toggle="modal" data-target="#copyTemplateModal" style="float:right">
-			<div class="modal fade" id="copyTemplateModal" tabindex="-1" role="dialog" aria-hidden="true">
-				<div class="modal-dialog">
-					<div class="modal-content">
-						<div class="modal-header">
-							<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-							<h4 class="modal-title">Copy Template</h4>
-						</div>
-						<div class="modal-body">
-				        	<input type="text" ng-model="template.copyTemplateName" class="form-control" placeholder="New template name">
-						</div>
-						<div class="modal-footer">
-							<button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="copyTemplate()">Create Template</button>
+				<div class="custom" ng-switch-when="false">
+					<textarea ng-model="template.markdownTemplate" placeholder="Markdown"
+					    ui-ace="{
+	                                        mode: 'markdown',
+	                                        theme: 'github',
+	                                        useWrapMode: true,
+	                                        require: ['ace/ext/language_tools'],
+	                                        advanced: {
+	                                            enableSnippets: true,
+	                                            enableBasicAutocompletion: true,
+	                                            enableLiveAutocompletion: true
+	                                        }
+	                                    }"></textarea>
+				</div>
+				<div class="row">
+					<div class="col-md-9">
+						<h4>Parameters</h4>
+						<table class="table table-striped" style="margin-bottom: 5px">
+							<tr>
+								<th>Name</th>
+								<th>Default Value</th>
+								<th>Description</th>
+								<th>Required</th>
+							</tr>
+							<tr ng-repeat="(param, details) in template.params">
+								<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].name"></td>
+								<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].defaultValue" style="width:100px"></td>
+								<td><input type="text" ng-disabled="details.inheritedFrom" style="width:250px" ng-model="template.params[param].description"></td>
+								<td style="text-align: center"><input type="checkbox" ng-disabled="details.inheritedFrom" ng-model="template.params[param].isRequired"></td>
+							</tr>
+						</table>
+						<img src="dashboard/images/plus_green.png" ng-click="addVariable()">
+					</div>
+					<div class="col-md-3" ng-switch-when="true">
+						<h4>Chart</h4>
+						<input type="checkbox" ng-model="template.hasChart"> Chart:
+						<div>X: <input type="text" ng-model="template.chart.x"></div>
+						<div>Y: <input type="text" ng-model="template.chart.y" style="margin-top:5px;"></div>
+					</div>
+				</div>
+				<br>
+				<input type="button" class="btn btn-success" ng-click="updateTemplate()" value="Update Template" flash="rgba(0, 255, 0, .2)">
+				<input type="button" class="btn btn-danger" ng-click="deleteTemplate()" value="Delete Template" flash="rgba(255, 0, 0, .2)">
+				<input type="button" class="btn btn-primary" value="Copy Template" data-toggle="modal" data-target="#copyTemplateModal" style="float:right">
+				<div class="modal fade" id="copyTemplateModal" tabindex="-1" role="dialog" aria-hidden="true">
+					<div class="modal-dialog">
+						<div class="modal-content">
+							<div class="modal-header">
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+								<h4 class="modal-title">Copy Template</h4>
+							</div>
+							<div class="modal-body">
+					        	<input type="text" ng-model="template.copyTemplateName" class="form-control" placeholder="New template name">
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="copyTemplate()">Create Template</button>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
-	</div>
-</form>
+	</form>
+</div>
 <br><br>
