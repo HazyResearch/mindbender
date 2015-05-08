@@ -1,0 +1,63 @@
+// Ace editor mode for Markdown mixed with shell scripts enclosed in <\$ and \$>
+// See https://github.com/ajaxorg/ace/wiki/Creating-or-Extending-an-Edit-Mode
+ace.define('ace/mode/markdownish', function(require, exports, module) {
+"use strict";
+
+var oop = require('../lib/oop');
+var MarkdownMode = require('./markdown').Mode;
+var ShMode = require('./sh').Mode;
+var Tokenizer = require('../tokenizer').Tokenizer;
+var MarkdownishHighlightRules = require('./markdownish_highlight_rules').MarkdownishHighlightRules;
+
+var Mode = function() {
+    // set everything up
+    this.HighlightRules = MarkdownishHighlightRules;
+    //this.$outdent = new MatchingBraceOutdent();
+    //this.foldingRules = new MyNewFoldMode();
+    this.createModeDelegates({
+      "sh-": ShMode
+    });
+};
+oop.inherits(Mode, MarkdownMode);
+
+(function() {
+    // not much tweak done here
+}).call(Mode.prototype);
+
+exports.Mode = Mode;
+
+});
+
+ace.define("ace/mode/markdownish_highlight_rules", function(require, exports, module) {
+"use strict";
+
+var oop = require('../lib/oop');
+var ShHighlightRules = require("./sh_highlight_rules").ShHighlightRules;
+var MarkdownHighlightRules = require("./markdown_highlight_rules").MarkdownHighlightRules;
+
+var MarkdownishHighlightRules = function() {
+    this.$rules = new MarkdownHighlightRules().getRules();
+    // use ShHighlightRules for everthing between <\$ and \$>
+    for (var i in this.$rules) {
+        this.$rules[i].unshift({
+            token: "keyword",
+            regex: "<\\$",
+            next: "sh-" + i + "-start"
+        });
+        this.embedRules(ShHighlightRules, "sh-" + i + "-", [
+            {
+                token: "keyword",
+                regex: "\\$>",
+                next: i
+            }
+        ]);
+    }
+};
+oop.inherits(MarkdownishHighlightRules, MarkdownHighlightRules);
+
+exports.MarkdownishHighlightRules = MarkdownishHighlightRules;
+
+});
+
+<$ cat ../../bower_components/ace-builds/src-noconflict/mode-markdown.js $>
+<$ cat ../../bower_components/ace-builds/src-noconflict/mode-sh.js       $>

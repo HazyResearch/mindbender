@@ -8,3 +8,6 @@ tmp
 
 /app
 /build
+
+# ace custom modes
+/src/ace/**/*.js

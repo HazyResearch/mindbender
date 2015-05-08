@@ -28,7 +28,7 @@
 			<div class="formatted" ng-switch-when="true">
 				<textarea ng-model="template.sqlTemplate" placeholder="SQL Query"
 				    ui-ace="{
-                                        mode: 'sql',
+                                        mode: 'sqlish',
                                         theme: 'tomorrow_night_bright',
                                         useWrapMode: true,
                                         rendererOptions: { minLines: 10, maxLines: 30, },
@@ -43,7 +43,7 @@
 			<div class="custom" ng-switch-when="false">
 				<textarea ng-model="template.markdownTemplate" placeholder="Markdown"
 				    ui-ace="{
-                                        mode: 'markdown',
+                                        mode: 'markdownish',
                                         theme: 'tomorrow_night_bright',
                                         useWrapMode: true,
                                         rendererOptions: { minLines: 10, maxLines: 30, },

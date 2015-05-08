@@ -1,0 +1,13 @@
+ace.define("ace/snippets/markdownish",["require","exports","module"], function(require, exports, module) {
+"use strict";
+
+var markdownSnippetText = require("ace/snippets/markdown").snippetText;
+var shSnippetText = require("ace/snippets/sh").snippetText;
+
+exports.snippetText = markdownSnippetText + shSnippetText;
+exports.scope = "markdownish";
+
+});
+
+<$ cat ../../../bower_components/ace-builds/src-noconflict/snippets/markdown.js $>
+<$ cat ../../../bower_components/ace-builds/src-noconflict/snippets/sh.js       $>

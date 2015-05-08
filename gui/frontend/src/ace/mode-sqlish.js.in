@@ -1,0 +1,69 @@
+// Ace editor mode for (Postgres) SQL mixed with shell scripts enclosed in <\$ and \$>
+// See https://github.com/ajaxorg/ace/wiki/Creating-or-Extending-an-Edit-Mode
+ace.define('ace/mode/sqlish', function(require, exports, module) {
+"use strict";
+
+var oop = require('../lib/oop');
+var SqlMode = require('./pgsql').Mode;
+var ShMode = require('./sh').Mode;
+var Tokenizer = require('../tokenizer').Tokenizer;
+var SqlishHighlightRules = require('./sqlish_highlight_rules').SqlishHighlightRules;
+
+var Mode = function() {
+    // set everything up
+    this.HighlightRules = SqlishHighlightRules;
+    //this.$outdent = new MatchingBraceOutdent();
+    //this.foldingRules = new MyNewFoldMode();
+    this.createModeDelegates({
+      "sh-": ShMode
+    });
+};
+oop.inherits(Mode, SqlMode);
+
+(function() {
+    // not much tweak done here
+}).call(Mode.prototype);
+
+exports.Mode = Mode;
+
+});
+
+ace.define("ace/mode/sqlish_highlight_rules", function(require, exports, module) {
+"use strict";
+
+var oop = require('../lib/oop');
+var ShHighlightRules = require("./sh_highlight_rules").ShHighlightRules;
+var PgsqlHighlightRules = require("./pgsql_highlight_rules").PgsqlHighlightRules;
+
+var SqlishHighlightRules = function() {
+    this.$rules = new PgsqlHighlightRules().getRules();
+    // use ShHighlightRules for everthing between <\$ and \$>
+    for (var i in this.$rules) {
+        this.$rules[i].unshift({
+            token: "keyword",
+            regex: "<\\$",
+            next: "sh-" + i + "-start"
+        });
+        this.embedRules(ShHighlightRules, "sh-" + i + "-", [
+            {
+                token: "keyword",
+                regex: "\\$>",
+                next: i
+            }
+        ]);
+    }
+    // XXX Patch leading whitespace issue in PgsqlHighlightRules
+    this.$rules.start.push({
+        token: "text",
+        regex: "\\s+",
+        next: "statement"
+    });
+};
+oop.inherits(SqlishHighlightRules, PgsqlHighlightRules);
+
+exports.SqlishHighlightRules = SqlishHighlightRules;
+
+});
+
+<$ cat ../../bower_components/ace-builds/src-noconflict/mode-pgsql.js $>
+<$ cat ../../bower_components/ace-builds/src-noconflict/mode-sh.js    $>

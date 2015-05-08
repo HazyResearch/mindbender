@@ -1,0 +1,13 @@
+ace.define("ace/snippets/sqlish",["require","exports","module"], function(require, exports, module) {
+"use strict";
+
+var sqlSnippetText = require("ace/snippets/sql").snippetText;
+var shSnippetText = require("ace/snippets/sh").snippetText;
+
+exports.snippetText = sqlSnippetText + shSnippetText;
+exports.scope = "sqlish";
+
+});
+
+<$ cat ../../../bower_components/ace-builds/src-noconflict/snippets/sql.js $>
+<$ cat ../../../bower_components/ace-builds/src-noconflict/snippets/sh.js  $>

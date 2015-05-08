@@ -104,3 +104,11 @@ rsync -aH --omit-dir-times --delete \
     --exclude=*.{js,js.map} \
     -v
 relsymlink  bower_components      $dest/
+
+cd ..
+
+
+# Some extra files to build
+# custom Ace editor modes
+compile-xdocs src/ace/mode-*.js.in src/ace/snippets/*.js.in
+rsync -aHv --exclude=*.in src/ace/ bower_components/ace-builds/src-noconflict/
