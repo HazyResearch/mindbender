@@ -203,8 +203,8 @@ angular.module "mindbenderApp.dashboard", [
 
     $http.get "/api/snapshot/" + $routeParams.snapshotId
         .success (data, status, headers, config) -> 
-            $scope.reports = data
-            $scope.sortReports(Object.keys(data))
+            $scope.reports = data.reports
+            $scope.sortReports(Object.keys(data.reports))
 
             $scope.$watch (-> $location.search()['report']), (newValue, oldValue) ->
                 return if $scope.loading
