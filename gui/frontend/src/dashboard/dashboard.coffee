@@ -108,6 +108,7 @@ angular.module "mindbenderApp.dashboard", [
             $http.get "/api/snapshot-config/" + newValue
                 .success (data, status, headers, config) -> 
                     $scope.configTemplates = data
+                    console.log($scope.configTemplates)
 
     $scope.addTemplate = () ->
         $scope.configTemplates.push({"reportTemplate":"", "params": {}})
@@ -119,6 +120,10 @@ angular.module "mindbenderApp.dashboard", [
                     data.params[param] = data.params[param]['defaultValue']
 
                 configTemplate.params = data.params
+
+
+    $scope.removeTemplate = (template_key) ->
+        $scope.configTemplates.splice(template_key, 1)
 
     $scope.updateConfig = () ->
         $http.put("/api/snapshot-config/" + $scope.currentSnapshotConfig, $scope.configTemplates)
@@ -293,29 +298,28 @@ angular.module "mindbenderApp.dashboard", [
         $http.get "/api/report-templates/"
             .success (data, status, headers, config) -> 
                 $scope.templateList = data
-
                 if switchToTemplate
-                    $scope.currentTemplateName = switchToTemplate
+                    $location.search('template', switchToTemplate)
 
-                $scope.$watch (-> $location.search()['template']), (newValue) ->   
-                    if newValue
-                        $scope.currentTemplateName = newValue
-                        $http.get "/api/report-template/" + $scope.currentTemplateName
-                            .success (data, status, headers, config) -> 
-                                $scope.template = $.extend({}, data);
-                                $scope.template.params = []
-                                for param in Object.keys(data.params)
-                                    $scope.template.params.push($.extend({ name: param }, data.params[param]))
+    $scope.$watch (-> $location.search()['template']), (newValue) ->
+        if newValue
+            $scope.currentTemplateName = newValue
+            $http.get "/api/report-template/" + $scope.currentTemplateName
+                .success (data, status, headers, config) ->
+                    $scope.template = $.extend({}, data);
+                    $scope.template.params = []
+                    for param in Object.keys(data.params)
+                        $scope.template.params.push($.extend({ name: param }, data.params[param]))
 
-                                if data.markdownTemplate
-                                    $scope.formatted = false
-                                else
-                                    $scope.formatted = true
+                    if data.markdownTemplate
+                        $scope.formatted = false
+                    else
+                        $scope.formatted = true
 
-                                if data.chart
-                                    $scope.template.hasChart = true
-                                else
-                                    $scope.template.hasChart = false
+                    if data.chart
+                        $scope.template.hasChart = true
+                    else
+                        $scope.template.hasChart = false
 
     $scope.loadTemplates()
 
@@ -357,9 +361,15 @@ angular.module "mindbenderApp.dashboard", [
         $http.delete("/api/report-template/" + $scope.currentTemplateName)
 
     $scope.copyTemplate = () ->
-        $scope.updateTemplateName($scope.template.copyTemplateName, -> 
-            $scope.loadTemplates($scope.template.copyTemplateName)
+        $scope.updateTemplateName($scope.copyTemplateName, ->
+            $scope.loadTemplates($scope.copyTemplateName)
         )
+
+    $scope.createTemplate = () ->
+        $http.put("/api/report-template/" + $scope.newTemplateName, {params: {}, sqlTemplate: "" })
+            .success (data, status, headers, config) ->
+                $scope.loadTemplates($scope.newTemplateName)
+
 
 .filter 'capitalize', () ->
     (input) ->

@@ -9,31 +9,6 @@
 			</select>
 		</div>	
 		<input type="button" class="btn btn-primary" value="Add Configuration" data-toggle="modal" data-target="#createSnapshotModal">
-		<br><br>
-		<div ng-repeat="(k, configTemplate) in configTemplates">
-				<div class="input-group">
-					<span class="input-group-addon" style="font-weight:bold;">Template</span>
-					<select ng-model="configTemplate.reportTemplate" ng-change="updateParams(configTemplate)" class="form-control">
-						<option ng-repeat="template in templates">{{ template }}</option>
-					</select>
-				</div>
-				<ul class="params">
-					<li ng-repeat="(param, value) in configTemplate.params">
-						<div class="input-group">
-							<span class="input-group-addon">{{ param }}</span>
-							<input type="text" class="form-control" ng-model="configTemplate.params[param]">
-						</div>
-					</li>
-				</ul>
-			<hr style="margin-left:0px;width:300px">
-		</div>
-		<input type="button" class="btn btn-primary" ng-show="currentSnapshotConfig" value="Add Template" ng-Click="addTemplate()">
-		<br><br>
-		<input type="submit" class="btn btn-success" ng-show="currentSnapshotConfig" ng-click="updateConfig()" value="Update Configuration" flash="rgba(0, 255, 0, .2)">
-		<input type="submit" class="btn btn-danger" ng-show="currentSnapshotConfig" ng-click="deleteConfig()" value="Delete Configuration" flash="rgba(255, 0, 0, .2)">
-		<input type="button" class="btn btn-primary" ng-show="currentSnapshotConfig" value="Copy Configuration" data-toggle="modal" data-target="#copySnapshotModal" style="float:right">
-		<br class="clear"><br>
-		<input type="button" class="btn btn-primary" ng-show="currentSnapshotConfig" ng-click="runConfig()" value="Run Snapshot" style="font-size:16pt;">
 		<div class="modal fade" id="createSnapshotModal" tabindex="-1" role="dialog" aria-hidden="true">
 			<div class="modal-dialog">
 				<div class="modal-content">
@@ -50,6 +25,32 @@
 				</div>
 			</div>
 		</div>
+		<br><br>
+		<div ng-repeat="(k, configTemplate) in configTemplates">
+			<div class="input-group">
+				<span class="input-group-addon" style="font-weight:bold;">Template</span>
+				<select ng-model="configTemplate.reportTemplate" ng-change="updateParams(configTemplate)" class="form-control">
+					<option ng-repeat="template in templates">{{ template }}</option>
+				</select>
+			</div>
+			<img src="dashboard/images/red_x.png" ng-click="removeTemplate(k)" style="cursor: pointer">
+			<ul class="params">
+				<li ng-repeat="(param, value) in configTemplate.params">
+					<div class="input-group">
+						<span class="input-group-addon">{{ param }}</span>
+						<input type="text" class="form-control" ng-model="configTemplate.params[param]">
+					</div>
+				</li>
+			</ul>
+			<hr style="margin-left:0px;width:300px">
+		</div>
+		<input type="button" class="btn btn-primary" ng-show="currentSnapshotConfig" value="Add Template" ng-Click="addTemplate()">
+		<br><br>
+		<input type="submit" class="btn btn-success" ng-show="currentSnapshotConfig" ng-click="updateConfig()" value="Update Configuration" flash="rgba(0, 255, 0, .4)">
+		<input type="submit" class="btn btn-danger" ng-show="currentSnapshotConfig" ng-click="deleteConfig()" value="Delete Configuration" flash="rgba(255, 0, 0, .2)">
+		<input type="button" class="btn btn-primary" ng-show="currentSnapshotConfig" value="Copy Configuration" data-toggle="modal" data-target="#copySnapshotModal" style="float:right">
+		<br class="clear"><br>
+		<input type="button" class="btn btn-primary" ng-show="currentSnapshotConfig" ng-click="runConfig()" value="Run Snapshot" style="font-size:16pt;">
 		<div class="modal fade" id="copySnapshotModal" tabindex="-1" role="dialog" aria-hidden="true">
 			<div class="modal-dialog">
 				<div class="modal-content">
