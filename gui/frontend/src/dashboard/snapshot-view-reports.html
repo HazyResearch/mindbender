@@ -10,6 +10,15 @@
 			</div>
 		</div>
 	</div>
+
+	<div ng-if="reportLoadError" class="col-md-10">
+		<div class="alert alert-danger">
+			<h3>Report Not Found</h3>
+			{{ reportLoadError }}
+		</div>
+	</div>
+
+	<div ng-if="!reportLoadError">
 	<div ng-show="loading && html" class="col-md-10">
 		<img src="dashboard/images/loading.gif">
 	</div>
@@ -17,7 +26,7 @@
 		<div ng-bind-html="html"></div>
 	</div>
 	<div class="col-md-4" ng-class="{hidden_chart: html }">
-		<table class="table table-striped" style="text-align:right">
+		<table class="table table-striped" style="text-align:right;">
 			<tr>
 				<th ng-repeat="tableHeader in tableHeaders">{{ tableHeader }}</th>
 			</tr>
@@ -26,30 +35,50 @@
 			</tr>
 		</table>
 	</div>
-	<div class="col-md-6" ng-class="{hidden_chart: html }">
-		<div class="chart">
-			<div id="scatter_plot"></div>
-		</div>
-		<div class="chart">
+	<div class="col-md-6" ng-class="{hidden_chart: !chart }">
+		<div class="chart" id="histogram_container">
 			<div id="histogram"></div>
 			<div id="slider"></div>
+		</div>		
+		<div class="chart" id="scatter_plot_container">
+			<div id="scatter_plot"></div>
 		</div>
+	</div>
 	</div>
 </div>
 	
 <script>
 	function renderCharts(json) {
 		var report_chart = new ReportChart(json);
-				
-		report_chart.scatterPlot("scatter_plot");
-		report_chart.histogram("histogram", Math.sqrt(json.data.length, 1/3));
-		
-		$("#slider").slider({
-			value: Math.sqrt(json.data.length, 1/3),
-			slide: function(event, ui) {
-				report_chart.histogram("histogram", ui.value);
-			}
-		});
+		var x_numeric = report_chart.axisIsNumeric("x");
+		var y_numeric = report_chart.axisIsNumeric("y");
+
+		if (x_numeric && y_numeric) {
+			$("#scatter_plot_container").show();
+			report_chart.scatterPlot("scatter_plot");
+
+			$("#histogram_container").show();
+			report_chart.histogram("histogram", Math.sqrt(json.data.length, 1/3));
+
+			$("#slider").slider({
+				min: 1,
+				max: json.data.length,
+				value: Math.sqrt(json.data.length, 1/3),
+				slide: function(event, ui) {
+					report_chart.histogram("histogram", ui.value);
+				}
+			});
+		}
+		else if (x_numeric || y_numeric) {
+			$("#histogram_container").show();
+			
+			report_chart.histogram("histogram", json.data.length);
+			$("#scatter_plot_container").hide();
+		}
+		else {
+			$("#histogram_container").hide();
+			$("#scatter_plot_container").hide();
+		}
 
 		$('#nav').affix({
 			offset: {
