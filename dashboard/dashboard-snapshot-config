@@ -16,10 +16,15 @@ cd "$DEEPDIVE_APP"
 [[ $# -gt 0 ]] || usage "$0" "No verb given"
 Command=$1; shift
 case $Command in
-    ls|get|put|delete)
+    ls)
+        ;;
+    get|put|delete)
+        [[ $# -gt 0 ]] || usage "$0" "No verb given"
+        ConfigName=${1:-}; shift || usage
+        ConfigFile=snapshot-"$ConfigName".conf
         ;;
     *)
-        usage "$0" "get, put, or delete must be given"
+        usage "$0" "ls, get, put, or delete must be given"
 esac
 
 case $Command in
@@ -36,9 +41,7 @@ case $Command in
         echo "]"
         ;;
 
-    get) # encode report template into a JSON object
-        ConfigName=${1:-}; shift || true
-        ConfigFile=snapshot-"$ConfigName".conf
+    get) # encode snapshot configuration into a JSON object
         [[ -e "$ConfigFile" ]] || error "$ConfigName: No such snapshot configuration"
         export JSON_FILE=-  # to use report-values for constructing JSON
 
@@ -58,22 +61,14 @@ case $Command in
         echo "]"
         ;;
 
-    put) # decode report template from given JSON object
-        reportTemplatePath="$DEEPDIVE_APP"/report-templates/"$TemplateName"
-        mkdir -p "$reportTemplatePath"
-        cd "$reportTemplatePath"
-
-        # clean up existing artifacts before decoding
-        rm -f report.sql.in
-
-        # decode the input JSON object and create corresponding files
+    put) # decode snapshot configuration from given JSON object
         coffee -e '
             fs = require "fs"
             _ = require "underscore"
             [jsonFile] = process.argv[4..]
 
             ## read and parse input report template object
-            reportTemplate = JSON.parse fs.readFileSync jsonFile
+            snapshotConfig = JSON.parse fs.readFileSync jsonFile
 
             ## write files under the report template file
             # XXX string escaping is ugly and very convoluted, but is contained in the next line
@@ -81,35 +76,16 @@ case $Command in
                     unless s? then ""
                     else (String s).replace /'\''/g, "'\''\\'\'\''"
                 ) + "'\''"
-            # shorthand for conditionally writing pieces of report template
-            write = (fileName, content) ->
-                if content?
-                    fs.writeFileSync fileName, content
-                    yes
-            write "report.params", (
-                if (_.size reportTemplate.params) > 0
-                    for name,{isRequired,defaultValue,description} of reportTemplate.params
-                        if isRequired
-                            "required #{esc name} #{esc description}"
-                        else
-                            "optional #{esc name} #{esc defaultValue} #{esc description}"
-            )?.join "\n"
-            write "README.md.in", reportTemplate.markdownTemplate
-            write "report.sql.in", reportTemplate.sqlTemplate
-            # TODO keep chart/graph parameters somewhere
-        ' /dev/stdin
-
-        # clean up conflicting artifacts after decoding
-        if [[ -e report.sql.in ]]; then
-            # place the default report.sh when there's a report.sql.in
-            cp -f "$MINDBENDER_HOME"/etc/report-sql-template.sh report.sh
-        fi
+            for {reportTemplate, params} in snapshotConfig
+                console.log "report #{esc reportTemplate}  #{(
+                    for name,value of params
+                        "#{esc name}=#{esc value}"
+                ).join " "}"
+        ' /dev/stdin >"$ConfigFile".tmp
+        mv -f "$ConfigFile".tmp "$ConfigFile"
         ;;
 
-    delete) # delete given report template
-        reportTemplatePath="$DEEPDIVE_APP"/report-templates/"$TemplateName"
-        [[ -d "$reportTemplatePath" ]] ||
-            error "$TemplateName: No deletable report template found"
-        rm -rf "$reportTemplatePath"
+    delete) # delete given snapshot configuration
+        rm -f "$ConfigFile"
         ;;
 esac
