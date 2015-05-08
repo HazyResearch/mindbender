@@ -81,13 +81,14 @@ angular.module "mindbenderApp.dashboard", [
 
     $routeProvider.when "/report-templates/edit",
         templateUrl: "dashboard/report-templates-editor.html"
-        controller: "EditTemplatesCtrl"
+        controller: "EditTemplatesCtrl",
+        reloadOnSearch: false
 
 .controller "IndexCtrl", ($scope, Dashboard) ->
     $scope.hideNav = true
 
 .controller "SnapshotRunCtrl", ($scope, $http, Dashboard) ->
-    $scope.title = "Snapshot Run"
+    $scope.title = "Run Snapshot"
 
     $scope.loadConfigs = (switchToConfig) ->
         $http.get "/api/snapshot-config/"
@@ -108,11 +109,6 @@ angular.module "mindbenderApp.dashboard", [
                 .success (data, status, headers, config) -> 
                     $scope.configTemplates = data
 
-    $scope.addConfig = () ->
-        $http.put("/api/snapshot-config/" + $scope.newSnapshotName, "[]")
-        $scope.loadConfigs($scope.newSnapshotName)
-        $scope.newSnapshotName = ""
-
     $scope.addTemplate = () ->
         $scope.configTemplates.push({"reportTemplate":"", "params": {}})
 
@@ -131,6 +127,19 @@ angular.module "mindbenderApp.dashboard", [
         $http.delete("/api/snapshot-config/" + $scope.currentSnapshotConfig)
         delete $scope.configs[$scope.currentSnapshotConfig]
         $scope.currentSnapshotConfig = ""
+
+    $scope.copyConfig = () ->
+        $http.put("/api/snapshot-config/" + $scope.copySnapshotName, $scope.configTemplates)
+            .success (data, status, headers, config) ->
+                $scope.loadConfigs($scope.copySnapshotName)
+
+    $scope.createConfig = () ->
+        $http.put("/api/snapshot-config/" + $scope.newSnapshotName, "[]")
+        $scope.loadConfigs($scope.newSnapshotName)
+        $scope.newSnapshotName = ""
+
+    $scope.runConfig = () ->
+        $http.post("/api/snapshot", { snapshotConfig: $scope.currentSnapshotConfig })
 
 .controller "SnapshotListCtrl", ($scope, $http, Dashboard) ->
     $scope.title = "View Snapshots"
@@ -159,7 +168,6 @@ angular.module "mindbenderApp.dashboard", [
         $scope.loading = true
         $scope.reportLoadError = null
         $scope.table = false
-        $scope.markdown = $sce.trustAsHtml("")
         $location.search('report', report_key)
         reportIdFull = "#{$routeParams.snapshotId}/#{report_key}"
 
@@ -168,6 +176,7 @@ angular.module "mindbenderApp.dashboard", [
         $http.get "/api/snapshot/#{reportIdFull}"
             .success (data, status, headers, config) -> 
                 $scope.loading = false
+                $scope.chart = false
                 $scope.currentReport = report_key
                 report = data[report_key]
                 return reportNotFound report_key unless report?
@@ -185,11 +194,9 @@ angular.module "mindbenderApp.dashboard", [
                             x: chart.x
                             y: chart.y
                             data: table.data
+                            headers: table.headers
                         }
                         renderCharts($scope.json)
-                    else
-                        # without chart
-                        # TODO clear chart
                 else
                     # free-text (custom) report
                     $scope.html = $sce.trustAsHtml(report.html ? report.markdown)
@@ -279,7 +286,7 @@ angular.module "mindbenderApp.dashboard", [
             return new_table
 
 
-.controller "EditTemplatesCtrl", ($scope, $http, Dashboard) ->
+.controller "EditTemplatesCtrl", ($scope, $http, $location, Dashboard) ->
     $scope.title = "Configure Templates"
 
     $scope.loadTemplates = (switchToTemplate) ->
@@ -290,26 +297,30 @@ angular.module "mindbenderApp.dashboard", [
                 if switchToTemplate
                     $scope.currentTemplateName = switchToTemplate
 
+                $scope.$watch (-> $location.search()['template']), (newValue) ->   
+                    if newValue
+                        $scope.currentTemplateName = newValue
+                        $http.get "/api/report-template/" + $scope.currentTemplateName
+                            .success (data, status, headers, config) -> 
+                                $scope.template = $.extend({}, data);
+                                $scope.template.params = []
+                                for param in Object.keys(data.params)
+                                    $scope.template.params.push($.extend({ name: param }, data.params[param]))
+
+                                if data.markdownTemplate
+                                    $scope.formatted = false
+                                else
+                                    $scope.formatted = true
+
+                                if data.chart
+                                    $scope.template.hasChart = true
+                                else
+                                    $scope.template.hasChart = false
+
     $scope.loadTemplates()
 
-    $scope.$watch "currentTemplateName", (newValue, oldValue) ->
-        if newValue
-            $http.get "/api/report-template/" + newValue
-                .success (data, status, headers, config) -> 
-                    $scope.template = $.extend({}, data);
-                    $scope.template.params = []
-                    for param in Object.keys(data.params)
-                        $scope.template.params.push($.extend({ name: param }, data.params[param]))
-
-                    if data.markdownTemplate
-                        $scope.formatted = false
-                    else
-                        $scope.formatted = true
-
-                    if data.chart
-                        $scope.template.hasChart = true
-                    else
-                        $scope.template.hasChart = false
+    $scope.changeCurrentTemplate = () ->
+        $location.search('template', $scope.currentTemplateName)
 
     $scope.addVariable = () ->
         $scope.template.params.push({})
@@ -355,3 +366,14 @@ angular.module "mindbenderApp.dashboard", [
         input[0].toUpperCase() + input.substring(1)
 
 
+.directive 'flash', ['$document', ($document) ->
+    return {
+        link: (scope, element, attr) ->
+            element.on("click", (event) ->
+                $('.flash').css('background-color', attr['flash'])
+                setTimeout(() ->
+                    $('.flash').css('background-color', '#FFF')
+                , 1000)
+            )
+    }
+]
