@@ -50,7 +50,7 @@ angular.module "mindbenderApp.dashboard", [
                 $rootScope.mostRecentSnapshots = []
                 @getSnapshotList()
                     .success (snapshots) =>
-                        $rootScope.mostRecentSnapshots = _.first (snapshots.reverse()), NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
+                        $rootScope.mostRecentSnapshots = _.first snapshots, NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
                         do updateLinks
 
         getSnapshotList: =>
@@ -213,25 +213,35 @@ angular.module "mindbenderApp.dashboard", [
                 $scope.reportLoadError = status
                 console.error "#{reportIdFull}: #{status} error while loading"
 
-    $http.get "/api/snapshot/" + $routeParams.snapshotId
-        .success (data, status, headers, config) -> 
-            $scope.reports = data
-            $scope.sortReports(Object.keys(data))
+    loadReportAndUpdateSideNav = ->
+        return unless $scope.reports?
+        return if $scope.loading
+        search_report = $location.search().report
+        return unless search_report?
+        if $scope.reports[search_report]?
+            $scope.loadReport(search_report)
+            search_report_split = $scope.convertReportKey(search_report)
+            traverse_nav = $scope.nav
+            for s in search_report_split
+                traverse_nav[s]['$show'] = true
+                traverse_nav = traverse_nav[s]
+        else
+            reportNotFound search_report
 
-            $scope.$watch (-> $location.search()['report']), (newValue, oldValue) ->
-                return if $scope.loading
-                search_report = $location.search().report
-                return unless search_report?
-                if $scope.reports[search_report]?
-                    $scope.loadReport(search_report)
-                    search_report_split = $scope.convertReportKey(search_report)
-                    traverse_nav = $scope.nav
-                    for s in search_report_split
-                        traverse_nav[s]['$show'] = true
-                        traverse_nav = traverse_nav[s]
-                else
-                    reportNotFound search_report
+    do $scope.reloadSnapshot = ->
+        $http.get "/api/snapshot/#{$routeParams.snapshotId}"
+            .success (data, status, headers, config) -> 
+                $scope.snapshot = data
+                $scope.reports = data.reports
+                $scope.sortReports(Object.keys(data.reports))
+                updateNavLinkForSnapshots()
+    $scope.$watch (-> $location.search().report), (newValue, oldValue) ->
+        loadReportAndUpdateSideNav()
 
+    $scope.abortSnapshot = ->
+        $http.delete "/api/snapshot/#{$routeParams.snapshotId}"
+            .success -> $scope.reloadSnapshot()
+            .error   -> $scope.reloadSnapshot()
 
     $scope.buildTree = (params, path_splits) ->
         result = {}

@@ -1,6 +1,12 @@
 <div ng-include="'dashboard/header.html'"></div>
 
 <h3 id="report" style="margin-top:10px;height:20px;">{{ currentReport }}</h1>
+<div ng-if="snapshot.isRunning" class="alert alert-warning">
+	<p class="lead">Still Running...</p>
+	Snapshot is still going through production.
+	<a class="btn btn-default" ng-click="reloadSnapshot()">Refresh</a>
+	<a class="btn btn-danger" ng-click="abortSnapshot()">Abort</a>
+</div>
 
 <div class="row" id="report-charts">
 	<div class="col-md-2">
@@ -13,7 +19,7 @@
 
 	<div ng-if="reportLoadError" class="col-md-10">
 		<div class="alert alert-danger">
-			<h3>Report Not Found</h3>
+			<p class="lead">Report Not Found</p>
 			{{ reportLoadError }}
 		</div>
 	</div>

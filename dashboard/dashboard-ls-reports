@@ -18,7 +18,13 @@ cd "$Snapshot" &>/dev/null && [[ -s reports.json ]] ||
 
 case ${1:-} in
     json)
+        echo '{'
+        if [[ -e ../"$Snapshot".RUNNING ]]; then
+            echo '"isRunning": true,'
+        fi
+        echo '"reports":'
         cat reports.json
+        echo '}'
         ;;
     "") coffee -e '
         fs = require "fs"

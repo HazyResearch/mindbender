@@ -308,6 +308,7 @@ begin-report() {
     # initialize
     : >reports.ids
     : >reports.paths
+    echo '{}' >reports.json
 
     timestamp=$(date +%FT%T)
 

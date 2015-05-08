@@ -90,6 +90,8 @@ exports.init = (app) ->
     # Delete a Snapshot Configuration
     app.delete "/api/snapshot-config/:configName", (req, res) ->
         configName = req.param "configName"
+        res
+            .status 204 # no content
         sendStdoutOf res, "dashboard-snapshot-config", ["delete", configName]
 
     # Create a New Snapshot
@@ -110,6 +112,9 @@ exports.init = (app) ->
     # Cancel a Running Snapshot
     app.delete "/api/snapshot/:snapshotId", (req, res) ->
         snapshotId = req.param "snapshotId"
+        res
+            .location "/api/snapshot/#{snapshotId}"
+            .status 204 # no content
         sendStdoutOf res, "mindbender-cancel-snapshot", [snapshotId]
 
 
@@ -132,6 +137,8 @@ exports.init = (app) ->
     # Delete a Report Template
     app.delete "/api/report-template/*", (req, res) ->
         [reportTemplateId] = req.params
+        res
+            .status 204 # no content
         sendStdoutOf res, "dashboard-report-template", ["delete", reportTemplateId]
 
     ## Running Tasks
