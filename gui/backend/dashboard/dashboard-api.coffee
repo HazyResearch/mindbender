@@ -95,7 +95,7 @@ exports.init = (app) ->
     # Create a New Snapshot
     app.post "/api/snapshot", (req, res) ->
         configName = req.body.snapshotConfig
-        proc = spawn "mindbender-snapshot", [configName]
+        proc = spawn "mindbender-snapshot", [configName], detached: yes
         lineStream = byline proc.stdout
         lineStream
             .once "data", (line) ->
@@ -103,10 +103,14 @@ exports.init = (app) ->
                 res
                     .location "/api/snapshot/#{snapshotId}"
                     .sendStatus 201
-                lineStream.destroy()
+                proc.unref()  # detach
             .on "error", ->
                 res
                     .sendStatus 500
+    # Cancel a Running Snapshot
+    app.delete "/api/snapshot/:snapshotId", (req, res) ->
+        snapshotId = req.param "snapshotId"
+        sendStdoutOf res, "mindbender-cancel-snapshot", [snapshotId]
 
 
     ## Authoring Report Templates

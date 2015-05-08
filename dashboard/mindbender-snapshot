@@ -40,7 +40,18 @@ mkdir -p "$SnapshotDir"/files
 
 # display the snapshot ID
 echo "${SnapshotDir#snapshot/}"
-# TODO maintain a symlink
+# record as latest failure if RUNNING symlink exists
+if [[ -L snapshot/RUNNING ]]; then
+    pgidFile=snapshot/"$(readlink snapshot/RUNNING)".RUNNING
+    if [[ -e "$pgidFile" ]] && ps -g $(head -1 "$pgidFile") &>/dev/null; then
+        : still running
+    else
+        rm -f "$pgidFile"
+        mv -f snapshot/RUNNING snapshot/ABORTED
+    fi
+fi
+# keep a symlink to this snapshot
+ln -sfnv "${SnapshotDir#snapshot/}" snapshot/RUNNING
 
 # keep a copy of important deepdive artifacts
 [[ -e snapshot-files ]] ||
@@ -49,8 +60,16 @@ sed 's/#.*//' <snapshot-files | grep -v '^$' |
 xargs -I{} -- cp -a {} "$SnapshotDir"/files/
 # TODO avoid copying files more than once into snapshot and create symlink to a master copy instead
 
+# record process group id
+echo $(ps -o pgid= -p $$) >"$SnapshotDir".RUNNING
+
 # produce reports for the snapshot
 mindbender-produce-reports "$SnapshotDir" "$snapshotConfiguration"
 
-# place a symlink to the latest snapshot
+# bookkeep symlinks to the latest, previous snapshots
+mv -f snapshot/LATEST snapshot/PREVIOUS
 ln -sfnv "${SnapshotDir#snapshot/}" snapshot/LATEST
+! [[ snapshot/RUNNING -ef "$SnapshotDir" ]] || rm -f snapshot/RUNNING
+
+# remove the process group id
+rm -f "$SnapshotDir".RUNNING

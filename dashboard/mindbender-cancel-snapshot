@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# mindbender-cancel-snapshot -- Cancel a running snapshot
+# > mindbender cancel-snapshot [SNAPSHOT...]
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-05-08
+set -eu
+
+# find path to the DeepDive app based on the snapshot path
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+cd "$DEEPDIVE_APP"
+cd snapshot
+
+[[ $# -gt 0 ]] ||
+    if [[ -e RUNNING && -e "$(readlink RUNNING)".RUNNING ]]; then
+        set -- RUNNING
+    else
+        set -- *.RUNNING
+        set -- "${@%.RUNNING}"
+    fi
+for SnapshotId; do
+    # follow symlink
+    ! [[ -L "$SnapshotId" ]] ||
+        SnapshotId=$(readlink "$SnapshotId")
+    # make sure we're dealing with a valid snapshot
+    [[ -e "$SnapshotId" ]] ||
+        case $SnapshotId in
+            "*"|RUNNING)
+                error "No currently running snapshot"
+                ;;
+            *)
+                error "$SnapshotId: No such snapshot"
+        esac
+    # check if it's still running
+    [[ -e "$SnapshotId".RUNNING ]] && pgid=$(head -1 "$SnapshotId".RUNNING) ||
+        error "$SnapshotId: Already finished or canceled"
+    ps -o pgid= -g $pgid &>/dev/null || {
+        rm -f "$SnapshotId".RUNNING
+        error "$SnapshotId: Not running any more, perhaps crashed?"
+    }
+    # terminate its process group
+    kill -TERM -$pgid
+    # clean up and record as aborted
+    rm -f "$SnapshotId".RUNNING
+    if [[ RUNNING -ef "$SnapshotId" ]]; then
+        mv -f RUNNING ABORTED
+    else
+        ln -sfn "$SnapshotId" ABORTED
+    fi
+    echo "$SnapshotId: Aborted"
+done

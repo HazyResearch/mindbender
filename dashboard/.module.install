@@ -1,4 +1,5 @@
 mindbender-snapshot                     bin/mindbender.d/
+mindbender-cancel-snapshot              bin/mindbender.d/
 mindbender-produce-reports              bin/mindbender.d/
 dashboard-ls-snapshots                  bin/mindbender.d/
 dashboard-ls-reports                    bin/mindbender.d/
