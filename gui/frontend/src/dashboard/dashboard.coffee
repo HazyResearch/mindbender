@@ -50,7 +50,7 @@ angular.module "mindbenderApp.dashboard", [
                 $rootScope.mostRecentSnapshots = []
                 @getSnapshotList()
                     .success (snapshots) =>
-                        $rootScope.mostRecentSnapshots = _.first (snapshots.reverse()), NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
+                        $rootScope.mostRecentSnapshots = _.first snapshots, NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
                         do updateLinks
 
         getSnapshotList: =>

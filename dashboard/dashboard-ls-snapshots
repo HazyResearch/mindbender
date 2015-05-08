@@ -16,4 +16,5 @@ cd "$DEEPDIVE_APP"/snapshot
 find * -maxdepth 0 \
     -type d \
     -exec [ -s {}/reports.json ] \; \
-    -print
+    -print |
+xargs stat -c '%Y	%n' | sort -nr | cut -f2
