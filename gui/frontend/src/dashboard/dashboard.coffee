@@ -96,6 +96,8 @@ angular.module "mindbenderApp.dashboard", [
                 $scope.configs = data
                 if switchToConfig
                     $scope.currentSnapshotConfig = switchToConfig
+                else
+                    $scope.currentSnapshotConfig = data[0]
 
     $scope.loadConfigs()
 
@@ -313,6 +315,8 @@ angular.module "mindbenderApp.dashboard", [
                 $scope.templateList = data
                 if switchToTemplate
                     $location.search('template', switchToTemplate)
+                else
+                    $location.search('template', data[0])
 
     $scope.$watch (-> $location.search()['template']), (newValue) ->
         if newValue
@@ -367,7 +371,7 @@ angular.module "mindbenderApp.dashboard", [
         template = $scope.formatTemplateForUpdate()
         $http.put("/api/report-template/" + name, template)
             .success (data, status, headers, config) ->
-                if callback 
+                if callback
                     callback()
 
     $scope.deleteTemplate = () ->
@@ -394,9 +398,7 @@ angular.module "mindbenderApp.dashboard", [
         link: (scope, element, attr) ->
             element.on("click", (event) ->
                 $('.flash').css('background-color', attr['flash'])
-                setTimeout(() ->
-                    $('.flash').css('background-color', '#FFF')
-                , 1000)
+                setTimeout((-> $('.flash').css('background-color', '#FFF')), 1000)
             )
     }
 ]
