@@ -35,6 +35,7 @@ $>
                 SELECT ${candidate_id_column} AS candidate
                      , COUNT(${features_column}) AS num_features
                   FROM ${features_table}
+                 GROUP BY ${candidate_id_column}
               ) num_features_per_candidate
              GROUP BY num_features
              ORDER BY num_features ASC

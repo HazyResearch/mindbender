@@ -8,7 +8,7 @@ column=${variable#$table.}
 report-log "Counting number of candidates of variable ${variable}..."
 num_candidates=$(run-sql "
     SELECT COUNT(*)
-    FROM ${table}_${column}_inference
+    FROM ${table}
 ")
 report-values num_candidates=$num_candidates
 
@@ -16,7 +16,7 @@ if [[ -n "$words_column" ]]; then
     report-log "Counting distinct candidates of variable ${variable}..."
     num_distinct_candidates=$(run-sql "
         SELECT COUNT(DISTINCT ${words_column})
-        FROM ${table}_${column}_inference
+        FROM ${table}
     ")
     report-values num_distinct_candidates=$num_distinct_candidates
 fi
@@ -25,7 +25,7 @@ if [[ -n "$doc_id_column" ]]; then
     report-log "Counting number of documents with candidates of variable ${variable}..."
     num_documents_with_candidates=$(run-sql "
         SELECT COUNT(DISTINCT ${doc_id_column})
-        FROM ${table}_${column}_inference
+        FROM ${table}
     ")
     report-values num_documents_with_candidates=$num_documents_with_candidates
 fi
