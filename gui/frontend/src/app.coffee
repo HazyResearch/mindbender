@@ -5,7 +5,22 @@ angular.module 'mindbenderApp', [
     'mindbenderApp.dashboard'
 ]
 .config ($routeProvider) ->
-    $routeProvider.otherwise redirectTo: '/dashboard/'
+    $routeProvider.when '/',
+        templateUrl: 'landing.html'
+        controller: 'LandingPageCtrl'
+    $routeProvider.otherwise redirectTo: '/'
+
+
+.controller 'LandingPageCtrl', ($rootScope, $http, $location) ->
+    # redirect to mindtagger or dashboard at first visit
+    unless $rootScope.mindtaggerTasks?
+        $http.get "api/mindtagger/"
+            .success (tasks) ->
+                $rootScope.mindtaggerTasks = tasks
+                if tasks.length > 0
+                    $location.path "/mindtagger"
+                else
+                    $location.path "/dashboard"
 
 ## Workaround to get source mapping for uncaught exceptions
 ## See: http://stackoverflow.com/a/25642699

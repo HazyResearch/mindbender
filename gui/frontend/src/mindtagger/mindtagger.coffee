@@ -14,11 +14,11 @@ angular.module 'mindbenderApp.mindtagger', [
         template: ({task}) -> """<div mindtagger-task="#{task}" mindtagger-task-keeps-cursor-visible></div>"""
         # TODO reloadOnSearch: no
 
-.controller 'MindtaggerTaskListCtrl', ($scope, $http, $location, localStorageState) ->
-    $scope.tasks ?= []
+.controller 'MindtaggerTaskListCtrl', ($scope, $rootScope, $http, $location, localStorageState) ->
+    $rootScope.mindtaggerTasks ?= []
     $http.get "api/mindtagger/"
         .success (tasks) ->
-            $scope.tasks = tasks
+            $rootScope.mindtaggerTasks = tasks
             if $location.path() is "/mindtagger" and tasks?.length > 0
                 index = $location.search().index
                 if index?
