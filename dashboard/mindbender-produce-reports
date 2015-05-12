@@ -340,6 +340,7 @@ register-report() {
     echo "$reportPath" >>reports.paths
 
     # concatenate the produced report to the snapshot-level README.md
+    ! [[ -e "$reportPath"/README.md ]] ||
     {
         cat "$reportPath"/README.md
         echo

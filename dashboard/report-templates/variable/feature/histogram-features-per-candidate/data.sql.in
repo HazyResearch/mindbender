@@ -1,15 +1,14 @@
-<$
+<$ ### Histogram of Number of Features per Candidate
 table=${variable%%.*}
 column=${variable#$table.}
 
-sql=
 if [[ -n "${candidate_id_column:-}" ]]; then
 case ${features_layout:-} in
 
 array_column)
     if [[ -n "${features_column:-}" ]]; then
         # when features are stored as array in the candidate table
-        sql="
+$>
             SELECT num_features
                  , COUNT(candidate) AS num_candidates
               FROM (
@@ -20,7 +19,7 @@ array_column)
               ) num_features_per_candidate
              GROUP BY num_features
              ORDER BY num_features ASC
-        "
+<$
     else
         report-warn "Parameter features_column= undefined for features_layout=array_column"
     fi
@@ -29,7 +28,7 @@ array_column)
 own_table)
     if [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
         # when features are stored in a separate table (for incremental DeepDive)
-        sql="
+$>
             SELECT num_features
                  , COUNT(candidate) AS num_candidates
               FROM (
@@ -39,7 +38,7 @@ own_table)
               ) num_features_per_candidate
              GROUP BY num_features
              ORDER BY num_features ASC
-        "
+<$
     else
         report-warn "Parameters features_table= and/or features_column= undefined for features_layout=own_table"
     fi
@@ -47,14 +46,4 @@ own_table)
 
 esac
 fi
-
-if [[ -n "$sql" ]]; then
-    echo "$sql" >num_features_per_candidate.sql
-    run-sql "$sql" CSV HEADER >num_features_per_candidate.csv
 $>
-
-### Histogram of Number of Features per Candidate
-<!-- TODO visualize histogram -->
-<$ html-table-for num_features_per_candidate.csv $>
-
-<$ fi $>

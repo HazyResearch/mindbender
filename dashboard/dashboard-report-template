@@ -37,7 +37,7 @@ case $Command in
         echo "["
         find "${reportTemplateImportOrder[@]}" \
             \( -name "README.md.in" \
-            -o -name "report.sql.in" \
+            -o -name "data.sql.in" \
             \) -print |
         sed 's:^.*/report-templates/::; s:/[^/]*$::' |
         sort -u |
@@ -111,9 +111,9 @@ case $Command in
             fi
 
             # encode sqlTemplate
-            if [[ -e report.sql.in ]]; then
+            if [[ -e data.sql.in ]]; then
                 JSON_FILE=$tmp/template.json report-values \
-                    sqlTemplate="$(cat report.sql.in)"
+                    sqlTemplate="$(cat data.sql.in)"
             fi
             break
         done
@@ -128,7 +128,7 @@ case $Command in
         cd "$reportTemplatePath"
 
         # clean up existing artifacts before decoding
-        rm -f report.sql.in
+        rm -f data.sql.in
 
         # decode the input JSON object and create corresponding files
         coffee -e '
@@ -159,15 +159,15 @@ case $Command in
                             "optional #{esc name} #{esc defaultValue} #{esc description}"
             )?.join "\n"
             write "README.md.in", reportTemplate.markdownTemplate
-            write "report.sql.in", reportTemplate.sqlTemplate
+            write "data.sql.in", reportTemplate.sqlTemplate
             # keep chart parameters
             write "report.chart",
                 JSON.stringify reportTemplate.chart if reportTemplate.chart?
         ' /dev/stdin
 
         # clean up conflicting artifacts after decoding
-        if [[ -e report.sql.in ]]; then
-            # place the default report.sh when there's a report.sql.in
+        if [[ -e data.sql.in ]]; then
+            # place the default report.sh when there's a data.sql.in
             cp -f "$MINDBENDER_HOME"/etc/report-sql-template.sh report.sh
         fi
         ;;

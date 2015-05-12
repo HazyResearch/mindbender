@@ -1,4 +1,4 @@
-<$
+<$ ### Histogram of Feature Weights
 # TODO join $feature_weights_table with features of this variable?
 
 # Count the number of features
@@ -61,15 +61,15 @@ else
 fi
 
 report-log "Creating histogram of weights (bin width=$bin_width)"
-sql="(
+$>
         SELECT CASE bin
                WHEN 0 THEN (SELECT MIN(weight)
                               FROM ${feature_weights_table}
                              WHERE weight > 0)
                ELSE ${bin_width} * bin
-               END                         AS weight_ge
-             ,      ${bin_width} * (bin+1) AS weight_lt
-             ,      COUNT(*)               AS num_features
+               END || '-' ||
+                   (${bin_width} * (bin+1)) AS weight_range
+             ,      COUNT(*)                AS num_features
           FROM (
             SELECT FLOOR(weight / ${bin_width}) AS bin
               FROM ${feature_weights_table}
@@ -77,18 +77,9 @@ sql="(
           ) binned_weights
          GROUP BY bin
     ) UNION (
-        SELECT 0        AS weight_ge
-             , 0        AS weight_lt
+        SELECT '0'      AS weight_range
              , COUNT(*) AS num_features
           FROM ${feature_weights_table}
          WHERE weight = 0
     )
-    ORDER BY weight_ge
-"
-echo "$sql" >histogram_weights_of_feature.sql
-run-sql "$sql" CSV HEADER >histogram_weights_of_feature.csv
-$>
-
-### Histogram of Feature Weights
-<!-- TODO visualize histogram -->
-<$ html-table-for histogram_weights_of_feature.csv $>
+    ORDER BY weight_range

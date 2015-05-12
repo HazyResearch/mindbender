@@ -35,9 +35,10 @@ for reportId in reportIds
     ## augment the report object with content
 
     # HTML from Markdown
-    markdownPath = "#{report.path}/README.md"
-    report.markdown = String fs.readFileSync markdownPath
-    report.html = try String execFileSync "Markdown.pl", [markdownPath]
+    try
+        markdownPath = "#{report.path}/README.md"
+        report.markdown = String fs.readFileSync markdownPath
+        report.html = try String execFileSync "Markdown.pl", [markdownPath]
 
     # data table
     for filename in fs.readdirSync report.path

@@ -1,21 +1,19 @@
-<$ if [[ -n "$words_column" ]]; then $>
+<$ ### $num_most_frequent_extractions Most Frequent Extractions
 
-<$
+if [[ -n "$words_column" ]]; then
     table=${variable%%.*}
     column=${variable#$table.}
 
     # most frequent extractions
     report-log "Finding $num_most_frequent_extractions most frequent extractions of variable ${variable}..."
-    run-sql "
+$>
         SELECT ${words_column}, COUNT(*) AS count
         FROM ${table}_${column}_inference
         WHERE expectation > ${expectation_threshold}
         GROUP BY ${words_column}
         ORDER BY count DESC, ${words_column}
         LIMIT $num_most_frequent_extractions
-    " CSV HEADER >top_extractions.csv
-$>
 
-### <$= $num_most_frequent_extractions $> Most Frequent Extractions
-<$ html-table-for top_extractions.csv $>
-<$ fi $>
+<$
+fi
+$>
