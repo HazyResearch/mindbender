@@ -70,7 +70,7 @@ echo $(ps -o pgid= -p $$) >"$SnapshotDir".RUNNING
 # produce reports for the snapshot
 if mindbender-produce-reports "$SnapshotDir" "$snapshotConfiguration"; then
     # bookkeep symlinks to the latest, previous snapshots
-    mv -f snapshot/LATEST snapshot/PREVIOUS
+    ! [[ -e snapshot/LATEST ]] || mv -f snapshot/LATEST snapshot/PREVIOUS
     ln -sfnv "${SnapshotDir#snapshot/}" snapshot/LATEST
 else
     # keep a symlink to the last aborted one

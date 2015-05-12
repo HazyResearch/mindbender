@@ -412,9 +412,10 @@ report() {
         # first record parameter bindings for the instance
         record-report-params "$reportPath" "$reportName" "$@"
         # then produce the report
-        produce-report "$reportPath" "$reportName" "$@"
-        # and register it
-        register-report "$reportPath" "$reportName" "$@"
+        if produce-report "$reportPath" "$reportName" "$@"; then
+            # and register it when successful
+            register-report "$reportPath" "$reportName" "$@"
+        fi
     done
     report-log "Produced $SnapshotDir/$instance"
 }
