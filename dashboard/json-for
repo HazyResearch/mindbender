@@ -36,6 +36,9 @@ case $File in
                 print (if is_first then is_first = no; "[" else ",")
                 print JSON.stringify row
         .on "finish", ->
+            if is_first
+                is_first = no
+                print "["
             print "]"
         .on "error", ->
             console.error "Cannot parse CSV"
