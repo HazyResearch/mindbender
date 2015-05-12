@@ -1,4 +1,4 @@
-<$ ### <$= $num_most_frequent_features $> Most Frequent Feature Samples
+<$ ### $num_most_frequent_features Most Frequent Feature Samples
 table=${variable%%.*}
 column=${variable#$table.}
 
