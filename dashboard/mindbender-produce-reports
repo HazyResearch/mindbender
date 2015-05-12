@@ -291,9 +291,8 @@ produce-report() {
         elif [[ -e report.sh ]]; then
             # warn about executable bit
             error "$SnapshotDir/$reportPath/report.sh: skipped because not executable" || true
-        fi
-        # compile executable documents (*.in) under the same environment
-        if ls *.in &>/dev/null; then
+        elif ls *.in &>/dev/null; then
+            # compile executable documents (*.in) under the same environment
             (
                 # move up to the app to show better error messages
                 cd "$DEEPDIVE_APP"
