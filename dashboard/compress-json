@@ -1,0 +1,55 @@
+#!/usr/bin/env coffee
+# compress-json -- Compresses row-major JSON arrays to array of arrays (rows) with a header array (names)
+# > compress-json [-d] [JSON_FILE]
+# Writes a compressed or decompressed JSON into standard output.
+# If no JSON_FILE is specified, it reads from standard input.
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-05-12
+
+fs = require "fs"
+_ = require "underscore"
+
+[jsonFile, decompress] = process.argv[2..]
+jsonFile ?= "/dev/stdin"
+
+rawdata =
+    try fs.readFileSync jsonFile
+    catch err
+        console.error err
+        process.exit 2
+
+data =
+    try JSON.parse rawdata
+    catch err
+        console.error err
+        process.exit 4
+
+console.log JSON.stringify (
+    if data instanceof Array and not decompress
+        # compress row-major
+        numColumns = 0
+        columnIdx = {}
+        rows =
+            for rowObj in data
+                row = []
+                for name,value of rowObj
+                    row[(columnIdx[name] ?= numColumns++)] = value
+                row
+        {
+            names: (_.keys columnIdx)
+            rows: rows
+        }
+    else if decompress and
+            ("object" is typeof data) and
+            data.names instanceof Array and
+            data.rows instanceof Array and
+            data.rows[0] instanceof Array
+        # decompress names+rows object into array of objects
+        for row in data.rows
+            _.object data.names, row
+    else
+        # pass through unrecognized formats
+        data
+)
+process.exit 0

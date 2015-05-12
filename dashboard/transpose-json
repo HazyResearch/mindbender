@@ -12,24 +12,37 @@ fs = require "fs"
 [jsonFile] = process.argv[2..]
 jsonFile ?= "/dev/stdin"
 
-fs.readFile jsonFile, (err, rawdata) ->
-    if err
+rawdata =
+    try fs.readFileSync jsonFile
+    catch err
         console.error err
         process.exit 2
-    data =
-        try JSON.parse rawdata
-        catch err
-            console.error err
-            process.exit 4
-    console.log JSON.stringify (
-        if data instanceof Array
-            # row-major to column-major
+
+data =
+    try JSON.parse rawdata
+    catch err
+        console.error err
+        process.exit 4
+
+console.log JSON.stringify (
+    if data instanceof Array
+        # row-major to column-major
+        columns = {}
+        for row,i in data
+            for name,value of row
+                (columns[name] ?= [])[i] = value
+        columns
+    else if "object" is typeof data
+        if data.names instanceof Array and
+                data.rows instanceof Array and
+                data.rows[0] instanceof Array
+            # compressed row-major to column-major
             columns = {}
-            for row,i in data
-                for name,value of row
-                    (columns[name] ?= [])[i] = value
+            for row,i in data.rows
+                for value,j in row
+                    (columns[data.names[j]] ?= [])[i] = value
             columns
-        else if "object" is typeof data
+        else
             # column-major to row-major
             numRows = Math.max (values?.length ? 0 for name,values of data)...
             for i in [0...numRows]
@@ -37,8 +50,8 @@ fs.readFile jsonFile, (err, rawdata) ->
                 for name,values of data
                     row[name] = values[i]
                 row
-        else
-            # pass through unrecognized formats
-            data
-    )
-    process.exit 0
+    else
+        # pass through unrecognized formats
+        data
+)
+process.exit 0
