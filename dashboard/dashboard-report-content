@@ -42,7 +42,6 @@ for reportId in reportIds
 
     # data table
     for filename in fs.readdirSync report.path
-        console.error filename
         continue unless /\.json$/.test filename
         continue if /^report\./.test filename
         try
