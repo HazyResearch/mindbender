@@ -22,12 +22,16 @@ else
 fi
 
 if ! [[ -e "$snapshotConfiguration" ]]; then
-    # install default snapshot configuration if not there
-    # TODO derive one from application.conf instead of hard coded one
-    cp -f "$MINDBENDER_HOME"/etc/snapshot-default.conf "$DEEPDIVE_APP"/
+    # install default snapshot configuration derived from DeepDive's application.conf if not there
+    dashboard-snapshot-config generate default
     error "Default dashboard snapshot configuration was installed to the DeepDive app $DEEPDIVE_APP" || true
     snapshotConfiguration="$DEEPDIVE_APP"/snapshot-default.conf
 fi
+
+# some sanity checks before proceeding
+dburi=$(find-deepdive-db-uri)
+run-sql "SELECT 1" >/dev/null ||
+    error "Cannot run queries against the database at $dburi"
 
 # create a fresh snapshot directory
 SnapshotDir=snapshot/$(date +%Y%m%d)

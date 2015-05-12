@@ -7,6 +7,7 @@
   "license": "MIT",
   "dependencies": {
     "csv": "0.4.0",
+    "shell-escape": "0.2.0",
     "escape-html": "1.0.1",
     "underscore": "1.7.0",
     "coffee-script": "1.8.0"

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# eval-coffee-on-deepdive-app-conf -- Run CoffeeScript against DeepDive app's application.conf parsed as JSON
+# eval-coffee-on-deepdive-app-conf COFFEE_EXPR
+# The COFFEE_EXPR can assume application.conf is parsed as an object called appConf
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-05-11
+set -eu
+
+CoffeeScript=$1; shift
+
+DEEPDIVE_APP=$(find-deepdive-app)
+cd "$DEEPDIVE_APP"
+
+# parse application.conf into JSON
+json=.application.conf.json
+[[ $json -nt application.conf ]] ||
+    hocon2json application.conf >$json ||
+    error "Make sure you source'd env.sh or equivalent before running this command"
+
+# run given coffee script
+coffee -e '
+fs = require "fs"
+[jsonFile, argv...] = process.argv[4..]
+try
+    appConf = JSON.parse fs.readFileSync jsonFile
+catch err
+    console.error "Unable to recognize database configuration in your DeepDive app"
+    process.exit 1
+(
+'"$CoffeeScript"'
+)
+' $json "$@"

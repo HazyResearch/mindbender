@@ -6,17 +6,19 @@
 set -eu
 
 DEEPDIVE_APP=$(find-deepdive-app)
+cd "$DEEPDIVE_APP"
 
-# TODO need a more reliable way to extract these from the DeepDive app
-{
-set +eu
-. "$DEEPDIVE_APP"/env.sh
-set -eu
-} &>/dev/null  # ignore output
-
-# produce a URI
-if [[ -n "${PGHOST:-}" && -n "${DBNAME:-}" ]]; then
-    echo "postgresql://${PGUSER:+$PGUSER@}$PGHOST${PGPORT:+:$PGPORT}/$DBNAME"
-else
-    error "Unable to recognize database configuration in your DeepDive app"
+if [[ application.conf -nt snapshot/.dburi ]]; then
+    # extract DB URI from the DeepDive app
+    mkdir -p snapshot
+    eval-coffee-on-deepdive-app-conf '
+        try
+            jdbcUrl = appConf.deepdive?.db?.default?.url
+            dbUri = jdbcUrl.replace /^jdbc:/i, ""
+            console.log dbUri
+        catch err
+            console.error "Unable to recognize database configuration in your DeepDive app"
+            process.exit 1
+    ' >snapshot/.dburi
 fi
+cat snapshot/.dburi

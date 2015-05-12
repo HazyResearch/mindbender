@@ -4,6 +4,7 @@
 # > dashboard-snapshot-config get NAME
 # > dashboard-snapshot-config put NAME <CONFIG_JSON
 # > dashboard-snapshot-config delete NAME
+# > dashboard-snapshot-config generate NAME
 #
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2015-05-01
@@ -18,8 +19,7 @@ Command=$1; shift
 case $Command in
     ls)
         ;;
-    get|put|delete)
-        [[ $# -gt 0 ]] || usage "$0" "No verb given"
+    get|put|delete|generate)
         ConfigName=${1:-}; shift || usage
         ConfigFile=snapshot-"$ConfigName".conf
         ;;
@@ -64,6 +64,7 @@ case $Command in
     put) # decode snapshot configuration from given JSON object
         coffee -e '
             fs = require "fs"
+            esc = require "shell-escape"
             _ = require "underscore"
             [jsonFile] = process.argv[4..]
 
@@ -71,21 +72,29 @@ case $Command in
             snapshotConfig = JSON.parse fs.readFileSync jsonFile
 
             ## write files under the report template file
-            # XXX string escaping is ugly and very convoluted, but is contained in the next line
-            esc = (s) -> "'\''" + (
-                    unless s? then ""
-                    else (String s).replace /'\''/g, "'\''\\'\'\''"
-                ) + "'\''"
             for {reportTemplate, params} in snapshotConfig
-                console.log "report #{esc reportTemplate}  #{(
-                    for name,value of params
-                        "#{esc name}=#{esc value}"
-                ).join " "}"
+                console.log esc ["report", reportTemplate, (
+                        "#{name}=#{value}" for name,value of params
+                    )...]
         ' /dev/stdin >"$ConfigFile".tmp
         mv -f "$ConfigFile".tmp "$ConfigFile"
         ;;
 
     delete) # delete given snapshot configuration
         rm -f "$ConfigFile"
+        ;;
+
+    generate) # derive a default snapshot configuration from DeepDive's application.conf
+        ! [[ -e "$ConfigFile" ]] ||
+            error "$ConfigFile: snapshot configuration $ConfigName already exists"
+        eval-coffee-on-deepdive-app-conf '
+            esc = require "shell-escape"
+
+            console.log "report corpus/stats table=sentences"
+            for table,columns of appConf.deepdive?.schema?.variables ? {}
+                for column,variableSchema of columns
+                    console.log esc ["report", "variable", "variable=#{table}.#{column}"]
+        ' >"$ConfigFile".tmp
+        mv -f "$ConfigFile".tmp "$ConfigFile"
         ;;
 esac
