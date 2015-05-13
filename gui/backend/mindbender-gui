@@ -5,6 +5,6 @@
 # Created: 2014-09-25
 set -eu
 
-NODE_PATH="$MINDBENDER_HOME"/gui/node_modules \
+NODE_PATH="$MINDBENDER_HOME"/gui/node_modules:$NODE_PATH \
 exec \
 coffee "$MINDBENDER_HOME"/gui/server.coffee "$@"
