@@ -80,7 +80,7 @@ exports.init = (app) ->
             .location "/api/snapshot-config/#{configName}"
             .status 201
         sendStdoutOf res, "dashboard-snapshot-config", ["put", configName]
-            .stdin.write JSON.stringify req.body
+            .stdin.end JSON.stringify req.body
 
     # Read Contents of a Snapshot Configuration
     app.get "/api/snapshot-config/:configName", (req, res) ->
@@ -127,7 +127,7 @@ exports.init = (app) ->
             .status 201
         sendStdoutOf res, "dashboard-report-template", ["put", reportTemplateId]
             # XXX it's silly to parse and stringify the body right away
-            .stdin.write JSON.stringify req.body
+            .stdin.end JSON.stringify req.body
 
     # Read a Report Template
     app.get "/api/report-template/*", (req, res) ->

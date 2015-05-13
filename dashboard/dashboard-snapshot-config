@@ -62,6 +62,7 @@ case $Command in
         ;;
 
     put) # decode snapshot configuration from given JSON object
+        cat | # XXX a workaround for ENXIO error coming from using /dev/stdin from nested nodejs processes
         coffee -e '
             fs = require "fs"
             esc = require "shell-escape"

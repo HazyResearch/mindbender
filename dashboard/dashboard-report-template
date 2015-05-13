@@ -130,6 +130,7 @@ case $Command in
         # clean up existing artifacts before decoding
         rm -f data.sql.in
 
+        cat | # XXX a workaround for ENXIO error coming from using /dev/stdin from nested nodejs processes
         # decode the input JSON object and create corresponding files
         coffee -e '
             fs = require "fs"
