@@ -161,6 +161,7 @@ angular.module "mindbenderApp.dashboard", [
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
     $scope.hideLoader = true
+    $scope.tableTab = { active: false }
 
     $scope.loadReportFromNav = (nav) ->
         if nav.$show || nav.$leaf
@@ -196,19 +197,24 @@ angular.module "mindbenderApp.dashboard", [
                     table = $scope.convertToRowOrder(table)
                     $scope.tableHeaders = table.headers
                     $scope.tableRows = table.data
-                    if ($scope.chart = chart)?
-                        # with chart
+                    $scope.json = { render: false }
+
+                    if chart
                         $scope.json = {
                             x: chart.x
                             y: chart.y
                             data: table.data
                             headers: table.headers
+                            render: true
                         }
-                        renderCharts($scope.json)
+
+                    renderCharts($scope.json)
                 else
                     # free-text (custom) report
                     $scope.html = $sce.trustAsHtml(report.html ? report.markdown)
+
                 Dashboard.updateNavLinkForSnapshots $location.search()
+                $scope.tableTab.active = true
 
             .error (data, status, headers, config) ->
                 $scope.loading = false
