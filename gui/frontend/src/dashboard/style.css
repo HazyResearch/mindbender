@@ -50,32 +50,29 @@ table {
 }
 
 #report-charts .chart {
-	border: 2px solid #e3e3e3;
-	background-color: #f5f5f5;
-	margin-bottom: 20px;
-	padding: 10px;
+	margin: 20px 0px;
 }
 
 #report-charts .hidden_chart {
 	visibility: hidden;
 }
 
-#report-charts li {
+#report-charts #nav li {
 	white-space: nowrap;
 	list-style-type: none;
-    margin-left: -20px;
-    text-indent: -6px;
-    cursor: pointer;
+	margin-left: -20px;
+	text-indent: -6px;
+	cursor: pointer;
 }
 
 #nav.affix {
-    position: fixed;
-    top: 0;
-    width: 100%
+	position: fixed;
+	top: 0;
+	width: 100%
 }
 
 #nav .tree {
-	width: 180px;
+	width: 270px;
 	height: 99vh;
 	overflow: auto;
 	border: 2px solid #e3e3e3;
@@ -89,7 +86,7 @@ table {
 
 #slider {
 	width: 200px;
-	margin-left: 170px;
+	margin: 0px auto;
 }
 
 .flash {
