@@ -58,6 +58,8 @@ case $Command in
         for dir in "${reportTemplateImportOrder[@]}"; do
             reportTemplatePath="$dir/$TemplateName"
             [[ -d "$reportTemplatePath" ]] || continue
+            [[ -e "$reportTemplatePath/README.md.in" ||
+               -e "$reportTemplatePath/data.sql.in" ]] || continue
 
             # TODO It's probably a very good idea to implement this JSON construction in another language as this is already pretty slow.  A small obstacle would be interpreting the report.params files.
             # encode parameters by interpreting report.params
