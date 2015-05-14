@@ -14,9 +14,11 @@ cd "$DEEPDIVE_APP"
 
 # parse application.conf into JSON
 json=.application.conf.json
-[[ $json -nt application.conf ]] ||
-    hocon2json application.conf >$json ||
-    error "Make sure you source'd env.sh or equivalent before running this command"
+[[ -s $json && $json -nt application.conf ]] ||
+    hocon2json application.conf >$json || {
+        rm -f $json
+        error "Make sure you source'd env.sh or equivalent before running this command"
+    }
 
 # run given coffee script
 coffee -e '
