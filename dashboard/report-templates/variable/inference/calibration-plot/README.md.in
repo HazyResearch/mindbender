@@ -1,0 +1,107 @@
+<$
+table=${variable%%.*}
+column=${variable#$table.}
+
+num_buckets=10
+run-sql "
+WITH bucketed AS (
+    SELECT ${column} AS label
+         , CASE
+             WHEN expectation = 1 THEN $(($num_buckets - 1))
+             ELSE FLOOR(expectation * ${num_buckets})
+           END AS bucket
+    FROM ${table}_${column}_inference
+)
+
+ SELECT  universe.bucket       / $num_buckets.      AS probability_lo
+      , (universe.bucket +  1) / ${num_buckets}.    AS probability_hi
+      , (universe.bucket + .5) / ${num_buckets}.    AS probability
+      , positive.count::FLOAT / (
+        positive.count + negative.count)            AS accuracy
+      , positive.count + negative.count             AS num_predictions_test
+      , universe.count                              AS num_predictions_whole
+      , positive.count                              AS num_correct
+      , negative.count                              AS num_incorrect
+   FROM (
+         SELECT bucket, COUNT(*) AS count
+           FROM bucketed
+          GROUP BY bucket
+        ) universe
+   LEFT JOIN (
+         SELECT bucket, COUNT(*) AS count
+           FROM bucketed
+          WHERE label = true
+          GROUP BY bucket
+        ) positive ON universe.bucket = positive.bucket
+   LEFT JOIN (
+         SELECT bucket, COUNT(*) AS count
+           FROM bucketed
+          WHERE label = false
+          GROUP BY bucket
+        ) negative ON universe.bucket = negative.bucket
+  ORDER BY universe.bucket
+" CSV HEADER >calibration.csv
+
+json-for calibration.csv | transpose-json >calibration.json
+$>
+
+<div class="row">
+<div class="col-sm-4">
+<!-- accuracy -->
+(a) Accuracy (Testing Set)
+<chart
+    data-file="calibration"
+    type="scatter"
+    x-axis="probability"
+    x-label="Probability"
+    y-axis="accuracy"
+    y-label="Accuracy"
+    highcharts-options="{
+        yAxis: { min: 0, max: 1 },
+        legend: { enabled: false },
+        plotOptions: {
+            scatter: {
+                lineWidth: 1,
+                color: '#f00'
+            }
+        },
+        series: [{
+            type: 'scatter',
+            data: [ [0,0], [1,1] ],
+            lineWidth: 1,
+            color: '#888',
+            dashStyle: 'ShortDash'
+        }]
+    }"
+></chart>
+</div>
+
+<div class="col-sm-4">
+<!-- #predictions histogram (test set) -->
+(b) # Predictions (Testing Set)
+<chart
+    data-file="calibration"
+    type="bar"
+    x-axis="probability"
+    x-label="Probability"
+    y-axis="num_predictions_test"
+    y-label="#Predictions"
+></chart>
+</div>
+
+<div class="col-sm-4">
+<!-- #predictions histogram (whole set) -->
+(c) # Predictions (Whole Set)
+<chart
+    data-file="calibration"
+    type="bar"
+    x-axis="probability"
+    x-label="Probability"
+    y-axis="num_predictions_whole"
+    y-label="#Predictions"
+></chart>
+</div>
+
+</div>
+
+**(a) and (b) are produced using hold-out on evidence variables; (c) also includes all non-evidence variables.**
