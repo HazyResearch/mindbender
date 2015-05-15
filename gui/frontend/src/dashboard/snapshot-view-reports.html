@@ -33,7 +33,7 @@
 	</div>
 	<div class="col-md-9" ng-hide="html">
 		<tabset>
-			<tab>
+			<tab active="tableTab.active">
 				<tab-heading style="font-size:18pt;">
 					<i class="fa fa-table"></i>
 				</tab-heading>
@@ -69,6 +69,12 @@
 
 <script>
 	function renderCharts(json) {
+		if (!json.render) {
+			$("#histogram_container").hide();
+			$("#scatter_plot_container").hide();
+			return;
+		}
+
 		var report_chart = new ReportChart(json);
 		var x_numeric = report_chart.axisIsNumeric("x");
 		var y_numeric = report_chart.axisIsNumeric("y");
