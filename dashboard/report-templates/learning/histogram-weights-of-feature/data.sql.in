@@ -1,6 +1,4 @@
-<$ ### Histogram of Feature Weights
-# TODO join $feature_weights_table with features of this variable?
-
+<$ ### Histogram of Learned Feature Weights
 # Count the number of features
 report-log "Counting number of features and range of weights..."
 read \

@@ -91,7 +91,8 @@ case $Command in
         eval-coffee-on-deepdive-app-conf '
             esc = require "shell-escape"
 
-            console.log "report corpus/stats table=sentences"
+            console.log "report corpus   table=sentences"
+            console.log "report learning"
             for table,columns of appConf.deepdive?.schema?.variables ? {}
                 for column,variableSchema of columns
                     console.log esc ["report", "variable", "variable=#{table}.#{column}"]

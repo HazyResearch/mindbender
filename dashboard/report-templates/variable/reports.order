@@ -1,7 +1,5 @@
-summary
 *
-quality
-inference
-supervision
-feature
 candidate
+feature
+supervision
+inference
