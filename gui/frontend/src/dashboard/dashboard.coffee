@@ -161,6 +161,8 @@ angular.module "mindbenderApp.dashboard", [
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
     $scope.hideLoader = true
+
+    # Must be an object to work with Bootstrap UI tabs
     $scope.tableTab = { active: false }
 
     $scope.loadReportFromNav = (nav) ->
