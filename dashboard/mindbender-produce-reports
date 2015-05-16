@@ -254,26 +254,58 @@ record-report-params() {
         " "$@"
 
         # generate a report id from the required parameters
-        local idFormat="%s" idArgs=$(escape-shell-string "$reportName")
-        for name in $(cat .report.params.required 2>/dev/null); do
-            idFormat+=" %s"
-            idArgs+=' "$'"$name"'"'
-        done
-        local id=$(bash -c "
-            source .report.params.sh
-            printf '$idFormat' $idArgs
-        ")
-        # make sure the report id is not used already, or append a unique serial number
-        id=$(
-            id-is-available() {
-                ! grep -qxF "$1" "$DEEPDIVE_APP/$SnapshotDir"/reports.ids
-            }
-            assign-unique-serial "$id" id-is-available
-        )
+        id=$(generate-report-id "$reportPath" "$reportName" "$@")
         echo "$id" >.report.id 
         # mark them read-only
         chmod -w .report.params* .report.id
     )
+}
+# generates the id for a report that interpolates required parameter values
+# next to the templates that require them, e.g.:
+# /variable(foo.is_true)/feature/sample(bar)/histogram
+generate-report-id() {
+    local reportPath=$1; shift
+    local reportName=$1; shift
+    id=$(
+        # traverse up the parents to produce the desired report id
+        cd "$DEEPDIVE_APP/$SnapshotDir/$reportPath"
+        reportNamePrefix=$reportName
+        list-breadcrumb-paths "$reportName" |
+        while read; do
+            name=${reportNamePrefix##*/}
+            # name
+            echo -n "$name"
+            # and required parameters
+            if [[ -e report.params ]]; then
+                argsExpr=$(
+                    (
+                        required() { echo "$1"; }
+                        optional() { :; }
+                        source report.params
+                    ) |
+                    while read param; do
+                        echo -n '"${'"$param"'}",'
+                    done
+                )
+                argsExpr=${argsExpr%,}
+                [[ -z "$argsExpr" ]] || printf '(%s)' "$(
+                        declare -- "$@"
+                        eval "printf '%s' $argsExpr"
+                    )"
+            fi
+            echo
+            cd ..
+            reportNamePrefix=${reportNamePrefix%/*}
+        done |
+        # reverse and assemble as a path
+        tac | tr '\n' '/'
+    )
+    id=${id%/}
+    # make sure the report id is not used already, or append a unique serial number
+    id-is-available() {
+        ! grep -qxF "$1" "$DEEPDIVE_APP/$SnapshotDir"/reports.ids
+    }
+    assign-unique-serial "$id" id-is-available
 }
 produce-report() {
     local reportPath=$1; shift

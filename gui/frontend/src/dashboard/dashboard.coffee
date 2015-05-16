@@ -223,9 +223,8 @@ angular.module "mindbenderApp.dashboard", [
         return unless search_report?
         if $scope.reports[search_report]?
             $scope.loadReport(search_report)
-            search_report_split = $scope.convertReportKey(search_report)
             traverse_nav = $scope.nav
-            for s in search_report_split
+            for s in search_report.split "/"
                 traverse_nav[s]['$show'] = true
                 traverse_nav = traverse_nav[s]
         else
@@ -248,48 +247,29 @@ angular.module "mindbenderApp.dashboard", [
             .success -> $scope.reloadSnapshot()
             .error   -> $scope.reloadSnapshot()
 
-    $scope.buildTree = (params, path_splits) ->
-        result = {}
-
-        for full_split in path_splits
-            split = full_split[0]
-            i = 0
-            on_path = true
-            for k in params
-                if split[i] != k
-                    on_path = false
-                i += 1
-
-            if on_path && split.length > i
-                new_params = params.slice()
-                new_params.push(split[i])
-                children = $scope.buildTree(new_params, path_splits)
-                result[split[i]] = children
-
-                if Object.keys(children).length == 0
-                    result[split[i]]['$leaf'] = true 
-
-                tmp = full_split[1].split(" ")
-
-                result[split[i]]['$report_key'] = tmp[0].split("/").slice(0, new_params.length).join("/") + " " + tmp[1]
-                if i == 0
-                    result[split[i]]['$show'] = true
-
-        return result
-
-    $scope.convertReportKey = (report_key) ->
-        var_split = report_key.split(" ")
-        path_split = var_split[0].split("/")
-        path_split[0] += " (" + var_split[1] + ")"
-        return path_split
+    $scope.buildTree = (report_keys) ->
+        root = {
+            $leaf: yes
+            $show: yes
+        }
+        for path in report_keys
+            # create objects along each path in the tree
+            node = root
+            # FIXME put children in a separate key: if childName happens to be $leaf or $show, the tree can break
+            for childName in path.split "/"
+                node[childName] ?= {
+                    $leaf: yes
+                    $show: yes
+                }
+                # mark the previous node as non-leaf and traverse a step down
+                node.$leaf = no
+                node = node[childName]
+            # record the $report_key at the end of each path
+            node.$report_key = path
+        root
 
     $scope.sortReports = (report_keys) ->
-        path_splits = []
-        
-        for k in report_keys 
-            path_splits.push([$scope.convertReportKey(k), k])
-
-        $scope.nav = $scope.buildTree([], path_splits)
+        $scope.nav = $scope.buildTree report_keys
 
     $scope.convertToRowOrder = (table) ->
         if table.headers
