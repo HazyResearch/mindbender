@@ -1,0 +1,1 @@
+{"variable":"gene_mentions.is_correct","expectation_threshold":0.9,"candidate_id_column":"mention_id","words_column":"words","doc_id_column":"doc_id","features_layout":"own_table","features_table":"gene_features","features_column":"feature"}

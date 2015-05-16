@@ -1,0 +1,50 @@
+<$ ### Histogram of Number of Features per Candidate
+table=${variable%%.*}
+column=${variable#$table.}
+
+if [[ -n "${candidate_id_column:-}" ]]; then
+case ${features_layout:-} in
+
+array_column)
+    if [[ -n "${features_column:-}" ]]; then
+        # when features are stored as array in the candidate table
+$>
+            SELECT num_features
+                 , COUNT(candidate) AS num_candidates
+              FROM (
+                SELECT ${candidate_id_column} AS candidate
+                     , ( ARRAY_UPPER(${features_column},1)
+                       - ARRAY_LOWER(${features_column},1) ) AS num_features
+                  FROM ${table}
+              ) num_features_per_candidate
+             GROUP BY num_features
+             ORDER BY num_features ASC
+<$
+    else
+        report-warn "Parameter features_column= undefined for features_layout=array_column"
+    fi
+    ;;
+
+own_table)
+    if [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
+        # when features are stored in a separate table (for incremental DeepDive)
+$>
+            SELECT num_features
+                 , COUNT(candidate) AS num_candidates
+              FROM (
+                SELECT ${candidate_id_column} AS candidate
+                     , COUNT(${features_column}) AS num_features
+                  FROM ${features_table}
+                 GROUP BY ${candidate_id_column}
+              ) num_features_per_candidate
+             GROUP BY num_features
+             ORDER BY num_features ASC
+<$
+    else
+        report-warn "Parameters features_table= and/or features_column= undefined for features_layout=own_table"
+    fi
+    ;;
+
+esac
+fi
+$>

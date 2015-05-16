@@ -1,0 +1,11 @@
+weight,description
+0,gene_inference-W_LEMMA_L_1_R_2_[RESEARCH]_[be submit]
+0,gene_inference-W_RIGHT_3_[( no posttranslational]
+0,gene_inference-W_NER_L_1_R_1_[MISC]_[NUMBER]
+0,"gene_inference-W_LEMMA_L_3_R_2_[this reason ,]_[, like]"
+0,gene_inference-W_RIGHT_2_[and t1r2]
+0,"gene_inference-W_LEMMA_L_3_R_1_[AE , Horvitz]_[,]"
+0,"gene_inference-W_LEMMA_L_3_R_2_[, ribosomal protein]_[, and]"
+0,gene_inference-W_LEFT_3_[_NUMBER that the]
+0,gene_inference-W_LEMMA_L_2_R_1_[interaction between]_[or]
+0,gene_inference-W_LEMMA_L_1_R_3_[a]_[reference ( each]

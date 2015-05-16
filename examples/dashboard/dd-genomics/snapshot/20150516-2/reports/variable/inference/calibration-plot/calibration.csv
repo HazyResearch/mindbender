@@ -1,0 +1,5 @@
+probability_lo,probability_hi,probability,accuracy,num_predictions_test,num_predictions_whole,num_correct,num_incorrect
+0,0.1,0.05,,,186,,1
+0.1,0.2,0.15,,,3,,1
+0.2,0.3,0.25,,,3,,
+0.3,0.4,0.35,,,1,,
