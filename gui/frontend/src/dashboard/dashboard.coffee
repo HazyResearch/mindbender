@@ -327,10 +327,12 @@ angular.module "mindbenderApp.dashboard", [
         for index, header of table.headers
             table.headers[index] = { name: header, isNumeric: true }
 
-            for value in table.data[index]
+            for value, value_index in table.data[index]
+                if value == ''
+                    table.data[index][value_index] = null
+
                 if isNaN(value)
                     table.headers[index].isNumeric = false
-                    break
 
         return table
 
@@ -433,7 +435,7 @@ angular.module "mindbenderApp.dashboard", [
 ]
 
 
-.directive 'chart', ['$document', ($document) ->
+.directive 'chart', ($timeout, $parse) ->
     return {
         template: '<div class="chart"></div><div class="slider"></div>',
         restrict: 'E',
@@ -464,7 +466,8 @@ angular.module "mindbenderApp.dashboard", [
                     for point in data
                         if i >= bucketSize
                             buckets.push(bucket)
-                            labels.push(previousLabel.toLocaleString() + " - " + (point[0]-1).toLocaleString())
+                            labels.push("[" + previousLabel.toLocaleString() + ", " + point[0].toLocaleString() + ")")
+                            previousLabel = point[0]
                             bucket = 0
                             i = 0
                         bucket += point[1]
@@ -472,7 +475,7 @@ angular.module "mindbenderApp.dashboard", [
 
                     if bucket > 0
                         buckets.push(bucket)
-                        labels.push(previousLabel.toLocaleString() + " - " + point[0].toLocaleString())
+                        labels.push("[" + previousLabel.toLocaleString() + ", " + point[0].toLocaleString() + "]")
 
                 return { buckets: buckets, labels: labels }
 
@@ -482,15 +485,10 @@ angular.module "mindbenderApp.dashboard", [
                     text: '',
                 },
                 xAxis: {
-                    labels: {}
-                },
-                yAxis: {
                     title: {
-                        text: attrs.yLabel
+                        text: attrs.label
                     }
-                    type: 'logarithmic'
-                },
-                series: []
+                }
             }
 
             # Get user data
@@ -501,17 +499,17 @@ angular.module "mindbenderApp.dashboard", [
             
             # Set chart-specific options
             if attrs.type == 'bar'
-                options.chart.type = "column"
-                if scope.tableHeaderIsNumeric(full_data, attrs.axis)
-                    options.yAxis.type = 'logarithmic'
+                options.chart.type = 'column'
 
             if attrs.type == 'scatter'
                 options.chart.type = 'scatter'
-                options.xAxis.type = 'logarithmic'
 
             # Apply custom user options
-            if attrs.options
-                options = recursiveMerge(options, attrs.options)
+            if attrs.highchartsOptions
+               options = recursiveMerge(options, $parse(attrs.highchartsOptions)(scope, {}))
+
+            if !options.series
+                options.series = []
 
             # Format data
             xIndex = 0
@@ -526,48 +524,61 @@ angular.module "mindbenderApp.dashboard", [
             for point in full_data.data
                 data.push([point[xIndex], point[yIndex]])
 
+            formatChartData = (data, xIsNumeric, numBins) ->
+                if (numBins != 'undefined' && numBins < data.length) || (xIsNumeric && data.length > 3 ** 3)
+                    if !numBins
+                        numBins = Math.floor(Math.sqrt(data.length, 1/3))
+
+                    bins = binData(data, numBins)
+
+                    return {
+                        xAxis: { categories: bins.labels },
+                        series: {
+                            name: attrs.yLabel,
+                            data: bins.buckets
+                        },
+                        numBins: numBins
+                    }
+                else
+                    return {
+                        xAxis: {},
+                        series: {
+                            name: attrs.yLabel,
+                            data: data
+                        },
+                        numBins: data.length
+                    }
+
             # Format bar
             if attrs.type == 'bar'
-                if scope.tableHeaderIsNumeric(full_data, attrs.axis)
-                    numBins = Math.sqrt(data.length, 1/3)
-                    options.yAxis.type = 'logarithmic'
-                else
-                    numBins = data.length
-
-                bins = binData(data, numBins)
-                options.xAxis.categories = bins.labels
-                options.series.push({
-                    name: attrs.label
-                    data: bins.buckets
-                })
+                chartData = formatChartData(data, scope.tableHeaderIsNumeric(full_data, attrs.axis))
+                options.series.push(chartData.series)
+                options.xAxis.categories = chartData.xAxis.categories
 
             # Format scatter
             if attrs.type == 'scatter'
                 options.series.push({
-                    name: attrs.label
+                    name: attrs.yLabel
                     data: data
                 })
 
-            # Render chart
-            element.find('.chart').highcharts(options);
+            # Render chart and slider
+            $timeout ->
+                element.find('.chart').highcharts(options)
+            
+                if attrs.type == 'bar' && scope.tableHeaderIsNumeric(full_data, attrs.axis)
+                    element.find('.slider').slider({
+                        min: 1,
+                        max: data.length,
+                        value: chartData.numBins,
+                        slide: (event, ui) ->
+                            chartData = formatChartData(data, scope.tableHeaderIsNumeric(full_data, attrs.axis), ui.value)
+                            options.series[options.series.length - 1] = chartData.series
+                            options.xAxis.categories = chartData.xAxis.categories
 
-            # Render slider
-            if attrs.type == 'bar' && scope.tableHeaderIsNumeric(full_data, attrs.axis)
-                element.find('.slider').slider({
-                    min: 1,
-                    max: data.length,
-                    value: Math.sqrt(data.length, 1/3),
-                    slide: (event, ui) ->
-                        bins = binData(data, ui.value)
-                        options.xAxis.categories = bins.labels
-                        options.series[options.series.length - 1] = {
-                            name: attrs.label
-                            data: bins.buckets
-                        }
-                        element.find('.chart').highcharts(options);
-                })
+                            element.find('.chart').highcharts(options)
+                    })
     }
-]
 
 .directive 'compileHtml', ['$compile', ($compile) ->
     return (scope, element, attrs) ->
