@@ -160,10 +160,15 @@ angular.module "mindbenderApp.dashboard", [
 .controller "SnapshotReportsCtrl", ($scope, $http, $routeParams, $location, $sce, Dashboard) ->
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
-    $scope.hideLoader = true
+    $scope.tabs = {
+        table: { active: true }
+        bar: { show: false }
+        scatter: { show: false }
+    }
+    $scope.report = {}
 
-    # Must be an object to work with Bootstrap UI tabs
-    $scope.tableTab = { active: false }
+    reportNotFound = (report_key) ->
+        $scope.reportLoadError = "#{report_key} does not exist in snapshot #{$routeParams.snapshotId}"
 
     $scope.loadReportFromNav = (nav) ->
         if nav.$show || nav.$leaf
@@ -171,52 +176,50 @@ angular.module "mindbenderApp.dashboard", [
         else
             nav.$show = true
 
-    reportNotFound = (report_key) ->
-        $scope.reportLoadError =
-            "#{report_key} does not exist in snapshot #{$routeParams.snapshotId}"
-
     $scope.loadReport = (report_key) ->
         $scope.loading = true
         $scope.reportLoadError = null
-        $scope.table = false
         $location.search('report', report_key)
         reportIdFull = "#{$routeParams.snapshotId}/#{report_key}"
 
         # TODO check report_key from $scope.reports first
 
         $http.get "/api/snapshot/#{reportIdFull}"
-            .success (data, status, headers, config) -> 
+            .success (result, status, headers, config) -> 
                 $scope.loading = false
-                $scope.chart = false
                 $scope.currentReport = report_key
-                report = data[report_key]
-                return reportNotFound report_key unless report?
-                if report.data?
-                    # data-table (formatted) report
-                    $scope.html = $sce.trustAsHtml("")
-                    data_name = Object.keys(report.data)[0]
-                    {table, chart} = report.data[data_name]
-                    table = $scope.convertToRowOrder(table)
-                    $scope.tableHeaders = table.headers
-                    $scope.tableRows = table.data
-                    $scope.json = { render: false }
 
-                    if chart
-                        $scope.json = {
-                            x: chart.x
-                            y: chart.y
-                            data: table.data
-                            headers: table.headers
-                            render: true
-                        }
-
-                    renderCharts($scope.json)
+                if result[report_key]
+                    result[report_key].html = $sce.trustAsHtml(result[report_key].html)
                 else
-                    # free-text (custom) report
-                    $scope.html = $sce.trustAsHtml(report.html ? report.markdown)
+                    return reportNotFound report_key
+
+                $scope.report = result[report_key]
+
+                for data_key of $scope.report.data
+                    $scope.report.data[data_key].table = convertToRowOrder($scope.report.data[data_key].table)
+
+                if $scope.report.html
+                    $scope.report.isFormatted = false
+                else
+                    $scope.report.isFormatted = true
+                    data_name = Object.keys($scope.report.data)[0]
+                    $scope.report.formattedReport = $scope.report.data[data_name]
+                    $scope.report.formattedReport.name = data_name
+
+                    $scope.tabs.table.active = true
+
+                    chart = $scope.report.formattedReport.chart
+                    if chart
+                        if $scope.tableHeaderIsNumeric($scope.report.formattedReport.table, chart.y)
+                            $scope.tabs.bar.show = true
+
+                            $scope.tabs.scatter.show = $scope.tableHeaderIsNumeric($scope.report.formattedReport.table, chart.x)
+                        else
+                            $scope.tabs.bar.show = false
+                            $scope.tabs.scatter.show = false
 
                 Dashboard.updateNavLinkForSnapshots $location.search()
-                $scope.tableTab.active = true
 
             .error (data, status, headers, config) ->
                 $scope.loading = false
@@ -299,11 +302,19 @@ angular.module "mindbenderApp.dashboard", [
 
         $scope.nav = $scope.buildTree([], path_splits)
 
-    $scope.convertToRowOrder = (table) ->
-        if table.headers
-            return table
-        else
+
+    $scope.tableHeaderIsNumeric = (table, header) ->
+        for h in table.headers
+            if h.name == header
+                return h.isNumeric
+
+        return false
+
+
+    convertToRowOrder = (table) ->
+        if !table.headers
             new_table = { headers: Object.keys(table), data: [] }
+
             for header in new_table.headers
                 for k, v of table[header]
                     if !new_table.data[k]
@@ -311,7 +322,19 @@ angular.module "mindbenderApp.dashboard", [
 
                     new_table.data[k].push(v)
 
-            return new_table
+            table = new_table
+
+        for index, header of table.headers
+            table.headers[index] = { name: header, isNumeric: true }
+
+            for value, value_index in table.data[index]
+                if value == ''
+                    table.data[index][value_index] = null
+
+                if isNaN(value)
+                    table.headers[index].isNumeric = false
+
+        return table
 
 
 .controller "EditTemplatesCtrl", ($scope, $http, $location, Dashboard) ->
@@ -410,3 +433,162 @@ angular.module "mindbenderApp.dashboard", [
             )
     }
 ]
+
+
+.directive 'chart', ($timeout, $parse) ->
+    return {
+        template: '<div class="chart"></div><div class="slider"></div>',
+        restrict: 'E',
+        link: (scope, element, attrs) ->
+           
+            recursiveMerge = (obj1, obj2) ->
+                for k of obj2
+                    if typeof obj1[k] == 'object' && typeof obj2[k] == 'object'
+                        obj1[k] = recursiveMerge(obj1[k], obj2[k])
+                    else
+                        obj1[k] = obj2[k]
+
+                return obj1
+
+            binData = (data, numBins) ->
+                bucketSize = Math.ceil(data.length/numBins)
+                labels = []
+                buckets = []
+                i = 0
+                bucket = 0
+                previousLabel = data[0][0]
+
+                if bucketSize == 1
+                    for point in data
+                        buckets.push(point[1])
+                        labels.push(point[0])
+                else
+                    for point in data
+                        if i >= bucketSize
+                            buckets.push(bucket)
+                            labels.push("[" + previousLabel.toLocaleString() + ", " + point[0].toLocaleString() + ")")
+                            previousLabel = point[0]
+                            bucket = 0
+                            i = 0
+                        bucket += point[1]
+                        i++
+
+                    if bucket > 0
+                        buckets.push(bucket)
+                        labels.push("[" + previousLabel.toLocaleString() + ", " + point[0].toLocaleString() + "]")
+
+                return { buckets: buckets, labels: labels }
+
+            options = {
+                chart: {},
+                title: {
+                    text: '',
+                },
+                xAxis: {
+                    title: {
+                        text: attrs.label
+                    }
+                }
+            }
+
+            # Get user data
+            if attrs.data
+                full_data = attrs.data
+            else
+                full_data = scope.report.data[attrs.file].table
+            
+            # Set chart-specific options
+            if attrs.type == 'bar'
+                options.chart.type = 'column'
+
+            if attrs.type == 'scatter'
+                options.chart.type = 'scatter'
+
+            # Apply custom user options
+            if attrs.highchartsOptions
+               options = recursiveMerge(options, $parse(attrs.highchartsOptions)(scope, {}))
+
+            if !options.series
+                options.series = []
+
+            # Format data
+            xIndex = 0
+            yIndex = 0
+            for index, header of full_data.headers
+                if attrs.axis == header.name
+                    xIndex = index
+                if attrs.yAxis == header.name
+                    yIndex = index
+
+            data = []
+            for point in full_data.data
+                data.push([point[xIndex], point[yIndex]])
+
+            formatChartData = (data, xIsNumeric, numBins) ->
+                if (numBins != 'undefined' && numBins < data.length) || (xIsNumeric && data.length > 3 ** 3)
+                    if !numBins
+                        numBins = Math.floor(Math.sqrt(data.length, 1/3))
+
+                    bins = binData(data, numBins)
+
+                    return {
+                        xAxis: { categories: bins.labels },
+                        series: {
+                            name: attrs.yLabel,
+                            data: bins.buckets
+                        },
+                        numBins: numBins
+                    }
+                else
+                    return {
+                        xAxis: {},
+                        series: {
+                            name: attrs.yLabel,
+                            data: data
+                        },
+                        numBins: data.length
+                    }
+
+            # Format bar
+            if attrs.type == 'bar'
+                chartData = formatChartData(data, scope.tableHeaderIsNumeric(full_data, attrs.axis))
+                options.series.push(chartData.series)
+                options.xAxis.categories = chartData.xAxis.categories
+
+            # Format scatter
+            if attrs.type == 'scatter'
+                options.series.push({
+                    name: attrs.yLabel
+                    data: data
+                })
+
+            # Render chart and slider
+            $timeout ->
+                element.find('.chart').highcharts(options)
+            
+                if attrs.type == 'bar' && scope.tableHeaderIsNumeric(full_data, attrs.axis)
+                    element.find('.slider').slider({
+                        min: 1,
+                        max: data.length,
+                        value: chartData.numBins,
+                        slide: (event, ui) ->
+                            chartData = formatChartData(data, scope.tableHeaderIsNumeric(full_data, attrs.axis), ui.value)
+                            options.series[options.series.length - 1] = chartData.series
+                            options.xAxis.categories = chartData.xAxis.categories
+
+                            element.find('.chart').highcharts(options)
+                    })
+    }
+
+.directive 'compileHtml', ['$compile', ($compile) ->
+    return (scope, element, attrs) ->
+
+        scope.$watch(
+            (scope) -> return scope.$eval(attrs.compileHtml),
+            (value) -> 
+                if value
+                    element.html(value.toString())
+                    $compile(element.contents())(scope)
+        )
+]
+

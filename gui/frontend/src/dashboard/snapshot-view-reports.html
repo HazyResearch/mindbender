@@ -17,7 +17,7 @@
 		</div>
 	</div>
 
-	<div ng-if="reportLoadError" class="col-md-10">
+	<div ng-if="reportLoadError" class="col-md-9">
 		<div class="alert alert-danger">
 			<p class="lead">Report Not Found</p>
 			{{ reportLoadError }}
@@ -25,91 +25,66 @@
 	</div>
 
 	<div ng-if="!reportLoadError">
-	<div ng-show="loading && html" class="col-md-10">
-		<img src="dashboard/images/loading.gif">
-	</div>
-	<div class="col-md-9" ng-show="html">
-		<div ng-bind-html="html"></div>
-	</div>
-	<div class="col-md-9" ng-hide="html">
-		<tabset>
-			<tab active="tableTab.active">
-				<tab-heading style="font-size:18pt;">
-					<i class="fa fa-table"></i>
-				</tab-heading>
-				<table class="table table-striped" style="text-align:right;">
-					<tr>
-						<th style="text-align:center" ng-repeat="tableHeader in tableHeaders">{{ tableHeader }}</th>
-					</tr>
-					<tr ng-repeat="tableRow in tableRows">
-						<td ng-repeat="tableData in tableRow track by $index">{{ tableData }}</td>
-					</tr>
-				</table>
-			</tab>
-			<tab id="histogram_container">
-				<tab-heading style="font-size:18pt;">
-					<i class="fa fa-bar-chart"></i>
-				</tab-heading>
-				<div class="chart">
-					<div id="histogram" style="width:800px;"></div>
-					<div id="slider"></div>
-				</div>
-			</tab>
-			<tab id="scatter_plot_container">
-				<tab-heading style="font-size:18pt;">
-					<i class="fa fa-area-chart"></i>
-				</tab-heading>
-				<div class="chart">
-					<div id="scatter_plot" style="width:800px;"></div>
-				</div>
-			</tab>
-		</tabset>
+		<div ng-show="loading" class="col-md-9">
+			<img src="dashboard/images/loading.gif">
+		</div>
+		<div class="col-md-9" ng-show="!report.isFormatted && !loading">
+			<div compile-html="report.html"></div>
+		</div>
+		<div class="col-md-9" ng-show="report.isFormatted && !loading">
+			<tabset>
+				<tab active="tabs['table'].active">
+					<tab-heading style="font-size:18pt;">
+						<i class="fa fa-table"></i>
+					</tab-heading>
+					<table class="table table-striped" style="text-align:right;">
+						<tr>
+							<th style="text-align:center" ng-repeat="header in report.formattedReport.table.headers">{{ header.name }}</th>
+						</tr>
+						<tr ng-repeat="row in report.formattedReport.table.data">
+							<td ng-repeat="data in row track by $index">{{ data }}</td>
+						</tr>
+					</table>
+				</tab>
+				<tab ng-show="tabs['bar'].show">
+					<tab-heading style="font-size:18pt;">
+						<i class="fa fa-bar-chart"></i>
+					</tab-heading>
+					<chart
+						ng-if="tabs['bar'].show"
+					    data-file="{{ report.formattedReport.name }}"
+					    type="bar"
+					    x-axis="{{ report.formattedReport.chart.x }}"
+					    x-label="{{ report.formattedReport.chart.x }}"
+					    y-axis="{{ report.formattedReport.chart.y }}"
+					    y-label="{{ report.formattedReport.chart.y }}"
+					></chart>
+				</tab>
+				<tab ng-show="tabs['scatter'].show">
+					<tab-heading style="font-size:18pt;">
+						<i class="fa fa-area-chart"></i>
+					</tab-heading>
+					<chart
+						ng-if="tabs['scatter'].show"
+					    data-file="{{ report.formattedReport.name }}"
+					    type="scatter"
+					    x-axis="{{ report.formattedReport.chart.x }}"
+					    x-label="{{ report.formattedReport.chart.x }}"
+					    y-axis="{{ report.formattedReport.chart.y }}"
+					    y-label="{{ report.formattedReport.chart.y }}"
+					></chart>
+				</tab>
+			</tabset>
+		</div>
 	</div>
 </div>
 
 <script>
-	function renderCharts(json) {
-		if (!json.render) {
-			$("#histogram_container").hide();
-			$("#scatter_plot_container").hide();
-			return;
-		}
-
-		var report_chart = new ReportChart(json);
-		var x_numeric = report_chart.axisIsNumeric("x");
-		var y_numeric = report_chart.axisIsNumeric("y");
-
-		if (x_numeric && y_numeric) {
-			$("#scatter_plot_container").show();
-			$("#histogram_container").show();
-
-			report_chart.scatterPlot("scatter_plot");
-			report_chart.histogram("histogram", Math.sqrt(json.data.length, 1/3));
-
-			$("#slider").slider({
-				min: 1,
-				max: json.data.length,
-				value: Math.sqrt(json.data.length, 1/3),
-				slide: function(event, ui) {
-					report_chart.histogram("histogram", ui.value);
-				}
-			});
-		}
-		else if (x_numeric || y_numeric) {
-			$("#histogram_container").show();
-			$("#scatter_plot_container").hide();
-
-			report_chart.histogram("histogram", json.data.length);
-		}
-		else {
-			$("#histogram_container").hide();
-			$("#scatter_plot_container").hide();
-		}
-
+	$(document).ready(function() {
 		$('#nav').affix({
 			offset: {
 				top: $('#nav').offset().top
 			}
 		});
-	}
+	});
 </script>
