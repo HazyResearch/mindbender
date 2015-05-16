@@ -264,6 +264,44 @@ report-warn "Something went wrong!"
 2015-02-21 06:28:13 localhost	WARNING: Something went wrong!
 ```
 
+### Displaying charts
+
+The `<chart>` tag can be used to display a chart (rendered using [Highcharts](http://www.highcharts.com/))  within a custom report template. The attribute values for the `<chart>` tag are outlined below:
+
+```
+<chart 
+	highcharts-options="{}"  # Optional highcharts configurations
+	data-file="FILE"         # JSON data file from which to render the chart
+	data="JSON DATA"         # Raw JSON data from which to render the chart
+	type="bar|scatter"       # The type of the chart
+	x-axis="X_AXIS_NAME"     # The name of the column from the JSON file to use for the X axis
+	x-label="X_AXIS_LABEL"   # Text label for the X axis
+	y-axis="Y_AXIS_NAME"     # The name of the column from the JSON file to use for the Y axis
+	y-label="Y_AXIS_LABEL"   # Text label for the Y axis
+></chart>
+```
+
+Either the `data-file` or `data` attribute must be specified, but not both. The format of the JSON data can be in either row-major or column-major order, e.g.:
+```
+# Row-major order
+{ "headers": ["num_candidates", "num_features"], "data": [[1, 3], [2, 5], [3, 10], [4, 54]] }
+
+# Column-major order
+{ "num_candidates": [1, 2, 3, 4], "num_features": [3, 5, 10, 54] }
+```
+
+An example use of the `<chart>` tag is given below:
+```
+<chart 
+	highcharts-options="{ chart: { width: 500, height: 400 }, title: { text: 'Candidates vs. Features' } }"
+	data-file="candidates_features_data"
+	type="scatter"
+	x-axis="num_candidates"
+	x-label="Number of Candidates"
+	y-axis="num_features"
+	y-label="Number of Features"
+></chart>
+```
 
 ## Built-in Report Templates
 
