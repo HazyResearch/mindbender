@@ -66,18 +66,21 @@ $>
                               FROM ${feature_weights_table}
                              WHERE weight > 0)
                ELSE ${bin_width} * bin
-               END                         AS weight_ge
-             ,      ${bin_width} * (bin+1) AS weight_lt
-             ,      COUNT(*)               AS num_features
+               END                          AS weight_ge
+             ,      ${bin_width} * (bin+1)  AS weight_lt
+             ,      AVG(weight)             AS weight
+             ,      COUNT(*)                AS num_features
           FROM (
             SELECT FLOOR(weight / ${bin_width}) AS bin
+                 , weight
               FROM ${feature_weights_table}
              WHERE weight <> 0
           ) binned_weights
          GROUP BY bin
     ) UNION (
         SELECT 0        AS weight_ge
-             , 0        AS weight_lt
+             , NULL     AS weight_lt
+             , 0        AS weight
              , COUNT(*) AS num_features
           FROM ${feature_weights_table}
          WHERE weight = 0

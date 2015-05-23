@@ -1,5 +1,5 @@
--- Top $num_top_weighted_features Positively Weighted Features
+-- Top $num_top_weighted_features Negatively Weighted Features
  SELECT weight, description
    FROM dd_inference_result_variables_mapped_weights
-  ORDER BY weight DESC
+  ORDER BY weight ASC
   LIMIT ${num_top_weighted_features}
