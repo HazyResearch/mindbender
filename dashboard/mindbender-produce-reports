@@ -57,35 +57,6 @@ quote-html-attr() {
         echo -n "$s"
     done
 }
-merge-order-specs() {
-    # An order specification is a file listing a path name per line
-    # where a line may optionally be a single * (asterisk) character
-    # that denotes the position of the paths not mentioned explicitly should be ordered.
-    # This command take two or more order specs and produces a single one.
-    local a=$1; shift
-    local out=$(mktemp "$a".XXXXXX)
-    touch "$a"
-    {
-        # put the top halves of the order specs first
-        sed '/^\*$/,$d' <"$a"
-        local b= bs=
-        bs=()
-        for b; do
-            sed '/^\*$/,$d' <"$b"
-            if [[ ${#bs[@]} -eq 0 ]]; then
-                bs=("$b")
-            else
-                bs=("$b" "${bs[@]}")
-            fi
-        done
-        # wildcard line
-        echo '*'
-        # then the bottom halves follow in reverse order
-        for b in "${bs[@]}"; do sed '1,/^\*$/d' <"$b"; done
-        sed '1,/^\*$/d' <"$a"
-    } >"$out"
-    mv -f "$out" "$a"
-}
 assign-unique-serial() {
     local prefix=$1             # prefix string
     local satisfiesCondition=$2 # command for testing collisions
@@ -130,14 +101,14 @@ list-all-reports() {
                     [[ $# -eq 0 ]] || list-reports "$@"
                 ) | tee "$listed"/either
                 # next, get the bottom half
-                sed '1,/^\*$/d' <reports.order |
+                { echo; cat reports.order; } | sed '1,/^\*$/d' |
                 (
                     set --; while read globPattern; do set -- "$@" $globPattern; done
                     [[ $# -eq 0 ]] || list-reports "$@"
                 ) | tee -a "$listed"/either >"$listed"/bottom
                 # print the rest in the middle excluding those either in top or bottom
                 sort -r <"$listed"/either >"$listed"/either-reversed  # XXX workaround for FreeBSD grep
-                list-reports * | grep -vxFf "$listed"/either-reversed
+                list-reports * | grep -vxFf "$listed"/either-reversed || true
                 # finally, print the bottom
                 cat "$listed"/bottom
             }

@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# merge-order-specs -- Merge two or more order specs into a single one
+# Usage: merge-order-specs ORDER_SPEC ORDER_SPEC...
+# 
+# An order specification is a file listing a path name per line
+# where a line may optionally be a single * (asterisk) character
+# that denotes the position of the paths not mentioned explicitly should be ordered.
+# This command take two or more order specs and produces a single one.
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-02-08
+set -eu
+
+[[ $# -gt 1 ]] || usage "$0" "At least two order specs must be given"
+
+merge() {
+    # put the top halves of the order specs first
+    local b= bs=
+    bs=()
+    for b; do
+        sed '/^\*$/,$d' <"$b"
+        if [[ ${#bs[@]} -eq 0 ]]; then
+            bs=("$b")
+        else
+            bs=("$b" "${bs[@]}")
+        fi
+    done
+    # wildcard line in between
+    echo '*'
+    # then the bottom halves follow in reverse order
+    for b in "${bs[@]}"; do { echo; cat "$b"; } | sed '1,/^\*$/d'; done
+}
+
+a=$1; shift
+if out=$(mktemp "$a".XXXXXXX); then
+    touch "$a"
+    merge "$a" "$@" >"$out"
+    mv -f "$out" "$a"
+else
+    merge "$a" "$@"
+fi

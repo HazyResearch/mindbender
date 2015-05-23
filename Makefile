@@ -34,3 +34,8 @@ polish: $(STAGEDIR)/gui/files/src
 $(STAGEDIR)/gui/files/src:
 	relsymlink gui/frontend/src $(STAGEDIR)/gui/files/
 endif
+
+
+# tests
+TEST_THROUGH = $(PACKAGENAME) hack
+include buildkit/test-with-bats.mk

@@ -19,6 +19,7 @@ transpose-json                          bin/mindbender.d/
 compress-json                           bin/mindbender.d/
 html-table-for                          bin/mindbender.d/
 list-breadcrumb-paths                   bin/mindbender.d/
+merge-order-specs                       bin/mindbender.d/
 
 report-templates                        etc/
 report-sql-template.sh                  etc/
