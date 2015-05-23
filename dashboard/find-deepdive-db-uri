@@ -8,7 +8,7 @@ set -eu
 DEEPDIVE_APP=$(find-deepdive-app)
 cd "$DEEPDIVE_APP"
 
-if [[ application.conf -nt snapshot/.dburi ]]; then
+if [[ application.conf -nt snapshot/.dburi || ! -s snapshot/.dburi ]]; then
     # extract DB URI from the DeepDive app
     mkdir -p snapshot
     eval-coffee-on-deepdive-app-conf '
