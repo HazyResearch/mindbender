@@ -158,6 +158,7 @@ angular.module "mindbenderApp.dashboard", [
 
 
 .controller "SnapshotReportsCtrl", ($scope, $http, $routeParams, $location, $sce, Dashboard) ->
+    $scope.snapshotId = $routeParams.snapshotId
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
     $scope.tabs = {
@@ -169,12 +170,6 @@ angular.module "mindbenderApp.dashboard", [
 
     reportNotFound = (report_key) ->
         $scope.reportLoadError = "#{report_key} does not exist in snapshot #{$routeParams.snapshotId}"
-
-    $scope.loadReportFromNav = (nav) ->
-        if nav.$show || nav.$leaf
-            $scope.loadReport(nav.$report_key)
-        else
-            nav.$show = true
 
     $scope.loadReport = (report_key) ->
         $scope.loading = true
