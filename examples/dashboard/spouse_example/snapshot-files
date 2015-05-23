@@ -1,0 +1,7 @@
+# list important DeepDive files here to include in every snapshot
+application.conf
+
+# below are optional
+#run.sh
+#env.sh
+#code

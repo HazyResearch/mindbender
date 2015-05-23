@@ -1,0 +1,15 @@
+reports/corpus/stats
+reports/learning/histogram-weights-of-feature
+reports/learning/sample-features/top-negative-features
+reports/learning/sample-features/top-positive-features
+reports/variable
+reports/variable/candidate
+reports/variable/candidate/sample-frequent-candidates
+reports/variable/feature
+reports/variable/feature/histogram-candidates-per-feature
+reports/variable/feature/histogram-features-per-candidate
+reports/variable/feature/sample-frequent-features
+reports/variable/supervision
+reports/variable/inference
+reports/variable/inference/calibration-plot
+reports/variable/inference/sample-frequent-extractions

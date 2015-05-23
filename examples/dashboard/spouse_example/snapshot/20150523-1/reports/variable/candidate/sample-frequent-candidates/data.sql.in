@@ -1,0 +1,15 @@
+<$ ### $num_most_frequent_candidates Most Frequent Candidate Samples
+table=${variable%%.*}
+column=${variable#$table.}
+
+if [[ -n "$words_column" ]]; then
+    # most frequent candidates
+    report-log "Finding $num_most_frequent_candidates most frequent candidates of variable ${variable}..."
+$>
+        SELECT ${words_column} AS candidate, COUNT(*) AS count
+        FROM ${table}
+        GROUP BY ${words_column}
+        ORDER BY count DESC, ${words_column}
+        LIMIT $num_most_frequent_candidates
+
+<$ fi $>
