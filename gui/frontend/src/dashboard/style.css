@@ -92,3 +92,24 @@ table {
 .flash {
 	transition: background-color 1s ease;
 }
+
+.potentialParam {
+	font-weight: bold;
+	cursor: pointer;
+}
+
+.selected-task {
+	font-weight: bold;
+	color: #A00;
+}
+
+#task-button td {
+	padding: 3px;
+	border: 1px solid #000;
+}
+
+#task-values {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}

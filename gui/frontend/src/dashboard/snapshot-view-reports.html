@@ -24,7 +24,7 @@
 		</div>
 	</div>
 
-	<div ng-if="!reportLoadError">
+	<div ng-if="!reportLoadError" mb-task-area>
 		<div ng-show="loading" class="col-md-9">
 			<img src="dashboard/images/loading.gif">
 		</div>
@@ -32,19 +32,13 @@
 			<div compile-html="report.html"></div>
 		</div>
 		<div class="col-md-9" ng-show="report.isFormatted && !loading">
+			<mb-task-control></mb-task-control>
 			<tabset>
 				<tab active="tabs['table'].active">
 					<tab-heading style="font-size:18pt;">
 						<i class="fa fa-table"></i>
 					</tab-heading>
-					<table class="table table-striped" style="text-align:right;">
-						<tr>
-							<th style="text-align:center" ng-repeat="header in report.formattedReport.table.headers">{{ header.name }}</th>
-						</tr>
-						<tr ng-repeat="row in report.formattedReport.table.data">
-							<td ng-repeat="data in row track by $index">{{ data }}</td>
-						</tr>
-					</table>
+					<mb-table ng-if="report.isFormatted && !loading" data-file="{{ report.formattedReport.name }}"></mb-table>
 				</tab>
 				<tab ng-show="tabs['bar'].show">
 					<tab-heading style="font-size:18pt;">
@@ -79,12 +73,18 @@
 	</div>
 </div>
 
+
 <script>
-	$(document).ready(function() {
-		$('#nav').affix({
-			offset: {
-				top: $('#nav').offset().top
-			}
-		});
+	angular.element(document).ready(function() {
+		setTimeout(function() {
+			$('#nav').affix({
+				offset: {
+					top: $('#nav').offset().top
+				}
+			});
+			$('#task-button-dropdown').click(function() {
+				$(this).parent().toggleClass('open');
+			});
+		}, 1);
 	});
 </script>

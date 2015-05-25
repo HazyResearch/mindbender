@@ -1,6 +1,7 @@
 angular.module "mindbenderApp.dashboard", [
     "ui.ace"
     'ui.bootstrap'
+    'ui.sortable'
 ]
 
 .service "Dashboard", ($rootScope, $location, $http) ->
@@ -165,7 +166,7 @@ angular.module "mindbenderApp.dashboard", [
         bar: { show: false }
         scatter: { show: false }
     }
-    $scope.report = {}
+    $scope.report = { formattedReport: { name: "" } }
 
     reportNotFound = (report_key) ->
         $scope.reportLoadError = "#{report_key} does not exist in snapshot #{$routeParams.snapshotId}"
@@ -199,7 +200,7 @@ angular.module "mindbenderApp.dashboard", [
                 for data_key of $scope.report.data
                     $scope.report.data[data_key].table = convertToRowOrder($scope.report.data[data_key].table)
 
-                if $scope.report.html
+                if false && $scope.report.html
                     $scope.report.isFormatted = false
                 else
                     $scope.report.isFormatted = true
@@ -354,7 +355,7 @@ angular.module "mindbenderApp.dashboard", [
             $scope.currentTemplateName = newValue
             $http.get "/api/report-template/" + $scope.currentTemplateName
                 .success (data, status, headers, config) ->
-                    $scope.template = $.extend({}, data);
+                    $scope.template = $.extend({}, data)
                     $scope.template.params = []
                     for param in Object.keys(data.params)
                         $scope.template.params.push($.extend({ name: param }, data.params[param]))
@@ -592,3 +593,183 @@ angular.module "mindbenderApp.dashboard", [
         )
 ]
 
+
+
+
+.directive 'mbTaskArea', () ->
+    return {
+        restrict: 'A',
+        controller: ($scope) ->
+            @taskManager = {
+                templates: {
+                    someTask1: {
+                        params: [
+                            { name: "foo", type: "int" },
+                            { name: "bar", type: "float" }
+                        ]
+                    },
+                    someTask2: {
+                        params: [
+                            { name: "fooText", type: "string" },
+                            { name: "barNum", type: "int" }
+                        ]
+                    },
+                    someTask3: {
+                        params: [
+                            { name: "fooText", type: "string" },
+                            { name: "barNum", type: "int" },
+                            { name: "anotherNum", type: "int" }
+                        ]
+                    }
+                },
+                matcher: { show: false },
+                boundParams: {},
+                selectedTask: null,
+                selectedValue: null
+            }
+
+            determineType = (string) ->
+                if !isNaN(string)
+                    if string.indexOf('.') == -1
+                        return "int"
+                    else
+                        return "float"
+                else
+                    return "string"
+
+            @taskManager.receiveValue = (value) ->
+                valueType = determineType(value)
+                if valueType != "string"
+                    value *= 1
+
+                this.selectedValue = value
+                console.log(this)
+
+                for name, template of this.templates
+                    show = false
+                    for param in template.params
+                        param.$selected = (param.type == valueType)
+                        if param.$selected
+                            show = true
+
+                    template.$show = show
+
+            @taskManager.bindParam = (task, param) ->
+                if !this.boundParams[task]
+                    this.boundParams = {}
+                    this.boundParams[task] = {}
+
+                this.boundParams[task][param] = this.selectedValue
+                this.selectedTask = task
+
+
+            @taskManager.resolveParams = () ->
+                if !@taskManager.selectedTask
+                    @taskManager.resolvedParams = []
+                    return
+
+                templateParams = []
+                for param in @taskManager.templates[@taskManager.selectedTask].params
+                    templateParams.push($.extend({}, param))
+
+                selectedParams = []
+                for param in @taskManager.selectedParams
+                    selectedParams.push($.extend({}, param))
+
+                for templateParam in templateParams
+                    for selectedParam in selectedParams
+                        if templateParam.type == selectedParam.type && !selectedParam.used
+                            templateParam.value = selectedParam.value
+                            selectedParam.used = true
+                            break
+
+                @taskManager.resolvedParams = templateParams
+
+            @taskManager.clearTask = () ->
+                @taskManager.matcher.show = false
+
+                @taskManager.selectedTask = null
+
+                for name, template of @taskManager.templates
+                    template.$selected = false
+                    for param in template.params
+                        param.$selected = false
+
+                @taskManager.selectedParams = []
+
+                @taskManager.resolvedParams = []
+    }
+
+
+.directive 'mbTable', () ->
+    return {
+        template: """
+            <table class="table table-striped" style="text-align:right;">
+                <tr>
+                    <th style="text-align:center" ng-repeat="header in table.headers">{{ header.name }}</th>
+                </tr>
+                <tr ng-repeat="row in table.data">
+                    <td ng-repeat="data in row track by $index"><span style="cursor:pointer" ng-click="receiveValue($event)">{{ data }}</span></td>
+                </tr>
+            </table>
+        """,
+        restrict: 'E',
+        require: '?^mbTaskArea',
+        link: (scope, element, attrs, taskArea) ->
+            scope.table = scope.report.data[attrs.file].table
+
+            scope.receiveValue = ($event) ->
+                taskArea.taskManager.matcher.show = true
+
+                e = angular.element($event.currentTarget)
+                eOffset = e.offset()
+
+                eParentOffset = angular.element("#taskMatcher").parent().offset()
+
+                angular.element("#taskMatcher").css("left", eOffset.left - eParentOffset.left + 30)
+                angular.element("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
+                taskArea.taskManager.receiveValue(e.html())
+
+    }
+
+.directive 'mbTaskControl', ($timeout) ->
+    return {
+        template: """
+        <div id="task-button" class="btn-group" style="float:right">
+            <button id="task-button-dropdown" type="button" class="btn btn-primary dropdown-toggle" aria-expanded="false">
+                Tasks <span class="caret"></span>
+            </button>
+            <div class="dropdown-menu pull-right" role="menu" style="padding:5px;width:120px">
+                <input type="text" ng-value="taskManager.selectedTask" style="width:105px">
+                <button class="btn btn-default" ng-click="taskManager.clearTask()">X</button>
+                <div style="width:50%;float:left;">
+                    <div style="height:30px" ng-repeat="param in taskManager.resolvedParams">{{ param.name }}</div>
+                </div>
+                <div style="width:50%;float:right;">
+                    <ul id="task-values">
+                        <li ng-repeat="param in taskManager.resolvedParams">
+                            <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
+                            <input type="text" ng-value="param.value" style="width:50px">
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div id="taskMatcher" style="z-index:10;position:absolute;top:0px;left:0px;border:2px solid #000;width:300px;height:400px;background-color:#FFF;overflow:auto;padding:5px" ng-show="taskManager.matcher.show">
+            <button class="btn btn-default" ng-click="taskManager.matcher.show = false" style="float:right">X</button>
+            <h3>Tasks</h3>
+            <div ng-repeat="(task, template) in taskManager.templates">
+                <div ng-shos="template.$show">
+                    <span ng-class="{ 'selected-task' : taskManager.selectedTask == task }">
+                        {{ task }}
+                    </span>
+                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskManager.bindParam(task, param.name) && fadeMatcher()">{{ param.name }}<span ng-if="taskManager.boundParams[task][param.name]">[{{ taskManager.boundParams[task][param.name] }}]</span>{{$last ? '' : ', '}}</span>)
+                </div>
+            </div>
+        </div>
+        """,
+        require: '^mbTaskArea',
+        restrict: 'E',
+        link: (scope, element, attrs, taskArea) ->
+            scope.taskManager = taskArea.taskManager
+    }
