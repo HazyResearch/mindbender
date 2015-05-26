@@ -659,8 +659,13 @@ angular.module "mindbenderApp.dashboard", [
                     this.boundParams = {}
                     this.boundParams[task] = {}
 
-                this.boundParams[task][param] = this.selectedValue
-                this.selectedTask = task
+                if this.boundParams[task][param] == this.selectedValue
+                    delete this.boundParams[task][param]
+                    if !Object.keys(this.boundParams[task]).length
+                        this.selectedTask = null
+                else
+                    this.boundParams[task][param] = this.selectedValue
+                    this.selectedTask = task
 
 
             @taskManager.resolveParams = () ->
@@ -701,22 +706,29 @@ angular.module "mindbenderApp.dashboard", [
     }
 
 
-.directive 'mbTable', () ->
+.directive 'mbTable', ($timeout) ->
     return {
         template: """
             <table class="table table-striped" style="text-align:right;">
-                <tr>
-                    <th style="text-align:center" ng-repeat="header in table.headers">{{ header.name }}</th>
-                </tr>
-                <tr ng-repeat="row in table.data">
-                    <td ng-repeat="data in row track by $index"><span style="cursor:pointer" ng-click="receiveValue($event)">{{ data }}</span></td>
-                </tr>
+                <thead>
+                    <tr>
+                        <th style="text-align:center" ng-repeat="header in table.headers">{{ header.name }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="row in table.data">
+                        <td ng-repeat="data in row track by $index"><span style="cursor:pointer" ng-click="receiveValue($event)">{{ data }}</span></td>
+                    </tr>
+                </tbody>
             </table>
         """,
         restrict: 'E',
         require: '?^mbTaskArea',
         link: (scope, element, attrs, taskArea) ->
             scope.table = scope.report.data[attrs.file].table
+
+            $timeout ->
+                element.find("table").DataTable()
 
             scope.receiveValue = ($event) ->
                 taskArea.taskManager.matcher.show = true
@@ -763,7 +775,7 @@ angular.module "mindbenderApp.dashboard", [
                     <span ng-class="{ 'selected-task' : taskManager.selectedTask == task }">
                         {{ task }}
                     </span>
-                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskManager.bindParam(task, param.name) && fadeMatcher()">{{ param.name }}<span ng-if="taskManager.boundParams[task][param.name]">[{{ taskManager.boundParams[task][param.name] }}]</span>{{$last ? '' : ', '}}</span>)
+                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskManager.bindParam(task, param.name)">{{ param.name }}<span ng-if="taskManager.boundParams[task][param.name]">[{{ taskManager.boundParams[task][param.name] }}]</span>{{$last ? '' : ', '}}</span>)
                 </div>
             </div>
         </div>
