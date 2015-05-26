@@ -624,6 +624,7 @@ angular.module "mindbenderApp.dashboard", [
                 },
                 matcher: { show: false },
                 boundParams: {},
+                taskValues: [],
                 selectedTask: null,
                 selectedValue: null
             }
@@ -643,7 +644,6 @@ angular.module "mindbenderApp.dashboard", [
                     value *= 1
 
                 this.selectedValue = value
-                console.log(this)
 
                 for name, template of this.templates
                     show = false
@@ -667,42 +667,36 @@ angular.module "mindbenderApp.dashboard", [
                     this.boundParams[task][param] = this.selectedValue
                     this.selectedTask = task
 
+                taskValues = []
+                if this.selectedTask
+                    for param in this.templates[this.selectedTask].params
+                        found = false
+                        for boundParam, boundValue of this.boundParams[this.selectedTask]
+                            if param.name == boundParam
+                                taskValues.push(boundValue)
+                                found = true
+                        if !found
+                            taskValues.push(null)
 
-            @taskManager.resolveParams = () ->
-                if !@taskManager.selectedTask
-                    @taskManager.resolvedParams = []
+                this.taskValues = taskValues
+                console.log(taskValues)
+
+            tm = @taskManager
+            $scope.$watchCollection (-> tm.taskValues), (newValue, oldValue) ->
+                tm.resetBoundParams()
+
+            @taskManager.resetBoundParams = () ->
+                if !this.selectedTask
                     return
 
-                templateParams = []
-                for param in @taskManager.templates[@taskManager.selectedTask].params
-                    templateParams.push($.extend({}, param))
+                boundParams = {}
+                boundParams[this.selectedTask] = {}
+                for param, index in this.templates[this.selectedTask].params
+                    if this.taskValues[index] != null
+                        boundParams[this.selectedTask][param.name] = this.taskValues[index]
 
-                selectedParams = []
-                for param in @taskManager.selectedParams
-                    selectedParams.push($.extend({}, param))
-
-                for templateParam in templateParams
-                    for selectedParam in selectedParams
-                        if templateParam.type == selectedParam.type && !selectedParam.used
-                            templateParam.value = selectedParam.value
-                            selectedParam.used = true
-                            break
-
-                @taskManager.resolvedParams = templateParams
-
-            @taskManager.clearTask = () ->
-                @taskManager.matcher.show = false
-
-                @taskManager.selectedTask = null
-
-                for name, template of @taskManager.templates
-                    template.$selected = false
-                    for param in template.params
-                        param.$selected = false
-
-                @taskManager.selectedParams = []
-
-                @taskManager.resolvedParams = []
+                this.boundParams = boundParams
+                console.log(boundParams)
     }
 
 
@@ -755,13 +749,17 @@ angular.module "mindbenderApp.dashboard", [
                 <input type="text" ng-value="taskManager.selectedTask" style="width:105px">
                 <button class="btn btn-default" ng-click="taskManager.clearTask()">X</button>
                 <div style="width:50%;float:left;">
-                    <div style="height:30px" ng-repeat="param in taskManager.resolvedParams">{{ param.name }}</div>
+                    <ul>
+                        <li ng-repeat="param in taskManager.templates[taskManager.selectedTask].params" style="list-style-type:none">
+                            {{ param.name }}
+                        </li>
+                    </ul>
                 </div>
                 <div style="width:50%;float:right;">
-                    <ul id="task-values">
-                        <li ng-repeat="param in taskManager.resolvedParams">
+                    <ul ui-sortable ng-model="taskManager.taskValues">
+                        <li ng-repeat="value in taskManager.taskValues track by $index">
                             <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
-                            <input type="text" ng-value="param.value" style="width:50px">
+                            {{ value }}
                         </li>
                     </ul>
                 </div>
