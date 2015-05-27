@@ -327,6 +327,7 @@ angular.module "mindbenderApp.dashboard", [
             columnsByIndex = {}
             for name,j in normalized.names
                 columns[name] = columnsByIndex[j] = {
+                    name: name
                     index: j
                     isNumeric: true
                 }
@@ -744,7 +745,7 @@ angular.module "mindbenderApp.dashboard", [
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th style="text-align:center" ng-repeat="(name, column) in table.columns">{{ name }}</th>
+                        <th style="text-align:center" ng-repeat="column in table.columnsByIndex">{{ column.name }}</th>
                     </tr>
                 </thead>
                 <tbody>
