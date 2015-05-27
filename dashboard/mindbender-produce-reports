@@ -57,35 +57,6 @@ quote-html-attr() {
         echo -n "$s"
     done
 }
-merge-order-specs() {
-    # An order specification is a file listing a path name per line
-    # where a line may optionally be a single * (asterisk) character
-    # that denotes the position of the paths not mentioned explicitly should be ordered.
-    # This command take two or more order specs and produces a single one.
-    local a=$1; shift
-    local out=$(mktemp "$a".XXXXXX)
-    touch "$a"
-    {
-        # put the top halves of the order specs first
-        sed '/^\*$/,$d' <"$a"
-        local b= bs=
-        bs=()
-        for b; do
-            sed '/^\*$/,$d' <"$b"
-            if [[ ${#bs[@]} -eq 0 ]]; then
-                bs=("$b")
-            else
-                bs=("$b" "${bs[@]}")
-            fi
-        done
-        # wildcard line
-        echo '*'
-        # then the bottom halves follow in reverse order
-        for b in "${bs[@]}"; do sed '1,/^\*$/d' <"$b"; done
-        sed '1,/^\*$/d' <"$a"
-    } >"$out"
-    mv -f "$out" "$a"
-}
 assign-unique-serial() {
     local prefix=$1             # prefix string
     local satisfiesCondition=$2 # command for testing collisions
@@ -130,14 +101,14 @@ list-all-reports() {
                     [[ $# -eq 0 ]] || list-reports "$@"
                 ) | tee "$listed"/either
                 # next, get the bottom half
-                sed '1,/^\*$/d' <reports.order |
+                { echo; cat reports.order; } | sed '1,/^\*$/d' |
                 (
                     set --; while read globPattern; do set -- "$@" $globPattern; done
                     [[ $# -eq 0 ]] || list-reports "$@"
                 ) | tee -a "$listed"/either >"$listed"/bottom
                 # print the rest in the middle excluding those either in top or bottom
                 sort -r <"$listed"/either >"$listed"/either-reversed  # XXX workaround for FreeBSD grep
-                list-reports * | grep -vxFf "$listed"/either-reversed
+                list-reports * | grep -vxFf "$listed"/either-reversed || true
                 # finally, print the bottom
                 cat "$listed"/bottom
             }
@@ -254,26 +225,58 @@ record-report-params() {
         " "$@"
 
         # generate a report id from the required parameters
-        local idFormat="%s" idArgs=$(escape-shell-string "$reportName")
-        for name in $(cat .report.params.required 2>/dev/null); do
-            idFormat+=" %s"
-            idArgs+=' "$'"$name"'"'
-        done
-        local id=$(bash -c "
-            source .report.params.sh
-            printf '$idFormat' $idArgs
-        ")
-        # make sure the report id is not used already, or append a unique serial number
-        id=$(
-            id-is-available() {
-                ! grep -qxF "$1" "$DEEPDIVE_APP/$SnapshotDir"/reports.ids
-            }
-            assign-unique-serial "$id" id-is-available
-        )
+        id=$(generate-report-id "$reportPath" "$reportName" "$@")
         echo "$id" >.report.id 
         # mark them read-only
         chmod -w .report.params* .report.id
     )
+}
+# generates the id for a report that interpolates required parameter values
+# next to the templates that require them, e.g.:
+# /variable(foo.is_true)/feature/sample(bar)/histogram
+generate-report-id() {
+    local reportPath=$1; shift
+    local reportName=$1; shift
+    id=$(
+        # traverse up the parents to produce the desired report id
+        cd "$DEEPDIVE_APP/$SnapshotDir/$reportPath"
+        reportNamePrefix=$reportName
+        list-breadcrumb-paths "$reportName" |
+        while read; do
+            name=${reportNamePrefix##*/}
+            # name
+            echo -n "$name"
+            # and required parameters
+            if [[ -e report.params ]]; then
+                argsExpr=$(
+                    (
+                        required() { echo "$1"; }
+                        optional() { :; }
+                        source report.params
+                    ) |
+                    while read param; do
+                        echo -n '"${'"$param"'}",'
+                    done
+                )
+                argsExpr=${argsExpr%,}
+                [[ -z "$argsExpr" ]] || printf '(%s)' "$(
+                        declare -- "$@"
+                        eval "printf '%s' $argsExpr"
+                    )"
+            fi
+            echo
+            cd ..
+            reportNamePrefix=${reportNamePrefix%/*}
+        done |
+        # reverse and assemble as a path
+        tac | tr '\n' '/'
+    )
+    id=${id%/}
+    # make sure the report id is not used already, or append a unique serial number
+    id-is-available() {
+        ! grep -qxF "$1" "$DEEPDIVE_APP/$SnapshotDir"/reports.ids
+    }
+    assign-unique-serial "$id" id-is-available
 }
 produce-report() {
     local reportPath=$1; shift

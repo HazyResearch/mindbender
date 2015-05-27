@@ -16,6 +16,7 @@ bower_components/angular-bootstrap/ui-bootstrap-tpls.js
 bower_components/angular-hotkeys/build/hotkeys.js
 
 bower_components/highcharts-release/highcharts.js
+bower_components/highcharts-release/highcharts-more.js
 
 bower_components/ace-builds/src-noconflict/ace.js
 src/ace-shim.js

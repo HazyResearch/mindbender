@@ -1,0 +1,68 @@
+<$
+table=${variable%%.*}
+column=${variable#$table.}
+
+num_features=
+num_distinct_features=
+
+case ${features_layout:-} in
+
+array_column)
+    if [[ -n "${features_column:-}" ]]; then
+        # when features are stored as array in the candidate table
+        num_features=$(run-sql "
+            SELECT COUNT(*)
+              FROM (
+                  SELECT UNNEST(${features_column})
+                  FROM ${table}
+              ) f
+        ")
+        num_distinct_features=$(run-sql "
+            SELECT COUNT(DISTINCT feature)
+              FROM (
+                  SELECT UNNEST(${features_column}) AS feature
+                  FROM ${table}
+              ) f
+        ")
+    else
+        report-warn "Parameter features_column= undefined for features_layout=array_column"
+    fi
+    ;;
+
+own_table)
+    : ${features_table:=${table}_features}
+    if [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
+        # when features are stored in a separate table (incremental)
+        num_features=$(run-sql "
+            SELECT COUNT(*)
+              FROM ${features_table}
+        ")
+        num_distinct_features=$(run-sql "
+            SELECT COUNT(DISTINCT ${features_column})
+              FROM ${features_table}
+        ")
+    else
+        report-warn "Parameters features_table= and/or features_column= undefined for features_layout=own_table"
+    fi
+    ;;
+
+esac
+$>
+
+## Feature Extraction
+
+<$ if [[ -n "$num_features" && -n "$num_distinct_features" ]]; then $>
+* **<$ printf "%'d" $num_features $>** features
+* **<$ printf "%'d" $num_distinct_features $>** distinct features
+<$ report-values \
+    num_features=$num_features \
+    num_distinct_features=$num_distinct_features \
+    #
+$>
+
+<$ else $>
+<div class="alert alert-danger">
+    Either `features_array_column=` or `features_table=` and `features_column=` parameters must be specified.
+</div>
+
+<$ fi $>

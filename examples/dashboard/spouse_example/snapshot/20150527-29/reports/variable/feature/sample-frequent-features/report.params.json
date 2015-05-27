@@ -1,0 +1,1 @@
+{"variable":"has_spouse.is_true","expectation_threshold":0.9,"candidate_id_column":"relation_id","words_column":"description","doc_id_column":"","features_layout":"own_table","features_column":"feature","features_table":"has_spouse_features","num_most_frequent_features":100,"mention_id":"relation_id"}

@@ -1,0 +1,106 @@
+<$ ### Scatterplot of supervision by features
+table=${variable%%.*}
+column=${variable#$table.}
+
+if [[ -n "${candidate_id_column:-}" ]]; then
+sql_feature_label=
+case ${features_layout:-} in
+
+array_column)
+    if [[ -n "${features_column:-}" ]]; then
+        # when features are stored as array in the candidate table
+        sql_feature_label="
+                SELECT UNNEST(${features_column}) AS feature
+                     , ${column}                  AS label
+                FROM ${table}
+            "
+    else
+        report-warn "Parameter features_column= undefined for features_layout=array_column"
+    fi
+    ;;
+
+own_table)
+    if [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
+        # when features are stored in a separate table (for incremental DeepDive)
+        sql_feature_label="
+                SELECT f.${features_column} AS feature
+                     , c.${column}          AS label
+                FROM ${table} c
+                   , ${features_table} f
+                WHERE c.${candidate_id_column} = f.${candidate_id_column}
+            "
+    else
+        report-warn "Parameters features_table= and/or features_column= undefined for features_layout=own_table"
+    fi
+    ;;
+
+esac
+
+if [[ -n "$sql_feature_label" ]]; then
+
+    run-sql "
+            SELECT feature                       AS feature
+                 , COUNT(1)                      AS total
+                 , SUM((label IS NOT NULL)::int) AS supervised
+                 , SUM((label = true     )::int) AS positive
+                 , SUM((label = false    )::int) AS negative
+                 , SUM((label IS     NULL)::int) AS unsupervised
+            FROM (
+                    $sql_feature_label
+                ) feature_label
+            GROUP BY feature
+            ORDER BY supervised DESC
+            LIMIT 200
+    " CSV HEADER >supervision_distribution.csv
+    json-for supervision_distribution.csv | transpose-json >supervision_distribution.json
+
+# TODO convert this to formatted report after allowing custom highcharts-options in data.chart
+
+    coffee -e '
+        _ = require "underscore"
+        fs = require "fs"
+        columns = JSON.parse fs.readFileSync "supervision_distribution.json"
+
+        maxCount = _.max [columns.positive..., columns.negative...]
+        fs.writeFileSync "supervision_distribution.highcharts-options", JSON.stringify {
+            xAxis:
+                min:0, max:maxCount
+            yAxis:
+                min:0, max:maxCount
+            plotOptions: {
+                bubble: {
+                    tooltip:
+                        pointFormat: "<b>{point.name}</b><br>{point.x} positive<br>{point.y} negative<br>{point.z} unsupervised"
+                }
+            }
+            series: [{
+                name: "Balanced"
+                type: "scatter"
+                data: [ [0,0], [maxCount,maxCount] ]
+                marker: { enabled: false }, enableMouseTracking: false
+                lineWidth: 1
+                color: "#00c"
+                dashStyle: "ShortDash"
+            }]
+        }
+    '
+fi
+fi
+$>
+
+<div>
+<chart
+    data-file="supervision_distribution"
+    type="bubble"
+    point-name="feature"
+    x-axis="positive"
+    x-label="#Positive"
+    y-axis="negative"
+    y-label="#Negative"
+    z-axis="unsupervised"
+    z-label="#Unsupervised"
+    highcharts-options='
+    <$ cat supervision_distribution.highcharts-options $>
+    '
+></chart>
+</div>

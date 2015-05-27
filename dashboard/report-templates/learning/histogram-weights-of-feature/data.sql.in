@@ -1,0 +1,88 @@
+<$ ### Histogram of Learned Feature Weights
+# Count the number of features
+report-log "Counting number of features and range of weights..."
+read \
+    min_weight \
+    max_weight \
+    num_features \
+<<<"$(run-sql "
+    SELECT MIN(weight)
+         , MAX(weight)
+         , COUNT(*)
+      FROM ${feature_weights_table}
+     WHERE weight <> 0
+")"
+report-log "Found $(printf "%'d" $num_features) features with non-zero weights"
+
+if ${enable_freedman_diaconis_histogram:-false}; then
+    # Compute IQR
+    report-log "Computing IQR (interquartile range)..."
+    {
+        read q1
+        read q2
+        read q3
+        read q4
+    } <<<"$(run-sql "
+        SELECT MAX(weight) AS max_weight
+          FROM (
+            SELECT weight
+                 , NTILE(4) OVER (ORDER BY weight ASC) AS qtile
+              FROM dd_inference_result_variables_mapped_weights
+             WHERE weight <> 0
+          ) qtiled_nonzero_weights
+         GROUP BY qtile 
+         ORDER BY qtile
+    ")"
+    report-log "Found IQR = $q3 - $q1"
+
+    # Histogram bin size according to the Freedman–Diaconis rule
+    # See: http://en.wikipedia.org/wiki/Histogram#Number_of_bins_and_width
+    bin_width=$(echo "2 * ($q3 - $q1) / e(l(${num_features})/3)" | bc -l)
+    num_bins=$(echo "k = ($max_weight - $min_weight) / $bin_width
+        scale=0; if (k < 0) { k/1 } else if (scale(k) == 0) { k } else { k/1 + 1 }" | bc)
+    report-log "Found bin width = $bin_width (with Freedman-Diaconis Rule), i.e., $num_bins bins"
+
+else
+    if [[ "${num_histogram_bins:-0}" -gt 0 ]]; then
+        num_bins=${num_histogram_bins}
+        report-log "Using the specified ${num_bins} bins..."
+    else
+        # use Rice Rule to find a good number of bins
+        num_bins=$(echo "k = 2 * e(l(${num_features})/3)
+                scale=0; if (k < 0) { k/1 } else if (scale(k) == 0) { k } else { k/1 + 1 }" | bc -l
+            )
+        report-log "Found ${num_bins} bins according to Rice Rule..."
+    fi
+
+    # calculate bin width
+    bin_width=$(echo "scale=20; ($max_weight - $min_weight) / $num_bins" | bc)
+fi
+
+report-log "Creating histogram of weights (bin width=$bin_width)"
+$>
+    (
+        SELECT CASE bin
+               WHEN 0 THEN (SELECT MIN(weight)
+                              FROM ${feature_weights_table}
+                             WHERE weight > 0)
+               ELSE ${bin_width} * bin
+               END                          AS weight_ge
+             ,      ${bin_width} * (bin+1)  AS weight_lt
+             ,      AVG(weight)             AS weight
+             ,      COUNT(*)                AS num_features
+          FROM (
+            SELECT FLOOR(weight / ${bin_width}) AS bin
+                 , weight
+              FROM ${feature_weights_table}
+             WHERE weight <> 0
+          ) binned_weights
+         GROUP BY bin
+    ) UNION (
+        SELECT 0        AS weight_ge
+             , NULL     AS weight_lt
+             , 0        AS weight
+             , COUNT(*) AS num_features
+          FROM ${feature_weights_table}
+         WHERE weight = 0
+    )
+    ORDER BY weight_ge

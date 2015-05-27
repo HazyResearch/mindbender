@@ -1,0 +1,2 @@
+required table                       "name of the table that contains all sentences"
+optional document_id_column  doc_id  "name of the column that contains the document identifier of each sentence"
