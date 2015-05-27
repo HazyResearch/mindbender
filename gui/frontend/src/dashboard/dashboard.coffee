@@ -195,7 +195,7 @@ angular.module "mindbenderApp.dashboard", [
                 for data_key of $scope.report.data
                     $scope.report.data[data_key].table = DashboardDataUtils.normalizeData $scope.report.data[data_key].table
 
-                if false && $scope.report.html
+                if $scope.report.html
                     $scope.report.isFormatted = false
                 else
                     $scope.report.isFormatted = true
@@ -742,7 +742,7 @@ angular.module "mindbenderApp.dashboard", [
             <table class="table table-striped" style="text-align:right;">
                 <thead>
                     <tr>
-                        <th style="text-align:center" ng-repeat="header in table.headers">{{ header.name }}</th>
+                        <th style="text-align:center" ng-repeat="(name, column) in table.columns">{{ name }}</th>
                     </tr>
                 </thead>
                 <tbody>
