@@ -1,0 +1,16 @@
+corpus/stats(sentences)
+learning/histogram-weights-of-feature
+learning/sample-features/top-negative-features
+learning/sample-features/top-positive-features
+variable(has_spouse.is_true)
+variable(has_spouse.is_true)/candidate
+variable(has_spouse.is_true)/candidate/sample-frequent-candidates
+variable(has_spouse.is_true)/feature
+variable(has_spouse.is_true)/feature/histogram-candidates-per-feature
+variable(has_spouse.is_true)/feature/histogram-features-per-candidate
+variable(has_spouse.is_true)/feature/sample-frequent-features
+variable(has_spouse.is_true)/supervision
+variable(has_spouse.is_true)/supervision/plot-supervision-by-feature
+variable(has_spouse.is_true)/inference
+variable(has_spouse.is_true)/inference/calibration-plot
+variable(has_spouse.is_true)/inference/sample-frequent-extractions
