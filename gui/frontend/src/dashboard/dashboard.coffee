@@ -157,7 +157,8 @@ angular.module "mindbenderApp.dashboard", [
             $scope.snapshots = data
 
 
-.controller "SnapshotReportsCtrl", ($scope, $http, $routeParams, $location, $sce, Dashboard) ->
+.controller "SnapshotReportsCtrl", ($scope, $http, $routeParams, $location, $sce, Dashboard, DashboardDataUtils) ->
+    $scope.snapshotId = $routeParams.snapshotId
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
     $scope.tabs = {
@@ -169,12 +170,6 @@ angular.module "mindbenderApp.dashboard", [
 
     reportNotFound = (report_key) ->
         $scope.reportLoadError = "#{report_key} does not exist in snapshot #{$routeParams.snapshotId}"
-
-    $scope.loadReportFromNav = (nav) ->
-        if nav.$show || nav.$leaf
-            $scope.loadReport(nav.$report_key)
-        else
-            nav.$show = true
 
     $scope.loadReport = (report_key) ->
         $scope.loading = true
@@ -197,7 +192,7 @@ angular.module "mindbenderApp.dashboard", [
                 $scope.report = result[report_key]
 
                 for data_key of $scope.report.data
-                    $scope.report.data[data_key].table = convertToRowOrder($scope.report.data[data_key].table)
+                    $scope.report.data[data_key].table = DashboardDataUtils.normalizeData $scope.report.data[data_key].table
 
                 if $scope.report.html
                     $scope.report.isFormatted = false
@@ -211,10 +206,10 @@ angular.module "mindbenderApp.dashboard", [
 
                     chart = $scope.report.formattedReport.chart
                     if chart
-                        if $scope.tableHeaderIsNumeric($scope.report.formattedReport.table, chart.y)
+                        if $scope.report.formattedReport.table.columns[chart.y]?.isNumeric
                             $scope.tabs.bar.show = true
 
-                            $scope.tabs.scatter.show = $scope.tableHeaderIsNumeric($scope.report.formattedReport.table, chart.x)
+                            $scope.tabs.scatter.show = $scope.report.formattedReport.table.columns[chart.x]?.isNumeric
                         else
                             $scope.tabs.bar.show = false
                             $scope.tabs.scatter.show = false
@@ -234,9 +229,8 @@ angular.module "mindbenderApp.dashboard", [
         return unless search_report?
         if $scope.reports[search_report]?
             $scope.loadReport(search_report)
-            search_report_split = $scope.convertReportKey(search_report)
             traverse_nav = $scope.nav
-            for s in search_report_split
+            for s in search_report.split "/"
                 traverse_nav[s]['$show'] = true
                 traverse_nav = traverse_nav[s]
         else
@@ -259,82 +253,99 @@ angular.module "mindbenderApp.dashboard", [
             .success -> $scope.reloadSnapshot()
             .error   -> $scope.reloadSnapshot()
 
-    $scope.buildTree = (params, path_splits) ->
-        result = {}
-
-        for full_split in path_splits
-            split = full_split[0]
-            i = 0
-            on_path = true
-            for k in params
-                if split[i] != k
-                    on_path = false
-                i += 1
-
-            if on_path && split.length > i
-                new_params = params.slice()
-                new_params.push(split[i])
-                children = $scope.buildTree(new_params, path_splits)
-                result[split[i]] = children
-
-                if Object.keys(children).length == 0
-                    result[split[i]]['$leaf'] = true 
-
-                tmp = full_split[1].split(" ")
-
-                result[split[i]]['$report_key'] = tmp[0].split("/").slice(0, new_params.length).join("/") + " " + tmp[1]
-                if i == 0
-                    result[split[i]]['$show'] = true
-
-        return result
-
-    $scope.convertReportKey = (report_key) ->
-        var_split = report_key.split(" ")
-        path_split = var_split[0].split("/")
-        path_split[0] += " (" + var_split[1] + ")"
-        return path_split
+    $scope.buildTree = (report_keys) ->
+        root = {
+            $leaf: yes
+            $show: yes
+        }
+        for path in report_keys
+            # create objects along each path in the tree
+            node = root
+            # FIXME put children in a separate key: if childName happens to be $leaf or $show, the tree can break
+            for childName in path.split "/"
+                node[childName] ?= {
+                    $leaf: yes
+                    $show: yes
+                }
+                # mark the previous node as non-leaf and traverse a step down
+                node.$leaf = no
+                node = node[childName]
+            # record the $report_key at the end of each path
+            node.$report_key = path
+        root
 
     $scope.sortReports = (report_keys) ->
-        path_splits = []
-        
-        for k in report_keys 
-            path_splits.push([$scope.convertReportKey(k), k])
-
-        $scope.nav = $scope.buildTree([], path_splits)
+        $scope.nav = $scope.buildTree report_keys
 
 
-    $scope.tableHeaderIsNumeric = (table, header) ->
-        for h in table.headers
-            if h.name == header
-                return h.isNumeric
+.service "DashboardDataUtils", () ->
+    class DashboardDataUtils
 
-        return false
+        normalizeData: (data) ->
+            # try to recognize data format and normalize to a row-major format
+            normalized =
+                if data instanceof Array
+                    # most likely a row-major format
+                    if data.length == 0
+                        # empty data, no schema
+                        { names: [], rows: [] }
+                    else if data[0] instanceof Array
+                        # array of row arrays, with column names in the first row
+                        { names: data[0], rows: data[1..] }
+                    else if "object" is typeof data[0]
+                        # array of objects
+                        columnIdx = {}
+                        rows = []
+                        for rowObj in data
+                            row = []
+                            for column,value of rowObj
+                                i = (columnIdx[column] ?= _.size columnIdx)
+                                row[i] = value
+                            rows.push row
+                        names = []
+                        for name,i of columnIdx
+                            names[i] = name
+                        { names, rows }
+                else if "object" is typeof data
+                    if data?.names instanceof Array and data?.rows instanceof Array
+                        # data already in normalized form with column names and row arrays
+                        { names: data.names, rows: data.rows }
+                    else if _.every (_.values data), ((vs) -> vs instanceof Array)
+                        # column-major format: object of column value arrays
+                        names = _.keys data
+                        rows =
+                            for v,i in data[names[0]]
+                                data[column][i] for column in names
+                        { names, rows }
+            unless normalized?
+                console.error "Unrecognized data format", data
+                throw new Error "Cannot normalize data"
+            
+            # add some metadata & transformation for rendering charts and tables
+            columns = {}
+            for name,j in normalized.names
+                columns[name] = {
+                    index: j
+                    isNumeric: true
+                }
+            rows = normalized.rows
+            # recognize numeric columns
+            for name,column of columns
+                j = column.index
+                valuesAsNum = (+row[j] for row in rows)
+                column.isNumeric = not _.some valuesAsNum, _.isNaN
+            # force values of numeric columns to be numbers
+            for name,column of columns when column.isNumeric
+                j = column.index
+                for row,i in rows
+                    v = row[j]
+                    row[j] =
+                        if v? and v isnt "" then +v
+                        else null # replacing empty strings to null
+            
+            { columns, data: rows }
 
-
-    convertToRowOrder = (table) ->
-        if !table.headers
-            new_table = { headers: Object.keys(table), data: [] }
-
-            for header in new_table.headers
-                for k, v of table[header]
-                    if !new_table.data[k]
-                        new_table.data[k] = []
-
-                    new_table.data[k].push(v)
-
-            table = new_table
-
-        for index, header of table.headers
-            table.headers[index] = { name: header, isNumeric: true }
-
-            for value, value_index in table.data[index]
-                if value == ''
-                    table.data[index][value_index] = null
-
-                if isNaN(value)
-                    table.headers[index].isNumeric = false
-
-        return table
+    new DashboardDataUtils
 
 
 .controller "EditTemplatesCtrl", ($scope, $http, $location, Dashboard) ->
@@ -435,150 +446,144 @@ angular.module "mindbenderApp.dashboard", [
 ]
 
 
-.directive 'chart', ($timeout, $parse) ->
-    return {
-        template: '<div class="chart"></div><div class="slider"></div>',
-        restrict: 'E',
-        link: (scope, element, attrs) ->
-           
-            recursiveMerge = (obj1, obj2) ->
-                for k of obj2
-                    if typeof obj1[k] == 'object' && typeof obj2[k] == 'object'
-                        obj1[k] = recursiveMerge(obj1[k], obj2[k])
-                    else
-                        obj1[k] = obj2[k]
-
-                return obj1
-
-            binData = (data, numBins) ->
-                bucketSize = Math.ceil(data.length/numBins)
-                labels = []
-                buckets = []
-                i = 0
-                bucket = 0
-                previousLabel = data[0][0]
-
-                if bucketSize == 1
-                    for point in data
-                        buckets.push(point[1])
-                        labels.push(point[0])
+.directive 'chart', ($timeout, $parse, DashboardDataUtils) ->
+    template: '<div class="chart"></div><div class="slider"></div>',
+    restrict: 'E',
+    link: (scope, element, attrs) ->
+       
+        recursiveMerge = (obj1, obj2) ->
+            for k of obj2
+                if typeof obj1[k] == 'object' && typeof obj2[k] == 'object'
+                    obj1[k] = recursiveMerge(obj1[k], obj2[k])
                 else
-                    for point in data
-                        if i >= bucketSize
-                            buckets.push(bucket)
-                            labels.push("[" + previousLabel.toLocaleString() + ", " + point[0].toLocaleString() + ")")
-                            previousLabel = point[0]
-                            bucket = 0
-                            i = 0
-                        bucket += point[1]
-                        i++
+                    obj1[k] = obj2[k]
 
-                    if bucket > 0
-                        buckets.push(bucket)
-                        labels.push("[" + previousLabel.toLocaleString() + ", " + point[0].toLocaleString() + "]")
+            return obj1
 
-                return { buckets: buckets, labels: labels }
+        binData = (data, numBins, x = "x", y = "y") ->
+            bucketSize = Math.ceil(data.length/numBins)
+            labels = []
+            buckets = []
+            i = 0
+            bucket = 0
+            previousLabel = data[0][x]
 
-            options = {
-                chart: {},
-                title: {
-                    text: '',
-                },
-                xAxis: {
-                    title: {
-                        text: attrs.label
-                    }
-                }
-            }
-
-            # Get user data
-            if attrs.data
-                full_data = attrs.data
+            if bucketSize == 1
+                for point in data
+                    buckets.push(point[y])
+                    labels.push(point[x])
             else
-                full_data = scope.report.data[attrs.file].table
-            
-            # Set chart-specific options
-            if attrs.type == 'bar'
-                options.chart.type = 'column'
+                for point in data
+                    if i >= bucketSize
+                        buckets.push(bucket)
+                        labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + ")")
+                        previousLabel = point[x]
+                        bucket = 0
+                        i = 0
+                    bucket += point[y]
+                    i++
 
-            if attrs.type == 'scatter'
-                options.chart.type = 'scatter'
+                if bucket > 0
+                    buckets.push(bucket)
+                    labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + "]")
 
-            # Apply custom user options
-            if attrs.highchartsOptions
-               options = recursiveMerge(options, $parse(attrs.highchartsOptions)(scope, {}))
+            return { buckets: buckets, labels: labels }
 
-            if !options.series
-                options.series = []
+        options =
+            title:
+                text: attrs.title
+            xAxis:
+                title:
+                    text: attrs.label
+            yAxis:
+                title:
+                    text: attrs.yLabel
+            legend:
+                enabled: false
 
-            # Format data
-            xIndex = 0
-            yIndex = 0
-            for index, header of full_data.headers
-                if attrs.axis == header.name
-                    xIndex = index
-                if attrs.yAxis == header.name
-                    yIndex = index
+        # Get data to chart
+        full_data =
+            if attrs.data?
+                DashboardDataUtils.normalizeData (scope.$eval attrs.data)
+            else if attrs.file?
+                scope.report.data[attrs.file].table
+            else
+                console.error "No chart data or file attribute specified"
+                { columns: [], data: [] }
 
-            data = []
-            for point in full_data.data
-                data.push([point[xIndex], point[yIndex]])
+        # Prepare a data array for the chart series to be rendered
+        seriesData = do ->
+            # use a column name map (mostly set by directive attrs) to construct the series data
+            seriesDataToColumnName =
+                name : attrs.pointName
+                x    : attrs.axis
+                y    : attrs.yAxis
+                z    : attrs.zAxis
+            seriesDataToColumnIndex = {}
+            for key,columnName of seriesDataToColumnName
+                i = full_data.columns[columnName]?.index
+                seriesDataToColumnIndex[key] = i if i?
+            for data in full_data.data
+                seriesDataPoint = {}
+                for key,i of seriesDataToColumnIndex
+                    seriesDataPoint[key] = data[i]
+                seriesDataPoint
 
-            formatChartData = (data, xIsNumeric, numBins) ->
-                if (numBins != 'undefined' && numBins < data.length) || (xIsNumeric && data.length > 3 ** 3)
-                    if !numBins
-                        numBins = Math.floor(Math.sqrt(data.length, 1/3))
+        # Apply custom user options
+        if attrs.highchartsOptions?
+            # TODO move this to bottom, so user can override everything
+            options = recursiveMerge options, (scope.$eval attrs.highchartsOptions)
 
-                    bins = binData(data, numBins)
+        # Prepare a chart series by type
+        chartSeries = switch attrs.type
 
-                    return {
-                        xAxis: { categories: bins.labels },
-                        series: {
-                            name: attrs.yLabel,
-                            data: bins.buckets
-                        },
-                        numBins: numBins
-                    }
-                else
-                    return {
-                        xAxis: {},
-                        series: {
-                            name: attrs.yLabel,
-                            data: data
-                        },
-                        numBins: data.length
-                    }
+            when "bar"
+                type: "column"
+                data: seriesData
+                name: attrs.yLabel
 
-            # Format bar
-            if attrs.type == 'bar'
-                chartData = formatChartData(data, scope.tableHeaderIsNumeric(full_data, attrs.axis))
-                options.series.push(chartData.series)
-                options.xAxis.categories = chartData.xAxis.categories
+            when "scatter", "bubble"
+                type: attrs.type
+                data: seriesData
+                name: attrs.yLabel
 
-            # Format scatter
-            if attrs.type == 'scatter'
-                options.series.push({
-                    name: attrs.yLabel
-                    data: data
-                })
+            else
+                console.error "#{attrs.type}: Unsupported chart type"
+                null
 
-            # Render chart and slider
-            $timeout ->
-                element.find('.chart').highcharts(options)
-            
-                if attrs.type == 'bar' && scope.tableHeaderIsNumeric(full_data, attrs.axis)
+        (options.series ?= []).push chartSeries if chartSeries?
+
+        # Extra work for certain chart types
+        switch attrs.type
+
+            when "bar"
+                xHasTooManyNumbers = full_data.columns[attrs.axis]?.isNumeric and seriesData.length > 3 ** 3
+                formatChartData = (numBins) ->
+                    if (numBins? and numBins < seriesData.length) or xHasTooManyNumbers
+                        numBins ?= Math.floor(Math.sqrt(seriesData.length, 1/3))
+                        bins = binData(seriesData, numBins)
+                        chartSeries.data         = bins.buckets
+                        options.xAxis.categories = bins.labels
+                    else
+                        chartSeries.data         = seriesData
+                        delete options.xAxis.categories
+                do formatChartData
+                if xHasTooManyNumbers
+                    # Configure slider if X-axis is numeric
                     element.find('.slider').slider({
-                        min: 1,
-                        max: data.length,
-                        value: chartData.numBins,
+                        min: 1
+                        max: seriesData.length
+                        value: chartSeries.data.length
                         slide: (event, ui) ->
-                            chartData = formatChartData(data, scope.tableHeaderIsNumeric(full_data, attrs.axis), ui.value)
-                            options.series[options.series.length - 1] = chartData.series
-                            options.xAxis.categories = chartData.xAxis.categories
-
+                            formatChartData ui.value
                             element.find('.chart').highcharts(options)
                     })
-    }
+
+            when "bubble"
+                chartSeries.name = attrs.title ? ""
+
+        # Render chart with Highcharts
+        $timeout -> element.find('.chart').highcharts(options)
 
 .directive 'compileHtml', ['$compile', ($compile) ->
     return (scope, element, attrs) ->

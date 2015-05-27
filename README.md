@@ -34,11 +34,7 @@ mindbender dashboard
 
 There are some examples included in this source tree:
 ```bash
-cd examples/dashboard/dd-genomics
-mindbender dashboard
-```
-```bash
-cd examples/dashboard/stanford-memex
+cd examples/dashboard/spouse_example
 mindbender dashboard
 ```
 

@@ -1,0 +1,54 @@
+<$ ### $num_most_frequent_features Most Frequent Feature Samples
+table=${variable%%.*}
+column=${variable#$table.}
+
+if [[ -n "${candidate_id_column:-}" ]]; then
+case ${features_layout:-} in
+
+array_column)
+    if [[ -n "${features_column:-}" ]]; then
+        # when features are stored as array in the candidate table
+        $>
+            SELECT num_candidates
+                 , feature
+              FROM (
+                SELECT feature
+                     , COUNT(candidate) AS num_candidates
+                  FROM (
+                    SELECT UNNEST(${features_column}) feature
+                         , ${candidate_id_column} AS candidate
+                      FROM ${table}
+                  ) features
+                 GROUP BY feature
+              ) num_candidates_per_feature
+             ORDER BY num_candidates DESC
+             LIMIT ${num_most_frequent_features}
+        <$
+    else
+        report-warn "Parameter features_column= undefined for features_layout=array_column"
+    fi
+    ;;
+
+own_table)
+    if [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
+        # when features are stored in a separate table (for incremental DeepDive)
+        $>
+            SELECT num_candidates
+                 , feature
+              FROM (
+                SELECT ${features_column} AS feature
+                     , COUNT(${candidate_id_column}) AS num_candidates
+                  FROM ${features_table}
+                 GROUP BY feature
+              ) num_candidates_per_feature
+             ORDER BY num_candidates DESC
+             LIMIT ${num_most_frequent_features}
+        <$
+    else
+        report-warn "Parameters features_table= and/or features_column= undefined for features_layout=own_table"
+    fi
+    ;;
+
+esac
+fi
+$>

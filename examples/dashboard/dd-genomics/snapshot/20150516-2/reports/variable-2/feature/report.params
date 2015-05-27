@@ -1,0 +1,3 @@
+optional features_layout         array_column   "how features are stored in the database: must be either 'array_column' or 'own_table'"
+optional features_column         features       "name of the column of the features_table holding the feature or the column of the variable table holding features array"
+optional features_table          ""             "name of the table holding one feature per row for the variable, necessary when features_layout=own_table"

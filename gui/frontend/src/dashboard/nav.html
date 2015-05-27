@@ -1,12 +1,24 @@
 <ul>
 	<li ng-repeat="(k, v) in nav">
+		<!-- a chevron for opening/collapsing -->
 		<span style="display:inline-block;">
 			<span ng-hide="v.$leaf" ng-click="v.$show = !v.$show">
 				<i ng-hide="v.$show" class="fa fa-chevron-right"></i>
 				<i ng-show="v.$show" class="fa fa-chevron-down"></i>
 			</span>
 		</span>
-		<span ng-click="loadReportFromNav(v)" ng-style="currentReport == v.$report_key && { 'font-weight': 'bold' }">{{ k }}</span>
+		<!-- show a link only when a $report_key is defined -->
+		<span ng-if="v.$report_key" ng-style="currentReport == v.$report_key && { 'font-weight': 'bold' }">
+		    <!-- first click on non-leaves will first show its children -->
+		    <span ng-if=" (v.$leaf || v.$show)">
+		        <a href="#/snapshot/{{snapshotId}}/?report={{v.$report_key}}">{{ k }}</a>
+		    </span>
+		    <span ng-if="!(v.$leaf || v.$show)" ng-click="v.$show = true">{{k}}</span>
+		</span>
+		<span ng-if="!v.$report_key">
+		    <span ng-click="v.$show = true">{{k}}</span>
+		</span>
+		<!-- children -->
 		<div ng-show="v.$show" ng-init="nav = v;" ng-include="'dashboard/nav.html'"></div>  
 	</li>
 </ul>

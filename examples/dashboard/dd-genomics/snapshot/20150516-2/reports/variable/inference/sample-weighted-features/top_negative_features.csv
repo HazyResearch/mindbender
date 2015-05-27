@@ -1,0 +1,11 @@
+weight,description
+-1.60188,gene_inference-STARTS_WITH_CAPITAL
+-1.43444,gene_inference-LENGTH_0
+-1.35974,gene_inference-NER_SEQ_[O]
+-1.20403,pheno_inference-W_LEFT_NER_1_[O]
+-1.20187,gene_inference-W_LEFT_NER_1_[O]
+-1.15067,pheno_inference-NER_SEQ_[O]
+-0.893688,gene_inference-W_RIGHT_NER_1_[O]
+-0.882311,pheno_inference-W_LEFT_NER_2_[O O]
+-0.86591,gene_inference-POS_SEQ_[NN]
+-0.768365,pheno_inference-W_RIGHT_NER_1_[O]
