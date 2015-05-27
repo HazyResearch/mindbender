@@ -713,7 +713,7 @@ angular.module "mindbenderApp.dashboard", [
 
             @taskManager.editValue = (index) ->
                 value = prompt("Old Value: " + this.taskValues[index] + ", new value:")
-                if value.length
+                if value
                     valueType = this.determineType(value)
                     if valueType != "string"
                         value *= 1
@@ -785,12 +785,12 @@ angular.module "mindbenderApp.dashboard", [
             <div class="dropdown-menu pull-right" role="menu" style="padding:5px;width:120px">
                 <input type="text" ng-value="taskManager.selectedTask" style="width:105px">
                 <button class="btn btn-default" ng-click="taskManager.clearTask()">X</button>
-                <div style="width:50%;float:left;">
+                <div style="width:70%;float:left;border:1px solid #000;padding:3px">
                     <div ng-repeat="param in taskManager.templates[taskManager.selectedTask].params" style="list-style-type:none">
                             {{ param.name }}:
                     </div>
                 </div>
-                <div style="width:50%;float:right;">
+                <div style="width:30%;float:right;border:1px solid #000;padding:3px">
                     <div ui-sortable ng-model="taskManager.taskValues">
                         <div style="cursor:pointer" ng-repeat="value in taskManager.taskValues track by $index" ng-click="taskManager.editValue($index)">
                             <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
@@ -799,6 +799,7 @@ angular.module "mindbenderApp.dashboard", [
                         </div>
                     </div>
                 </div>
+                <button class="btn btn-primary">Run Task</button>
             </div>
         </div>
         <div id="taskMatcher" style="z-index:10;position:absolute;top:0px;left:0px;border:2px solid #000;width:300px;height:400px;background-color:#FFF;overflow:auto;padding:5px" ng-show="taskManager.matcher.show">
