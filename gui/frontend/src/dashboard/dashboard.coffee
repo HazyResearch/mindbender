@@ -341,7 +341,7 @@ angular.module "mindbenderApp.dashboard", [
                     v = row[j]
                     row[j] =
                         if v? and v isnt "" then +v
-                        else console.error "#{i},#{j}"; null # replacing empty strings to null
+                        else null # replacing empty strings to null
             
             { columns, data: rows }
 
@@ -538,22 +538,19 @@ angular.module "mindbenderApp.dashboard", [
         chartSeries = switch attrs.type
 
             when "bar"
-                chartSeries = {
-                    type: "column"
-                    data: seriesData
-                    name: attrs.yLabel
-                }
+                type: "column"
+                data: seriesData
+                name: attrs.yLabel
 
             when "scatter", "bubble"
-                {
-                    type: attrs.type
-                    data: seriesData
-                    name: attrs.yLabel
-                }
+                type: attrs.type
+                data: seriesData
+                name: attrs.yLabel
 
             else
                 console.error "#{attrs.type}: Unsupported chart type"
                 null
+
         (options.series ?= []).push chartSeries if chartSeries?
 
         # Extra work for certain chart types
@@ -586,8 +583,6 @@ angular.module "mindbenderApp.dashboard", [
                 chartSeries.name = attrs.title ? ""
 
         # Render chart with Highcharts
-        console.log full_data
-        console.log options
         $timeout -> element.find('.chart').highcharts(options)
 
 .directive 'compileHtml', ['$compile', ($compile) ->
