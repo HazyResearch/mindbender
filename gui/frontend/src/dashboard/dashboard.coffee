@@ -324,11 +324,13 @@ angular.module "mindbenderApp.dashboard", [
             
             # add some metadata & transformation for rendering charts and tables
             columns = {}
+            columnsByIndex = {}
             for name,j in normalized.names
-                columns[name] = {
+                columns[name] = columnsByIndex[j] = {
                     index: j
                     isNumeric: true
                 }
+
             rows = normalized.rows
             # recognize numeric columns
             for name,column of columns
@@ -344,7 +346,7 @@ angular.module "mindbenderApp.dashboard", [
                         if v? and v isnt "" then +v
                         else null # replacing empty strings to null
             
-            { columns, data: rows }
+            { columns, columnsByIndex, data: rows }
 
     new DashboardDataUtils
 
@@ -739,7 +741,7 @@ angular.module "mindbenderApp.dashboard", [
 .directive 'mbTable', ($timeout) ->
     return {
         template: """
-            <table class="table table-striped" style="text-align:right;">
+            <table class="table table-striped">
                 <thead>
                     <tr>
                         <th style="text-align:center" ng-repeat="(name, column) in table.columns">{{ name }}</th>
@@ -747,7 +749,7 @@ angular.module "mindbenderApp.dashboard", [
                 </thead>
                 <tbody>
                     <tr ng-repeat="row in table.data">
-                        <td ng-repeat="data in row track by $index"><span style="cursor:pointer" ng-click="bindToTask($event, data)">{{ data }}</span></td>
+                        <td ng-repeat="data in row track by $index" ng-style="table.columnsByIndex[$index].isNumeric && {'text-align':'right'}"><span style="cursor:pointer" ng-click="bindToTask($event, data)">{{ data }}</span></td>
                     </tr>
                 </tbody>
             </table>
@@ -758,7 +760,9 @@ angular.module "mindbenderApp.dashboard", [
             scope.table = scope.report.data[attrs.file].table
             scope.bindToTask = taskArea.receiveValue if taskArea?
             $timeout ->
-                element.find("table").DataTable()
+                element.find("table").DataTable({
+                    pageLength: 25
+                })
     }
 
 .directive 'mbTaskControl', ($timeout) ->
