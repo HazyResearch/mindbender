@@ -69,8 +69,10 @@ $>
             }
         },
         series: [{
+            name: 'Balanced',
             type: 'scatter',
             data: [ [0,0], [1,1] ],
+            marker: { enabled: false }, enableMouseTracking: false,
             lineWidth: 1,
             color: '#00c',
             dashStyle: 'ShortDash'
