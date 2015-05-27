@@ -92,3 +92,15 @@ table {
 .flash {
 	transition: background-color 1s ease;
 }
+
+.potentialParam {
+	font-weight: bold;
+	cursor: pointer;
+}
+
+.selected-task {
+	font-weight: bold;
+	color: #A00;
+}
+
+}

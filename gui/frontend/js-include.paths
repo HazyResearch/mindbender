@@ -22,3 +22,6 @@ bower_components/ace-builds/src-noconflict/ace.js
 src/ace-shim.js
 bower_components/ace-builds/src-noconflict/ext-language_tools.js
 bower_components/angular-ui-ace/ui-ace.js
+
+bower_components/angular-ui-sortable/sortable.js
+bower_components/datatables/media/js/jquery.dataTables.min.js
