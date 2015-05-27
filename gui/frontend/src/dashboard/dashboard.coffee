@@ -600,36 +600,34 @@ angular.module "mindbenderApp.dashboard", [
     return {
         restrict: 'A',
         controller: ($scope) ->
-            @taskManager = {
-                templates: {
-                    someTask1: {
-                        params: [
-                            { name: "foo", type: "int" },
-                            { name: "bar", type: "float" }
-                        ]
-                    },
-                    someTask2: {
-                        params: [
-                            { name: "fooText", type: "string" },
-                            { name: "barNum", type: "int" }
-                        ]
-                    },
-                    someTask3: {
-                        params: [
-                            { name: "fooText", type: "string" },
-                            { name: "barNum", type: "int" },
-                            { name: "anotherNum", type: "int" }
-                        ]
-                    }
+            @templates = {
+                someTask1: {
+                    params: [
+                        { name: "foo", type: "int" }
+                        { name: "bar", type: "float" }
+                    ]
                 },
-                matcher: { show: false },
-                boundParams: {},
-                taskValues: [],
-                selectedTask: null,
-                selectedValue: null
+                someTask2: {
+                    params: [
+                        { name: "fooText", type: "string" }
+                        { name: "barNum", type: "int" }
+                    ]
+                },
+                someTask3: {
+                    params: [
+                        { name: "fooText", type: "string" }
+                        { name: "barNum", type: "int" }
+                        { name: "anotherNum", type: "int" }
+                    ]
+                }
             }
+            @matcher = { show: false, event: null }
+            @boundParams = {}
+            @taskValues = []
+            @selectedTask = null
+            @selectedValue = null
 
-            @taskManager.determineType = (string) ->
+            @determineType = (string) =>
                 if !isNaN(string)
                     if Math.floor(string * 1) == string * 1
                         return "int"
@@ -638,14 +636,17 @@ angular.module "mindbenderApp.dashboard", [
                 else
                     return "string"
 
-            @taskManager.receiveValue = (value) ->
-                valueType = this.determineType(value)
+            @receiveValue = (event, value) =>
+                @matcher.show = true
+                @matcher.event = event
+
+                valueType = @determineType(value)
                 if valueType != "string"
                     value *= 1
 
-                this.selectedValue = value
+                @selectedValue = value
 
-                for name, template of this.templates
+                for name, template of @templates
                     show = false
                     for param in template.params
                         param.$selected = (param.type == valueType)
@@ -654,82 +655,79 @@ angular.module "mindbenderApp.dashboard", [
 
                     template.$show = show
 
-            @taskManager.bindParam = (task, param) ->
-                if !this.boundParams[task]
-                    this.boundParams = {}
-                    this.boundParams[task] = {}
+            @bindParam = (task, param) =>
+                if !@boundParams[task]
+                    @boundParams = {}
+                    @boundParams[task] = {}
 
-                if this.boundParams[task][param] == this.selectedValue
-                    delete this.boundParams[task][param]
-                    if !Object.keys(this.boundParams[task]).length
-                        this.selectedTask = null
+                if @boundParams[task][param] == @selectedValue
+                    delete @boundParams[task][param]
+                    if !Object.keys(@boundParams[task]).length
+                        @selectedTask = null
                 else
-                    this.boundParams[task][param] = this.selectedValue
-                    this.selectedTask = task
+                    @boundParams[task][param] = @selectedValue
+                    @selectedTask = task
 
                 taskValues = []
-                if this.selectedTask
-                    for param in this.templates[this.selectedTask].params
+                if @selectedTask
+                    for param in @templates[@selectedTask].params
                         found = false
-                        for boundParam, boundValue of this.boundParams[this.selectedTask]
+                        for boundParam, boundValue of @boundParams[@selectedTask]
                             if param.name == boundParam
                                 taskValues.push(boundValue)
                                 found = true
                         if !found
                             taskValues.push(null)
 
-                this.taskValues = taskValues
+                @taskValues = taskValues
 
-
-            tm = @taskManager
-            $scope.$watchCollection (-> tm.taskValues), (newValue, oldValue) ->
+            $scope.$watchCollection (=> @taskValues), (newValue, oldValue) =>
                 if newValue.length
-                    if tm.paramTypesVerify(newValue)
-                        tm.resetBoundParams()
+                    if @paramTypesVerify(newValue)
+                        @resetBoundParams()
                     else
-                        tm.taskValues = oldValue
+                        @taskValues = oldValue
 
-            @taskManager.paramTypesVerify = (values) ->
-                if !this.selectedTask
+            @paramTypesVerify = (values) =>
+                if !@selectedTask
                     return false
 
-                for param, index in this.templates[this.selectedTask].params
-                    if values[index] != null && param.type != this.determineType(values[index])
+                for param, index in @templates[@selectedTask].params
+                    if values[index] != null && param.type != @determineType(values[index])
                         return false
 
                 return true
 
-            @taskManager.resetBoundParams = () ->
-                if !this.selectedTask
+            @resetBoundParams = () =>
+                if !@selectedTask
                     return
 
                 boundParams = {}
-                boundParams[this.selectedTask] = {}
-                for param, index in this.templates[this.selectedTask].params
-                    if this.taskValues[index] != null
-                        boundParams[this.selectedTask][param.name] = this.taskValues[index]
+                boundParams[@selectedTask] = {}
+                for param, index in @templates[@selectedTask].params
+                    if @taskValues[index] != null
+                        boundParams[@selectedTask][param.name] = @taskValues[index]
 
-                this.boundParams = boundParams
+                @boundParams = boundParams
 
-            @taskManager.editValue = (index) ->
-                value = prompt("Old Value: " + this.taskValues[index] + ", new value:")
+            @editValue = (index) =>
+                value = prompt("Old Value: " + @taskValues[index] + ", new value:")
                 if value
-                    valueType = this.determineType(value)
+                    valueType = @determineType(value)
                     if valueType != "string"
                         value *= 1
 
-                    if valueType != this.templates[this.selectedTask].params[index].type
-                        alert("Invalid type. Expecting " + this.templates[this.selectedTask].params[index].type)
+                    if valueType != @templates[@selectedTask].params[index].type
+                        alert("Invalid type. Expecting " + @templates[@selectedTask].params[index].type)
                     else
-                        this.taskValues[index] = value
+                        @taskValues[index] = value
 
-            @taskManager.clearTask = () ->
-                this.matcher.show = false
-                this.boundParams = {}
-                this.taskValues = []
-                this.selectedTask = null
-                this.selectedValue = null
-
+            @clearTask = () =>
+                @matcher.show = false
+                @boundParams = {}
+                @taskValues = []
+                @selectedTask = null
+                @selectedValue = null
     }
 
 
@@ -744,7 +742,7 @@ angular.module "mindbenderApp.dashboard", [
                 </thead>
                 <tbody>
                     <tr ng-repeat="row in table.data">
-                        <td ng-repeat="data in row track by $index"><span style="cursor:pointer" ng-click="receiveValue($event)">{{ data }}</span></td>
+                        <td ng-repeat="data in row track by $index"><span style="cursor:pointer" ng-click="bindToTask($event, data)">{{ data }}</span></td>
                     </tr>
                 </tbody>
             </table>
@@ -753,46 +751,29 @@ angular.module "mindbenderApp.dashboard", [
         require: '?^mbTaskArea',
         link: (scope, element, attrs, taskArea) ->
             scope.table = scope.report.data[attrs.file].table
-
+            scope.bindToTask = taskArea.receiveValue if taskArea?
             $timeout ->
                 element.find("table").DataTable()
-
-            scope.receiveValue = ($event) ->
-                taskArea.taskManager.matcher.show = true
-
-                e = angular.element($event.currentTarget)
-                eOffset = e.offset()
-
-                eParentOffset = angular.element("#taskMatcher").parent().offset()
-
-                angular.element("#taskMatcher").css("left", eOffset.left - eParentOffset.left + 30)
-                angular.element("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
-                taskArea.taskManager.receiveValue(e.html())
-
     }
 
 .directive 'mbTaskControl', ($timeout) ->
     return {
-        controller: ($scope) ->
-            $scope.sortableOptions = () ->
-                update: (e, ui) -> console.log("SDF")
-
         template: """
         <div id="task-button" class="btn-group" style="float:right">
             <button id="task-button-dropdown" type="button" class="btn btn-primary dropdown-toggle" aria-expanded="false">
                 Tasks <span class="caret"></span>
             </button>
             <div class="dropdown-menu pull-right" role="menu" style="padding:5px;width:120px">
-                <input type="text" ng-value="taskManager.selectedTask" style="width:105px">
-                <button class="btn btn-default" ng-click="taskManager.clearTask()">X</button>
+                <input type="text" ng-value="taskArea.selectedTask" style="width:105px">
+                <button class="btn btn-default" ng-click="taskArea.clearTask()">X</button>
                 <div style="width:70%;float:left;border:1px solid #000;padding:3px">
-                    <div ng-repeat="param in taskManager.templates[taskManager.selectedTask].params" style="list-style-type:none">
+                    <div ng-repeat="param in taskArea.templates[taskArea.selectedTask].params" style="list-style-type:none">
                             {{ param.name }}:
                     </div>
                 </div>
                 <div style="width:30%;float:right;border:1px solid #000;padding:3px">
-                    <div ui-sortable ng-model="taskManager.taskValues">
-                        <div style="cursor:pointer" ng-repeat="value in taskManager.taskValues track by $index" ng-click="taskManager.editValue($index)">
+                    <div ui-sortable ng-model="taskArea.taskValues">
+                        <div style="cursor:pointer" ng-repeat="value in taskArea.taskValues track by $index" ng-click="taskArea.editValue($index)">
                             <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
                             <span >{{ value }}</span>
                             &nbsp;
@@ -802,15 +783,15 @@ angular.module "mindbenderApp.dashboard", [
                 <button class="btn btn-primary">Run Task</button>
             </div>
         </div>
-        <div id="taskMatcher" style="z-index:10;position:absolute;top:0px;left:0px;border:2px solid #000;width:300px;height:400px;background-color:#FFF;overflow:auto;padding:5px" ng-show="taskManager.matcher.show">
-            <button class="btn btn-default" ng-click="taskManager.matcher.show = false" style="float:right">X</button>
+        <div id="taskMatcher" style="z-index:10;position:absolute;top:0px;left:0px;border:2px solid #000;width:300px;height:400px;background-color:#FFF;overflow:auto;padding:5px" ng-show="taskArea.matcher.show">
+            <button class="btn btn-default" ng-click="taskArea.matcher.show = false" style="float:right">X</button>
             <h3>Tasks</h3>
-            <div ng-repeat="(task, template) in taskManager.templates">
+            <div ng-repeat="(task, template) in taskArea.templates">
                 <div ng-shos="template.$show">
-                    <span ng-class="{ 'selected-task' : taskManager.selectedTask == task }">
+                    <span ng-class="{ 'selected-task' : taskArea.selectedTask == task }">
                         {{ task }}
                     </span>
-                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskManager.bindParam(task, param.name)">{{ param.name }}<span ng-if="taskManager.boundParams[task][param.name]">[{{ taskManager.boundParams[task][param.name] }}]</span>{{$last ? '' : ', '}}</span>)
+                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskArea.bindParam(task, param.name)">{{ param.name }}<span ng-if="taskArea.boundParams[task][param.name]">[{{ taskArea.boundParams[task][param.name] }}]</span>{{$last ? '' : ', '}}</span>)
                 </div>
             </div>
         </div>
@@ -818,5 +799,15 @@ angular.module "mindbenderApp.dashboard", [
         require: '^mbTaskArea',
         restrict: 'E',
         link: (scope, element, attrs, taskArea) ->
-            scope.taskManager = taskArea.taskManager
+            scope.taskArea = taskArea
+
+            scope.$watch (-> taskArea.matcher.event), (event) ->
+                return unless event?
+
+                eOffset = angular.element(event.currentTarget).offset()
+                eParentOffset = angular.element("#taskMatcher").parent().offset()
+
+                element.find("#taskMatcher").css("left", eOffset.left - eParentOffset.left + 30)
+                element.find("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
+
     }
