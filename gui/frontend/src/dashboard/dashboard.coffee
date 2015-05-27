@@ -629,9 +629,9 @@ angular.module "mindbenderApp.dashboard", [
                 selectedValue: null
             }
 
-            determineType = (string) ->
+            @taskManager.determineType = (string) ->
                 if !isNaN(string)
-                    if string.indexOf('.') == -1
+                    if Math.floor(string * 1) == string * 1
                         return "int"
                     else
                         return "float"
@@ -639,7 +639,7 @@ angular.module "mindbenderApp.dashboard", [
                     return "string"
 
             @taskManager.receiveValue = (value) ->
-                valueType = determineType(value)
+                valueType = this.determineType(value)
                 if valueType != "string"
                     value *= 1
 
@@ -679,11 +679,25 @@ angular.module "mindbenderApp.dashboard", [
                             taskValues.push(null)
 
                 this.taskValues = taskValues
-                console.log(taskValues)
+
 
             tm = @taskManager
             $scope.$watchCollection (-> tm.taskValues), (newValue, oldValue) ->
-                tm.resetBoundParams()
+                if newValue.length
+                    if tm.paramTypesVerify(newValue)
+                        tm.resetBoundParams()
+                    else
+                        tm.taskValues = oldValue
+
+            @taskManager.paramTypesVerify = (values) ->
+                if !this.selectedTask
+                    return false
+
+                for param, index in this.templates[this.selectedTask].params
+                    if values[index] != null && param.type != this.determineType(values[index])
+                        return false
+
+                return true
 
             @taskManager.resetBoundParams = () ->
                 if !this.selectedTask
@@ -696,7 +710,26 @@ angular.module "mindbenderApp.dashboard", [
                         boundParams[this.selectedTask][param.name] = this.taskValues[index]
 
                 this.boundParams = boundParams
-                console.log(boundParams)
+
+            @taskManager.editValue = (index) ->
+                value = prompt("Old Value: " + this.taskValues[index] + ", new value:")
+                if value.length
+                    valueType = this.determineType(value)
+                    if valueType != "string"
+                        value *= 1
+
+                    if valueType != this.templates[this.selectedTask].params[index].type
+                        alert("Invalid type. Expecting " + this.templates[this.selectedTask].params[index].type)
+                    else
+                        this.taskValues[index] = value
+
+            @taskManager.clearTask = () ->
+                this.matcher.show = false
+                this.boundParams = {}
+                this.taskValues = []
+                this.selectedTask = null
+                this.selectedValue = null
+
     }
 
 
@@ -740,6 +773,10 @@ angular.module "mindbenderApp.dashboard", [
 
 .directive 'mbTaskControl', ($timeout) ->
     return {
+        controller: ($scope) ->
+            $scope.sortableOptions = () ->
+                update: (e, ui) -> console.log("SDF")
+
         template: """
         <div id="task-button" class="btn-group" style="float:right">
             <button id="task-button-dropdown" type="button" class="btn btn-primary dropdown-toggle" aria-expanded="false">
@@ -749,19 +786,18 @@ angular.module "mindbenderApp.dashboard", [
                 <input type="text" ng-value="taskManager.selectedTask" style="width:105px">
                 <button class="btn btn-default" ng-click="taskManager.clearTask()">X</button>
                 <div style="width:50%;float:left;">
-                    <ul>
-                        <li ng-repeat="param in taskManager.templates[taskManager.selectedTask].params" style="list-style-type:none">
-                            {{ param.name }}
-                        </li>
-                    </ul>
+                    <div ng-repeat="param in taskManager.templates[taskManager.selectedTask].params" style="list-style-type:none">
+                            {{ param.name }}:
+                    </div>
                 </div>
                 <div style="width:50%;float:right;">
-                    <ul ui-sortable ng-model="taskManager.taskValues">
-                        <li ng-repeat="value in taskManager.taskValues track by $index">
+                    <div ui-sortable ng-model="taskManager.taskValues">
+                        <div style="cursor:pointer" ng-repeat="value in taskManager.taskValues track by $index" ng-click="taskManager.editValue($index)">
                             <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
-                            {{ value }}
-                        </li>
-                    </ul>
+                            <span >{{ value }}</span>
+                            &nbsp;
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
