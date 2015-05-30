@@ -103,4 +103,15 @@ table {
 	color: #A00;
 }
 
+.chart .dialog {
+	overflow: auto;
 }
+
+.chart .dialog td {
+	padding: 5px;
+}
+
+.chart .dialog td span {
+	cursor: pointer;
+}
+
