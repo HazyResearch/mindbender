@@ -34,13 +34,7 @@
 		<div class="col-md-9" ng-show="report.isFormatted && !loading">
 			<mb-task-control></mb-task-control>
 			<tabset>
-				<tab active="tabs['table'].active">
-					<tab-heading style="font-size:18pt;">
-						<i class="fa fa-table"></i>
-					</tab-heading>
-					<mb-table ng-if="report.isFormatted && !loading" data-file="{{ report.formattedReport.name }}"></mb-table>
-				</tab>
-				<tab ng-show="tabs['bar'].show">
+				<tab active="tabs['bar'].active" ng-show="tabs['bar'].show">
 					<tab-heading style="font-size:18pt;">
 						<i class="fa fa-bar-chart"></i>
 					</tab-heading>
@@ -67,6 +61,12 @@
 					    y-axis="{{ report.formattedReport.chart.y }}"
 					    y-label="{{ report.formattedReport.chart.y }}"
 					></chart>
+				</tab>
+				<tab active="tabs['table'].active">
+					<tab-heading style="font-size:18pt;">
+						<i class="fa fa-table"></i>
+					</tab-heading>
+					<mb-table ng-if="report.isFormatted && !loading" data-file="{{ report.formattedReport.name }}"></mb-table>
 				</tab>
 			</tabset>
 		</div>

@@ -163,7 +163,7 @@ angular.module "mindbenderApp.dashboard", [
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
     $scope.tabs = {
-        table: { active: true }
+        table: { }
         bar: { show: false }
         scatter: { show: false }
     }
@@ -203,7 +203,6 @@ angular.module "mindbenderApp.dashboard", [
                     $scope.report.formattedReport = $scope.report.data[data_name]
                     $scope.report.formattedReport.name = data_name
 
-                    $scope.tabs.table.active = true
                     $scope.tabs.bar.show = false
                     $scope.tabs.scatter.show = false
 
@@ -212,6 +211,9 @@ angular.module "mindbenderApp.dashboard", [
                         if $scope.report.formattedReport.table.columns[chart.y]?.isNumeric
                             $scope.tabs.bar.show = true
                             $scope.tabs.scatter.show = $scope.report.formattedReport.table.columns[chart.x]?.isNumeric
+
+                    $scope.tabs.bar.active = $scope.tabs.bar.show
+                    $scope.tabs.table.active = !$scope.tabs.bar.active
 
                 Dashboard.updateNavLinkForSnapshots $location.search()
 
