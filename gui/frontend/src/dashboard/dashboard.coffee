@@ -455,7 +455,6 @@ angular.module "mindbenderApp.dashboard", [
     restrict: 'E',
     require: '?^mbTaskArea',
     link: (scope, element, attrs, taskArea) ->
-        scope.taskArea = taskArea
         scope.hasSlider = false
         renderChart = ->
             recursiveMerge = (obj1, obj2) ->
@@ -574,12 +573,12 @@ angular.module "mindbenderApp.dashboard", [
                     for name, info of full_data.columns
                         value = full_data.data[point_index][info.index]
 
-                        nameCell = $("<td></td>").append("<span></span>").html(name + ":")
-                        valueCell = $("<td></td>").append("<span></span>").html(value)
+                        nameCell = $("<td></td>").attr("data-task-value", name).html(name)
+                        valueCell = $("<td></td>").attr("data-task-value", value).html(value)
                         labelCell = $("<td></td>")
 
                         if columnIndexToSeriesData[info.index]
-                            labelCell = labelCell.html(columnIndexToSeriesData[info.index])
+                            labelCell = labelCell.attr("data-task-value", columnIndexToSeriesData[info.index]).html(columnIndexToSeriesData[info.index])
 
                         dialogData = dialogData.add(
                             $("<tr></tr>").append(nameCell, valueCell, labelCell)
@@ -589,20 +588,23 @@ angular.module "mindbenderApp.dashboard", [
 
                 else
                     for name, value of seriesData[point_index]
-                        categoryCell = $("<td></td>").append("<span></span>").html(name + ":")
-                        valueCell = $("<td></td>").append("<span></span>")
+                        categoryCell = $("<td></td>").attr("data-task-value", name).html(name)
+                        valueCell = $("<td></td>")
 
                         if name == "x"
-                            valueCell.html(options.xAxis.categories[point_index])
+                            valueCell.attr("data-task-value", options.xAxis.categories[point_index]).html(options.xAxis.categories[point_index])
                         else
-                            valueCell.html(value)
+                            valueCell.attr("data-task-value", value).html(value)
 
                         dialogTable.append($("<tr></tr>").append(categoryCell, valueCell))
 
 
-                eDialog = $("<div></div>").addClass("dialog").append(dialogTable)
+                eDialog = angular.element($("<div></div>").addClass("dialog").append(dialogTable))
 
-                $compile(eDialog.contents())(scope)
+                eDialog.on("click", "td", (e) ->
+                    console.log("Clicked task value")
+                    taskArea.receiveValue(e, $(this).data("task-value"))
+                )
 
                 eDialog.dialog({
                     title: "Task inputs"
@@ -718,6 +720,7 @@ angular.module "mindbenderApp.dashboard", [
                     return "string"
 
             @receiveValue = (event, value) =>
+                console.log(value)
                 @matcher.show = true
                 @matcher.event = event
 
@@ -885,8 +888,8 @@ angular.module "mindbenderApp.dashboard", [
             scope.taskArea = taskArea
 
             scope.$watch (-> taskArea.matcher.event), (event) ->
+                console.log("Moving task matcher")
                 return unless event?
-
                 eOffset = angular.element(event.currentTarget).offset()
                 eParentOffset = angular.element("#taskMatcher").parent().offset()
 
