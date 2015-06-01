@@ -38,7 +38,7 @@ angular.module "mindbenderApp.dashboard", [
                     for snapshotId in $rootScope.mostRecentSnapshots
                         # TODO use different style to indicate whether snapshotParams is applicable to this snapshot or not
                         { url: "#/snapshot/#{snapshotId}/#{qs}", name: snapshotId }
-                if $rootScope.mostRecentSnapshots > NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
+                if $rootScope.numSnapshotsTotal > NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
                     navLinkForSnapshots.links = [
                         navLinkForSnapshots.links...
                         { isDivider: yes }
@@ -52,6 +52,7 @@ angular.module "mindbenderApp.dashboard", [
                 @getSnapshotList()
                     .success (snapshots) =>
                         $rootScope.mostRecentSnapshots = _.first snapshots, NUM_MOST_RECENT_SNAPSHOTS_TO_SHOW
+                        $rootScope.numSnapshotsTotal = snapshots.length
                         do updateLinks
 
         getSnapshotList: =>
