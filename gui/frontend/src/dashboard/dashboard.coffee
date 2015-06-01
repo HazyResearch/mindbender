@@ -561,46 +561,47 @@ angular.module "mindbenderApp.dashboard", [
                     console.error "#{attrs.type}: Unsupported chart type"
                     null
 
-            chartSeries.point = { events: { click: (e) ->
+            showTaskValuePickerDialog = (e) ->
                 element.find(".dialog").remove()
                 point_index = this.series.data.indexOf(e.point)
 
-                dialogHtml =
-                """
-                    <div class="dialog">
-                        <table>
-                """
+                dialogTable = $("<table></table>")
 
                 if !scope.hasSlider
                     columnIndexToSeriesData = _.invert(seriesDataToColumnIndex)
-                    dialogHtml += """
-                                <tr>
-                                    <th>Column</th>
-                                    <th>Value</th>
-                                    <th>Chart Label</th>
-                                </tr>
-                    """
+                    dialogData = $("<tr></tr>").append("<th>Column</th><th>Value</th><th>Chart Label</th>")
 
                     for name, info of full_data.columns
                         value = full_data.data[point_index][info.index]
-                        dialogHtml += '<tr>'
-                        dialogHtml += '<td><span ng-click="taskArea.receiveValue($event, \'' + name + '\')">' + name + '</span></td>'
-                        dialogHtml += '<td><span ng-click="taskArea.receiveValue($event, \'' + value + '\')">' + value + '</span></td>'
+
+                        nameCell = $("<td></td>").append("<span></span>").html(name + ":")
+                        valueCell = $("<td></td>").append("<span></span>").html(value)
+                        labelCell = $("<td></td>")
+
                         if columnIndexToSeriesData[info.index]
-                            dialogHtml += '<td>' + columnIndexToSeriesData[info.index] + '</td>'
-                        else
-                            dialogHtml += '<td></td>'
-                        dialogHtml += '</tr>'
+                            labelCell = labelCell.html(columnIndexToSeriesData[info.index])
+
+                        dialogData = dialogData.add(
+                            $("<tr></tr>").append(nameCell, valueCell, labelCell)
+                        )
+
+                    dialogTable.append(dialogData)
+
                 else
                     for name, value of seriesData[point_index]
-                        dialogHtml += '<tr>'
-                        dialogHtml += '<td><span ng-click="taskArea.receiveValue($event, \'' + name + '\')">' + options.xAxis.categories[point_index] + '</span>:</td>'
-                        dialogHtml += '<td><span ng-click="taskArea.receiveValue($event, \'' + value + '\')">' + value + '</span></td>'
-                        dialogHtml += '</tr>'
+                        categoryCell = $("<td></td>").append("<span></span>").html(name + ":")
+                        valueCell = $("<td></td>").append("<span></span>")
 
-                dialogHtml += '</table></div>'
+                        if name == "x"
+                            valueCell.html(options.xAxis.categories[point_index])
+                        else
+                            valueCell.html(value)
 
-                eDialog = $(dialogHtml)
+                        dialogTable.append($("<tr></tr>").append(categoryCell, valueCell))
+
+
+                eDialog = $("<div></div>").addClass("dialog").append(dialogTable)
+
                 $compile(eDialog.contents())(scope)
 
                 eDialog.dialog({
@@ -609,7 +610,8 @@ angular.module "mindbenderApp.dashboard", [
                     appendTo: element.find(".chart")
                 })
 
-             } }
+            if taskArea?
+                chartSeries.point = { events: { click: showTaskValuePickerDialog } }
 
             (options.series ?= []).push chartSeries if chartSeries?
 
