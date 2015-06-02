@@ -560,17 +560,11 @@ angular.module "mindbenderApp.dashboard", [
                     console.error "#{attrs.type}: Unsupported chart type"
                     null
 
-            showTaskValuePickerDialog = (e) ->
-                element.find(".dialog").remove()
-
-                # this.series.data is equivalent to seriesData, but contains extra Highcharts properties needed to match with e.point
-                point_index = this.series.data.indexOf(e.point)
-
-                dialogTable = $("<table></table>")
-
-                if chartSeries.data.length == full_data.data.length
+            if taskArea?
+                setUpDialogTable = (point_index) ->
                     columnIndexToSeriesData = _.invert(seriesDataToColumnIndex)
 
+                    dialogTable = $("<table></table>")
                     dialogData = $("<tr></tr>").append("<th>Column</th><th>Value</th><th>Chart Label</th>")
 
                     for name, info of full_data.columns
@@ -589,33 +583,26 @@ angular.module "mindbenderApp.dashboard", [
 
                     dialogTable.append(dialogData)
 
-                else
-                    for name, value of seriesData[point_index]
-                        categoryCell = $("<td></td>").attr("data-task-value", seriesDataToColumnName[name]).html(seriesDataToColumnName[name] + ":")
-                        valueCell = $("<td></td>")
+                    return dialogTable
 
-                        if name == "x"
-                            valueCell.attr("data-task-value", options.xAxis.categories[point_index]).html(options.xAxis.categories[point_index])
-                        else
-                            valueCell.attr("data-task-value", value).html(value)
+                chartSeries.point = { events: { click: (e) ->
+                    element.find(".dialog").remove()
 
-                        dialogTable.append($("<tr></tr>").append(categoryCell, valueCell))
+                    # this.series.data is equivalent to seriesData, but contains extra Highcharts properties needed to match with e.point
+                    point_index = this.series.data.indexOf(e.point)
 
+                    dialogTable = setUpDialogTable(point_index)
+                    eDialog = $('<div class="dialog"></div>').append(dialogTable)
 
-                eDialog = $("<div></div>").addClass("dialog").append(dialogTable)
-
-                eDialog.on("click", "td", (e) ->
-                    $timeout => taskArea.receiveValue(e, $(this).data("task-value"))
-                )
-
-                eDialog.dialog({
-                    title: "Task inputs"
-                    position: { my: "bottom", at: "center", of: event },
-                    appendTo: element.find(".chart")
-                })
-
-            if taskArea?
-                chartSeries.point = { events: { click: showTaskValuePickerDialog } }
+                    eDialog.on("click", "td", (e) ->
+                        $timeout => taskArea.receiveValue(e, $(this).data("task-value"))
+                    )
+                    eDialog.dialog({
+                        title: "Task inputs"
+                        position: { my: "bottom", at: "center", of: event },
+                        appendTo: element.find(".chart")
+                    })
+                } }
 
             (options.series ?= []).push chartSeries if chartSeries?
 
@@ -627,15 +614,34 @@ angular.module "mindbenderApp.dashboard", [
             # Extra work for certain chart types
             switch attrs.type
                 when "bar"
+                    setUpNormalDialogTable = setUpDialogTable
+                    setUpBinnedDialogTable = (point_index) ->
+                        dialogTable = $("<table></table>")
+
+                        for name, value of seriesData[point_index]
+                            categoryCell = $("<td></td>").attr("data-task-value", seriesDataToColumnName[name]).html(seriesDataToColumnName[name] + ":")
+                            valueCell = $("<td></td>")
+
+                            if name == "x"
+                                valueCell.attr("data-task-value", options.xAxis.categories[point_index]).html(options.xAxis.categories[point_index])
+                            else
+                                valueCell.attr("data-task-value", value).html(value)
+
+                            dialogTable.append($("<tr></tr>").append(categoryCell, valueCell))
+
+                        return dialogTable
+
                     xHasTooManyNumbers = full_data.columns[attrs.axis]?.isNumeric and seriesData.length > 3 ** 3
                     formatChartData = (numBins) ->
-                        if (numBins? and numBins < seriesData.length) or xHasTooManyNumbers
+                        if (numBins? and numBins < seriesData.length) and xHasTooManyNumbers
                             numBins ?= Math.floor(Math.sqrt(seriesData.length, 1/3))
                             bins = binData(seriesData, numBins)
                             chartSeries.data         = bins.buckets
                             options.xAxis.categories = bins.labels
+                            setUpDialogTable         = setUpBinnedDialogTable
                         else
                             chartSeries.data         = seriesData
+                            setUpDialogTable         = setUpNormalDialogTable
                             delete options.xAxis.categories
 
                     if full_data.columns[attrs.axis].isNumeric
