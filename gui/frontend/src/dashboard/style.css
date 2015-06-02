@@ -111,7 +111,7 @@ table {
 	padding: 5px;
 }
 
-.chart .dialog td span {
+.chart .dialog td {
 	cursor: pointer;
 }
 

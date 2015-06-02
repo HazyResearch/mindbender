@@ -578,7 +578,7 @@ angular.module "mindbenderApp.dashboard", [
                         labelCell = $("<td></td>")
 
                         if columnIndexToSeriesData[info.index]
-                            labelCell = labelCell.attr("data-task-value", columnIndexToSeriesData[info.index]).html(columnIndexToSeriesData[info.index])
+                            labelCell.attr("data-task-value", columnIndexToSeriesData[info.index]).html(columnIndexToSeriesData[info.index])
 
                         dialogData = dialogData.add(
                             $("<tr></tr>").append(nameCell, valueCell, labelCell)
@@ -599,11 +599,10 @@ angular.module "mindbenderApp.dashboard", [
                         dialogTable.append($("<tr></tr>").append(categoryCell, valueCell))
 
 
-                eDialog = angular.element($("<div></div>").addClass("dialog").append(dialogTable))
+                eDialog = $("<div></div>").addClass("dialog").append(dialogTable)
 
                 eDialog.on("click", "td", (e) ->
-                    console.log("Clicked task value")
-                    taskArea.receiveValue(e, $(this).data("task-value"))
+                    $timeout => taskArea.receiveValue(e, $(this).data("task-value"))
                 )
 
                 eDialog.dialog({
@@ -720,7 +719,6 @@ angular.module "mindbenderApp.dashboard", [
                     return "string"
 
             @receiveValue = (event, value) =>
-                console.log(value)
                 @matcher.show = true
                 @matcher.event = event
 
@@ -888,8 +886,8 @@ angular.module "mindbenderApp.dashboard", [
             scope.taskArea = taskArea
 
             scope.$watch (-> taskArea.matcher.event), (event) ->
-                console.log("Moving task matcher")
                 return unless event?
+
                 eOffset = angular.element(event.currentTarget).offset()
                 eParentOffset = angular.element("#taskMatcher").parent().offset()
 
