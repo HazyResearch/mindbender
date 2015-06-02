@@ -24,26 +24,26 @@
 		</div>
 	</div>
 
-	<div ng-if="!reportLoadError" mb-task-area>
-		<div ng-show="loading" class="col-md-9">
+	<div ng-if="!reportLoadError" mb-task-area class="col-md-9">
+		<div ng-show="loading">
 			<img src="dashboard/images/loading.gif">
 		</div>
 		<div ng-show="!loading">
 
-		<div ng-if="report.description" class="col-md-9">
+		<div ng-if="report.description">
 			<div class="well well-sm">{{report.description}}</div>
 		</div>
 
-		<div class="col-md-9" ng-show="!report.isFormatted">
+		<!-- Button to show raw content in modal -->
+		<button type="button" class="btn btn-default pull-right" data-toggle="modal" data-target="#report-metadata-modal">Details</button>
+
+		<mb-task-control></mb-task-control>
+
+		<div ng-show="!report.isFormatted">
 			<div compile-html="report.html"></div>
 		</div>
 
-		<div class="col-md-9" ng-show="report.isFormatted">
-			<!-- Button to show raw content in modal -->
-			<button type="button" class="btn btn-default pull-right" data-toggle="modal" data-target="#report-metadata-modal">Details</button>
-
-			<mb-task-control></mb-task-control>
-
+		<div ng-show="report.isFormatted">
 			<tabset>
 				<tab active="tabs['table'].active">
 					<tab-heading style="font-size:18pt;">
