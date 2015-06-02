@@ -164,7 +164,7 @@ angular.module "mindbenderApp.dashboard", [
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
     $scope.tabs = {
-        table: { active: true }
+        table: { }
         bar: { show: false }
         scatter: { show: false }
     }
@@ -204,17 +204,17 @@ angular.module "mindbenderApp.dashboard", [
                     $scope.report.formattedReport = $scope.report.data[data_name]
                     $scope.report.formattedReport.name = data_name
 
-                    $scope.tabs.table.active = true
+                    $scope.tabs.bar.show = false
+                    $scope.tabs.scatter.show = false
 
                     chart = $scope.report.formattedReport.chart
                     if chart
                         if $scope.report.formattedReport.table.columns[chart.y]?.isNumeric
                             $scope.tabs.bar.show = true
-
                             $scope.tabs.scatter.show = $scope.report.formattedReport.table.columns[chart.x]?.isNumeric
-                        else
-                            $scope.tabs.bar.show = false
-                            $scope.tabs.scatter.show = false
+
+                    $scope.tabs.bar.active = $scope.tabs.bar.show
+                    $scope.tabs.table.active = !$scope.tabs.bar.active
 
                 Dashboard.updateNavLinkForSnapshots $location.search()
 
@@ -451,144 +451,227 @@ angular.module "mindbenderApp.dashboard", [
 ]
 
 
-.directive 'chart', ($timeout, $parse, DashboardDataUtils) ->
+.directive 'chart', ($timeout, $compile, $parse, DashboardDataUtils) ->
     template: '<div class="chart"></div><div class="slider"></div>',
     restrict: 'E',
-    link: (scope, element, attrs) ->
-       
-        recursiveMerge = (obj1, obj2) ->
-            for k of obj2
-                if typeof obj1[k] == 'object' && typeof obj2[k] == 'object'
-                    obj1[k] = recursiveMerge(obj1[k], obj2[k])
+    require: '?^mbTaskArea',
+    link: (scope, element, attrs, taskArea) ->
+        scope.hasSlider = false
+        renderChart = ->
+            recursiveMerge = (obj1, obj2) ->
+                for k of obj2
+                    if typeof obj1[k] == 'object' && typeof obj2[k] == 'object'
+                        obj1[k] = recursiveMerge(obj1[k], obj2[k])
+                    else
+                        obj1[k] = obj2[k]
+
+                return obj1
+
+            binData = (data, numBins, x = "x", y = "y") ->
+                bucketSize = Math.ceil(data.length/numBins)
+                labels = []
+                buckets = []
+                i = 0
+                bucket = 0
+                previousLabel = data[0][x]
+
+                if bucketSize == 1
+                    for point in data
+                        buckets.push(point[y])
+                        labels.push(point[x])
                 else
-                    obj1[k] = obj2[k]
+                    for point in data
+                        if i >= bucketSize
+                            buckets.push(bucket)
+                            labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + ")")
+                            previousLabel = point[x]
+                            bucket = 0
+                            i = 0
+                        bucket += point[y]
+                        i++
 
-            return obj1
-
-        binData = (data, numBins, x = "x", y = "y") ->
-            bucketSize = Math.ceil(data.length/numBins)
-            labels = []
-            buckets = []
-            i = 0
-            bucket = 0
-            previousLabel = data[0][x]
-
-            if bucketSize == 1
-                for point in data
-                    buckets.push(point[y])
-                    labels.push(point[x])
-            else
-                for point in data
-                    if i >= bucketSize
+                    if bucket > 0
                         buckets.push(bucket)
-                        labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + ")")
-                        previousLabel = point[x]
-                        bucket = 0
-                        i = 0
-                    bucket += point[y]
-                    i++
+                        labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + "]")
 
-                if bucket > 0
-                    buckets.push(bucket)
-                    labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + "]")
+                return { buckets: buckets, labels: labels }
 
-            return { buckets: buckets, labels: labels }
-
-        options =
-            title:
-                text: attrs.title
-            xAxis:
+            options =
                 title:
-                    text: attrs.label
-            yAxis:
-                title:
-                    text: attrs.yLabel
-            legend:
-                enabled: false
+                    text: attrs.title
+                xAxis:
+                    title:
+                        text: attrs.label
+                yAxis:
+                    title:
+                        text: attrs.yLabel
+                legend:
+                    enabled: false
 
-        # Get data to chart
-        full_data =
-            if attrs.data?
-                DashboardDataUtils.normalizeData (scope.$eval attrs.data)
-            else if attrs.file?
-                scope.report.data[attrs.file].table
-            else
-                console.error "No chart data or file attribute specified"
-                { columns: [], data: [] }
+            # Get data to chart
+            full_data =
+                if attrs.data?
+                    DashboardDataUtils.normalizeData (scope.$eval attrs.data)
+                else if attrs.file?
+                    scope.report.data[attrs.file]?.table
+                else
+                    console.error "No chart data or file attribute specified"
+                    null
 
-        # Prepare a data array for the chart series to be rendered
-        seriesData = do ->
+            return unless full_data?
+
             # use a column name map (mostly set by directive attrs) to construct the series data
             seriesDataToColumnName =
                 name : attrs.pointName
                 x    : attrs.axis
                 y    : attrs.yAxis
                 z    : attrs.zAxis
+
             seriesDataToColumnIndex = {}
             for key,columnName of seriesDataToColumnName
                 i = full_data.columns[columnName]?.index
                 seriesDataToColumnIndex[key] = i if i?
+
+            seriesData = []
             for data in full_data.data
                 seriesDataPoint = {}
                 for key,i of seriesDataToColumnIndex
                     seriesDataPoint[key] = data[i]
-                seriesDataPoint
+                seriesData.push(seriesDataPoint)
 
-        # Apply custom user options
-        if attrs.highchartsOptions?
-            # TODO move this to bottom, so user can override everything
-            options = recursiveMerge options, (scope.$eval attrs.highchartsOptions)
+            # Apply custom user options
+            if attrs.highchartsOptions?
+                # TODO move this to bottom, so user can override everything
+                options = recursiveMerge options, (scope.$eval attrs.highchartsOptions)
 
-        # Prepare a chart series by type
-        chartSeries = switch attrs.type
+            # Prepare a chart series by type
+            chartSeries = switch attrs.type
 
-            when "bar"
-                type: "column"
-                data: seriesData
-                name: attrs.yLabel
+                when "bar"
+                    type: "column"
+                    data: seriesData
+                    name: attrs.yLabel
 
-            when "scatter", "bubble"
-                type: attrs.type
-                data: seriesData
-                name: attrs.yLabel
+                when "scatter", "bubble"
+                    type: attrs.type
+                    data: seriesData
+                    name: attrs.yLabel
 
-            else
-                console.error "#{attrs.type}: Unsupported chart type"
-                null
+                else
+                    console.error "#{attrs.type}: Unsupported chart type"
+                    null
 
-        (options.series ?= []).push chartSeries if chartSeries?
+            if taskArea?
+                setUpDialogTable = (point_index) ->
+                    columnIndexToSeriesData = _.invert(seriesDataToColumnIndex)
 
-        # Extra work for certain chart types
-        switch attrs.type
+                    dialogTable = $("<table></table>")
+                    dialogData = $("<tr></tr>").append("<th>Column</th><th>Value</th><th>Chart Label</th>")
 
-            when "bar"
-                xHasTooManyNumbers = full_data.columns[attrs.axis]?.isNumeric and seriesData.length > 3 ** 3
-                formatChartData = (numBins) ->
-                    if (numBins? and numBins < seriesData.length) or xHasTooManyNumbers
-                        numBins ?= Math.floor(Math.sqrt(seriesData.length, 1/3))
-                        bins = binData(seriesData, numBins)
-                        chartSeries.data         = bins.buckets
-                        options.xAxis.categories = bins.labels
-                    else
-                        chartSeries.data         = seriesData
-                        delete options.xAxis.categories
-                do formatChartData
-                if xHasTooManyNumbers
-                    # Configure slider if X-axis is numeric
-                    element.find('.slider').slider({
-                        min: 1
-                        max: seriesData.length
-                        value: chartSeries.data.length
-                        slide: (event, ui) ->
-                            formatChartData ui.value
-                            element.find('.chart').highcharts(options)
+                    for name, info of full_data.columns
+                        value = full_data.data[point_index][info.index]
+
+                        nameCell = $("<td></td>").attr("data-task-value", name).html(name)
+                        valueCell = $("<td></td>").attr("data-task-value", value).html(value)
+                        labelCell = $("<td></td>")
+
+                        if columnIndexToSeriesData[info.index]
+                            labelCell.attr("data-task-value", columnIndexToSeriesData[info.index]).html(columnIndexToSeriesData[info.index])
+
+                        dialogData = dialogData.add(
+                            $("<tr></tr>").append(nameCell, valueCell, labelCell)
+                        )
+
+                    dialogTable.append(dialogData)
+
+                    return dialogTable
+
+                chartSeries.point = { events: { click: (e) ->
+                    element.find(".dialog").remove()
+
+                    # this.series.data is equivalent to seriesData, but contains extra Highcharts properties needed to match with e.point
+                    point_index = this.series.data.indexOf(e.point)
+
+                    dialogTable = setUpDialogTable(point_index)
+                    eDialog = $('<div class="dialog"></div>').append(dialogTable)
+
+                    eDialog.on("click", "td", (e) ->
+                        $timeout => taskArea.receiveValue(e, $(this).data("task-value"))
+                    )
+                    eDialog.dialog({
+                        title: "Task inputs"
+                        position: { my: "bottom", at: "center", of: event },
+                        appendTo: element.find(".chart")
                     })
+                } }
 
-            when "bubble"
-                chartSeries.name = attrs.title ? ""
+            (options.series ?= []).push chartSeries if chartSeries?
 
-        # Render chart with Highcharts
-        $timeout -> element.find('.chart').highcharts(options)
+            # Clear slider
+            if scope.hasSlider
+                element.find('.slider').slider("destroy")
+                scope.hasSlider = false
+
+            # Extra work for certain chart types
+            switch attrs.type
+                when "bar"
+                    setUpNormalDialogTable = setUpDialogTable
+                    setUpBinnedDialogTable = (point_index) ->
+                        dialogTable = $("<table></table>")
+
+                        for name, value of seriesData[point_index]
+                            categoryCell = $("<td></td>").attr("data-task-value", seriesDataToColumnName[name]).html(seriesDataToColumnName[name] + ":")
+                            valueCell = $("<td></td>")
+
+                            if name == "x"
+                                valueCell.attr("data-task-value", options.xAxis.categories[point_index]).html(options.xAxis.categories[point_index])
+                            else
+                                valueCell.attr("data-task-value", value).html(value)
+
+                            dialogTable.append($("<tr></tr>").append(categoryCell, valueCell))
+
+                        return dialogTable
+
+                    xHasTooManyNumbers = full_data.columns[attrs.axis]?.isNumeric and seriesData.length > 3 ** 3
+                    formatChartData = (numBins) ->
+                        if (numBins? and numBins < seriesData.length) and xHasTooManyNumbers
+                            numBins ?= Math.floor(Math.sqrt(seriesData.length, 1/3))
+                            bins = binData(seriesData, numBins)
+                            chartSeries.data         = bins.buckets
+                            options.xAxis.categories = bins.labels
+                            setUpDialogTable         = setUpBinnedDialogTable
+                        else
+                            chartSeries.data         = seriesData
+                            setUpDialogTable         = setUpNormalDialogTable
+                            delete options.xAxis.categories
+
+                    if full_data.columns[attrs.axis].isNumeric
+                        do formatChartData
+
+                        if xHasTooManyNumbers
+                            # Configure slider if X-axis is numeric
+                            element.find('.slider').slider({
+                                min: 1
+                                max: seriesData.length
+                                value: chartSeries.data.length
+                                slide: (event, ui) ->
+                                    formatChartData ui.value
+                                    element.find('.chart').highcharts(options)
+                            })
+                            scope.hasSlider = true
+                    else
+                        options.xAxis.categories = []
+                        for data, i in seriesData
+                            options.xAxis.categories.push(data.x)
+                            seriesData[i].x = i
+
+                when "bubble"
+                    chartSeries.name = attrs.title ? ""
+
+            # Render chart with Highcharts
+            $timeout -> element.find('.chart').highcharts(options)
+
+        scope.$watchCollection (-> attrs), renderChart
 
 .directive 'compileHtml', ['$compile', ($compile) ->
     return (scope, element, attrs) ->
@@ -794,7 +877,7 @@ angular.module "mindbenderApp.dashboard", [
                 <button class="btn btn-primary">Run Task</button>
             </div>
         </div>
-        <div id="taskMatcher" style="z-index:10;position:absolute;top:0px;left:0px;border:2px solid #000;width:300px;height:400px;background-color:#FFF;overflow:auto;padding:5px" ng-show="taskArea.matcher.show">
+        <div id="taskMatcher" style="z-index:1000;position:absolute;top:0px;left:0px;border:2px solid #000;width:300px;height:400px;background-color:#FFF;overflow:auto;padding:5px" ng-show="taskArea.matcher.show">
             <button class="btn btn-default" ng-click="taskArea.matcher.show = false" style="float:right">X</button>
             <h3>Tasks</h3>
             <div ng-repeat="(task, template) in taskArea.templates">

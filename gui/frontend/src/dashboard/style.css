@@ -68,7 +68,7 @@ table {
 #nav.affix {
 	position: fixed;
 	top: 0;
-	width: 100%
+	width: 100%;
 }
 
 #nav .tree {
@@ -103,4 +103,12 @@ table {
 	color: #A00;
 }
 
+.chart .dialog {
+	overflow: auto;
 }
+
+.chart .dialog td {
+	padding: 5px;
+	cursor: pointer;
+}
+

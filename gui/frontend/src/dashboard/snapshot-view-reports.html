@@ -45,13 +45,7 @@
 
 		<div ng-show="report.isFormatted">
 			<tabset>
-				<tab active="tabs['table'].active">
-					<tab-heading style="font-size:18pt;">
-						<i class="fa fa-table"></i>
-					</tab-heading>
-					<mb-table ng-if="report.isFormatted && !loading" data-file="{{ report.formattedReport.name }}"></mb-table>
-				</tab>
-				<tab ng-show="tabs['bar'].show">
+				<tab active="tabs['bar'].active" ng-show="tabs['bar'].show">
 					<tab-heading style="font-size:18pt;">
 						<i class="fa fa-bar-chart"></i>
 					</tab-heading>
@@ -78,6 +72,12 @@
 					    y-axis="{{ report.formattedReport.chart.y }}"
 					    y-label="{{ report.formattedReport.chart.y }}"
 					></chart>
+				</tab>
+				<tab active="tabs['table'].active">
+					<tab-heading style="font-size:18pt;">
+						<i class="fa fa-table"></i>
+					</tab-heading>
+					<mb-table ng-if="report.isFormatted && !loading" data-file="{{ report.formattedReport.name }}"></mb-table>
 				</tab>
 			</tabset>
 		</div>
@@ -111,9 +111,10 @@
 		setTimeout(function() {
 			$('#nav').affix({
 				offset: {
-					top: $('#nav').offset().top
+					top: 160
 				}
 			});
+
 			$('#task-button-dropdown').click(function() {
 				$(this).parent().toggleClass('open');
 			});
