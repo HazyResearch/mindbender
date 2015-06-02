@@ -563,7 +563,7 @@ angular.module "mindbenderApp.dashboard", [
             showTaskValuePickerDialog = (e) ->
                 element.find(".dialog").remove()
 
-                # this.series.data contains extra Highcharts properties needed to match with e.point
+                # this.series.data is equivalent to seriesData, but contains extra Highcharts properties needed to match with e.point
                 point_index = this.series.data.indexOf(e.point)
 
                 dialogTable = $("<table></table>")
