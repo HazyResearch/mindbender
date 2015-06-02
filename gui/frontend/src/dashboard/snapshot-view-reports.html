@@ -79,9 +79,10 @@
 		setTimeout(function() {
 			$('#nav').affix({
 				offset: {
-					top: $('#nav').offset().top
+					top: 160
 				}
 			});
+
 			$('#task-button-dropdown').click(function() {
 				$(this).parent().toggleClass('open');
 			});
