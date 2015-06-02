@@ -568,8 +568,9 @@ angular.module "mindbenderApp.dashboard", [
 
                 dialogTable = $("<table></table>")
 
-                if !scope.hasSlider
+                if chartSeries.data.length == full_data.data.length
                     columnIndexToSeriesData = _.invert(seriesDataToColumnIndex)
+
                     dialogData = $("<tr></tr>").append("<th>Column</th><th>Value</th><th>Chart Label</th>")
 
                     for name, info of full_data.columns
@@ -590,7 +591,7 @@ angular.module "mindbenderApp.dashboard", [
 
                 else
                     for name, value of seriesData[point_index]
-                        categoryCell = $("<td></td>").attr("data-task-value", name).html(name)
+                        categoryCell = $("<td></td>").attr("data-task-value", seriesDataToColumnName[name]).html(seriesDataToColumnName[name] + ":")
                         valueCell = $("<td></td>")
 
                         if name == "x"
