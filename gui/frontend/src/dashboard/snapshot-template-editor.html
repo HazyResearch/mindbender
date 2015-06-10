@@ -74,7 +74,11 @@
 	                                    }"></textarea>
 				</div>
 				<div class="row">
-					<div class="col-md-9" id="param-list">
+					<div class="col-md-9">
+						<div class="btn-group">
+					        <label class="btn btn-primary" ng-model="template.type" btn-radio="'report'">Report</label>
+					        <label class="btn btn-primary" ng-model="template.type" btn-radio="'task'">Task</label>
+					    </div>
 						<h4>Parameters</h4>
 						<table class="table table-striped" style="margin-bottom: 5px">
 							<tr>
@@ -86,7 +90,7 @@
 							</tr>
 							<tr ng-repeat="(param, details) in template.params">
 								<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].name"></td>
-								<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].type"></td>
+								<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].type" style="width:60px"></td>
 								<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].defaultValue" style="width:100px"></td>
 								<td><input type="text" ng-disabled="details.inheritedFrom" style="width:250px" ng-model="template.params[param].description"></td>
 								<td style="text-align: center"><input type="checkbox" ng-disabled="details.inheritedFrom" ng-model="template.params[param].isRequired"></td>

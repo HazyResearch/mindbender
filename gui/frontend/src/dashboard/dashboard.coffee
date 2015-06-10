@@ -387,6 +387,9 @@ angular.module "mindbenderApp.dashboard", [
 
     $scope.loadTemplates()
 
+    $scope.$watch (-> $scope.template.type), (newValue) ->
+        console.log(newValue)
+
     $scope.changeCurrentTemplate = () ->
         $location.search('template', $scope.currentTemplateName)
 
@@ -400,7 +403,7 @@ angular.module "mindbenderApp.dashboard", [
             params[param.name] = $.extend({}, param);
             delete params[param.name]['name']
 
-        template = { params: params }
+        template = { type: $scope.template.type, params: params }
         if $scope.formatted
             template.sqlTemplate = $scope.template.sqlTemplate
         else
