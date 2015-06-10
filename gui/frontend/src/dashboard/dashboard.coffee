@@ -355,6 +355,7 @@ angular.module "mindbenderApp.dashboard", [
 
 .controller "EditTemplatesCtrl", ($scope, $http, $location, Dashboard) ->
     $scope.title = "Configure Templates"
+    $scope.template = {}
 
     $scope.loadTemplates = (switchToTemplate) ->
         $http.get "/api/report-templates/"
@@ -371,6 +372,10 @@ angular.module "mindbenderApp.dashboard", [
             $http.get "/api/report-template/" + $scope.currentTemplateName
                 .success (data, status, headers, config) ->
                     $scope.template = $.extend({}, data)
+                    
+                    # Uncomment once API works
+                    #$scope.template.scope = { report: $scope.template.scope.reports[0] }
+                    
                     $scope.template.params = []
                     for param in Object.keys(data.params)
                         $scope.template.params.push($.extend({ name: param }, data.params[param]))
@@ -400,10 +405,11 @@ angular.module "mindbenderApp.dashboard", [
         params = {}
         
         for param in $scope.template.params
-            params[param.name] = $.extend({}, param);
-            delete params[param.name]['name']
+            if !param.fromTask
+                params[param.name] = $.extend({}, param);
+                delete params[param.name]['name']
 
-        template = { type: $scope.template.type, params: params }
+        template = { type: $scope.template.type, scope: { reports: [$scope.template.scope.report] }, params: params }
         if $scope.formatted
             template.sqlTemplate = $scope.template.sqlTemplate
         else
@@ -436,6 +442,28 @@ angular.module "mindbenderApp.dashboard", [
         $http.put("/api/report-template/" + $scope.newTemplateName, {params: {}, sqlTemplate: "" })
             .success (data, status, headers, config) ->
                 $scope.loadTemplates($scope.newTemplateName)
+
+    $scope.addInheritedParams = () ->
+        $http.get "/api/report-template/" + $scope.template.scope.report
+            .success (data, status, headers, config) ->
+                params = []
+                for param in $scope.template.params
+                    if !param.fromTask
+                        params.push(param)
+
+                $scope.template.params = params
+
+                i = 0
+                for name, details of data.params
+                    details.name = name
+                    details.fromTask = true
+
+                    if !details.inheritedFrom
+                        details.inheritedFrom = $scope.template.scope.report
+
+                    $scope.template.params.splice(i, 0, details)
+
+                    i++
 
 
 .filter 'capitalize', () ->
