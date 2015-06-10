@@ -441,13 +441,11 @@ angular.module "mindbenderApp.dashboard", [
 
 
 .directive 'flash', ['$document', ($document) ->
-    return {
-        link: (scope, element, attr) ->
-            element.on("click", (event) ->
-                $('.flash').css('background-color', attr['flash'])
-                setTimeout((-> $('.flash').css('background-color', '#FFF')), 1000)
-            )
-    }
+    link: (scope, element, attr) ->
+        element.on("click", (event) ->
+            $('.flash').css('background-color', attr['flash'])
+            setTimeout((-> $('.flash').css('background-color', '#FFF')), 1000)
+        )
 ]
 
 
@@ -687,180 +685,175 @@ angular.module "mindbenderApp.dashboard", [
 
 
 
-
 .directive 'mbTaskArea', () ->
-    return {
-        restrict: 'A',
-        controller: ($scope, $http) ->
-            @templates = {
-                someTask1: {
-                    params: [
-                        { name: "foo", type: "int" }
-                        { name: "bar", type: "float" }
-                    ]
-                },
-                someTask2: {
-                    params: [
-                        { name: "fooText", type: "string" }
-                        { name: "barNum", type: "int" }
-                    ]
-                },
-                someTask3: {
-                    params: [
-                        { name: "fooText", type: "string" }
-                        { name: "barNum", type: "int" }
-                        { name: "anotherNum", type: "int" }
-                    ]
-                }
+    restrict: 'A',
+    controller: ($scope, $http) ->
+        @templates = {
+            someTask1: {
+                params: [
+                    { name: "foo", type: "int" }
+                    { name: "bar", type: "float" }
+                ]
+            },
+            someTask2: {
+                params: [
+                    { name: "fooText", type: "string" }
+                    { name: "barNum", type: "int" }
+                ]
+            },
+            someTask3: {
+                params: [
+                    { name: "fooText", type: "string" }
+                    { name: "barNum", type: "int" }
+                    { name: "anotherNum", type: "int" }
+                ]
             }
-            @matcher = { show: false, event: null }
+        }
+        @matcher = { show: false, event: null }
+        @boundParams = {}
+        @taskValues = []
+        @selectedTask = null
+        @selectedValue = null
+
+        @determineType = (string) =>
+            if !isNaN(string)
+                if Math.floor(string * 1) == string * 1
+                    return "int"
+                else
+                    return "float"
+            else
+                return "string"
+
+        @receiveValue = (event, value) =>
+            @matcher.show = true
+            @matcher.event = event
+
+            valueType = @determineType(value)
+            if valueType != "string"
+                value *= 1
+
+            @selectedValue = value
+
+            for name, template of @templates
+                show = false
+                for param in template.params
+                    param.$selected = (param.type == valueType)
+                    if param.$selected
+                        show = true
+
+                template.$show = show
+
+        @bindParam = (task, param) =>
+            if task != @selectedTask
+                @boundParams = {}
+                @selectedTask = task
+
+            if @boundParams[param] == @selectedValue
+                delete @boundParams[param]
+            else
+                @boundParams[param] = @selectedValue
+
+            if !Object.keys(@boundParams).length
+                @selectedTask = null
+
+            taskValues = []
+            if @selectedTask
+                for param in @templates[@selectedTask].params
+                    found = false
+                    for boundParam, boundValue of @boundParams
+                        if param.name == boundParam
+                            taskValues.push(boundValue)
+                            found = true
+                    if !found
+                        taskValues.push(null)
+
+            @taskValues = taskValues
+
+        $scope.$watchCollection (=> @taskValues), (newValue, oldValue) =>
+            if newValue.length
+                if @paramTypesVerify(newValue)
+                    @resetBoundParams()
+                else
+                    @taskValues = oldValue
+
+        @paramTypesVerify = (values) =>
+            if !@selectedTask
+                return false
+
+            for param, index in @templates[@selectedTask].params
+                if values[index] != null && param.type != @determineType(values[index])
+                    return false
+
+            return true
+
+        @resetBoundParams = () =>
+            if !@selectedTask
+                return
+
+            boundParams = {}
+            for param, index in @templates[@selectedTask].params
+                if @taskValues[index] != null
+                    boundParams[param.name] = @taskValues[index]
+
+            @boundParams = boundParams
+
+        @editValue = (index) =>
+            value = prompt("Old Value: " + @taskValues[index] + ", new value:")
+            if value
+                valueType = @determineType(value)
+                if valueType != "string"
+                    value *= 1
+
+                if valueType != @templates[@selectedTask].params[index].type
+                    alert("Invalid type. Expecting " + @templates[@selectedTask].params[index].type)
+                else
+                    @taskValues[index] = value
+
+        @clearTask = () =>
+            @matcher.show = false
             @boundParams = {}
             @taskValues = []
             @selectedTask = null
             @selectedValue = null
 
-            @determineType = (string) =>
-                if !isNaN(string)
-                    if Math.floor(string * 1) == string * 1
-                        return "int"
-                    else
-                        return "float"
-                else
-                    return "string"
+        @runTask = () =>
+            taskPostData = {
+                taskTemplate: @selectedTask
+                report: $scope.currentReport
+                params: @boundParams
+            }
 
-            @receiveValue = (event, value) =>
-                @matcher.show = true
-                @matcher.event = event
+            $http.post("/api/snapshot/LATEST/task/", taskPostData)
 
-                valueType = @determineType(value)
-                if valueType != "string"
-                    value *= 1
-
-                @selectedValue = value
-
-                for name, template of @templates
-                    show = false
-                    for param in template.params
-                        param.$selected = (param.type == valueType)
-                        if param.$selected
-                            show = true
-
-                    template.$show = show
-
-            @bindParam = (task, param) =>
-                if task != @selectedTask
-                    @boundParams = {}
-                    @selectedTask = task
-
-                if @boundParams[param] == @selectedValue
-                    delete @boundParams[param]
-                else
-                    @boundParams[param] = @selectedValue
-
-                if !Object.keys(@boundParams).length
-                    @selectedTask = null
-
-                taskValues = []
-                if @selectedTask
-                    for param in @templates[@selectedTask].params
-                        found = false
-                        for boundParam, boundValue of @boundParams
-                            if param.name == boundParam
-                                taskValues.push(boundValue)
-                                found = true
-                        if !found
-                            taskValues.push(null)
-
-                @taskValues = taskValues
-
-            $scope.$watchCollection (=> @taskValues), (newValue, oldValue) =>
-                if newValue.length
-                    if @paramTypesVerify(newValue)
-                        @resetBoundParams()
-                    else
-                        @taskValues = oldValue
-
-            @paramTypesVerify = (values) =>
-                if !@selectedTask
-                    return false
-
-                for param, index in @templates[@selectedTask].params
-                    if values[index] != null && param.type != @determineType(values[index])
-                        return false
-
-                return true
-
-            @resetBoundParams = () =>
-                if !@selectedTask
-                    return
-
-                boundParams = {}
-                for param, index in @templates[@selectedTask].params
-                    if @taskValues[index] != null
-                        boundParams[param.name] = @taskValues[index]
-
-                @boundParams = boundParams
-
-            @editValue = (index) =>
-                value = prompt("Old Value: " + @taskValues[index] + ", new value:")
-                if value
-                    valueType = @determineType(value)
-                    if valueType != "string"
-                        value *= 1
-
-                    if valueType != @templates[@selectedTask].params[index].type
-                        alert("Invalid type. Expecting " + @templates[@selectedTask].params[index].type)
-                    else
-                        @taskValues[index] = value
-
-            @clearTask = () =>
-                @matcher.show = false
-                @boundParams = {}
-                @taskValues = []
-                @selectedTask = null
-                @selectedValue = null
-
-            @runTask = () =>
-                taskPostData = {
-                    taskTemplate: @selectedTask
-                    report: $scope.currentReport
-                    params: @boundParams
-                }
-
-                $http.post("/api/snapshot/LATEST/task/", taskPostData)
-    }
 
 .directive 'mbTable', ($timeout) ->
-    return {
-        template: """
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th style="text-align:center" ng-repeat="column in table.columnsByIndex">{{ column.name }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr ng-repeat="row in table.data">
-                        <td ng-repeat="data in row track by $index" ng-style="table.columnsByIndex[$index].isNumeric && {'text-align':'right'}"><span style="cursor:pointer" ng-click="bindToTask($event, data)">{{ data }}</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        """,
-        restrict: 'E',
-        require: '?^mbTaskArea',
-        link: (scope, element, attrs, taskArea) ->
-            scope.table = scope.report.data[attrs.file].table
-            scope.bindToTask = taskArea.receiveValue if taskArea?
-            $timeout ->
-                element.find("table").DataTable({
-                    pageLength: 25
-                })
-    }
+    template: """
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="text-align:center" ng-repeat="column in table.columnsByIndex">{{ column.name }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="row in table.data">
+                    <td ng-repeat="data in row track by $index" ng-style="table.columnsByIndex[$index].isNumeric && {'text-align':'right'}"><span style="cursor:pointer" ng-click="bindToTask($event, data)">{{ data }}</span></td>
+                </tr>
+            </tbody>
+        </table>
+    """,
+    restrict: 'E',
+    require: '?^mbTaskArea',
+    link: (scope, element, attrs, taskArea) ->
+        scope.table = scope.report.data[attrs.file].table
+        scope.bindToTask = taskArea.receiveValue if taskArea?
+        $timeout ->
+            element.find("table").DataTable({
+                pageLength: 25
+            })
 
 
 .directive 'mbTaskControl', ($timeout) ->
-    return {
-        template: """
+    template: """
         <div id="task-button" class="btn-group" style="float:right">
             <button id="task-button-dropdown" type="button" class="btn btn-primary dropdown-toggle" aria-expanded="false">
                 Tasks <span class="caret"></span>
@@ -903,18 +896,17 @@ angular.module "mindbenderApp.dashboard", [
                 </div>
             </div>
         </div>
-        """,
-        require: '^mbTaskArea',
-        restrict: 'E',
-        link: (scope, element, attrs, taskArea) ->
-            scope.taskArea = taskArea
+    """,
+    require: '^mbTaskArea',
+    restrict: 'E',
+    link: (scope, element, attrs, taskArea) ->
+        scope.taskArea = taskArea
 
-            scope.$watch (-> taskArea.matcher.event), (event) ->
-                return unless event?
+        scope.$watch (-> taskArea.matcher.event), (event) ->
+            return unless event?
 
-                eOffset = angular.element(event.currentTarget).offset()
-                eParentOffset = angular.element("#taskMatcher").parent().offset()
+            eOffset = angular.element(event.currentTarget).offset()
+            eParentOffset = angular.element("#taskMatcher").parent().offset()
 
-                element.find("#taskMatcher").css("left", eOffset.left - eParentOffset.left + 30)
-                element.find("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
-    }
+            element.find("#taskMatcher").css("left", eOffset.left - eParentOffset.left + 30)
+            element.find("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
