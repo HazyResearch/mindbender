@@ -14,7 +14,7 @@ angular.module "mindbenderApp.dashboard", [
             # prepare array of links for navbar
             $rootScope.navLinks = [
                 { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
-                { url: '#/report-templates/edit', name: 'Configure Templates', img: 'gear.png' }
+                { url: '#/snapshot-templates/edit', name: 'Configure Templates', img: 'gear.png' }
                 { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
                 { url: '#/dashboard', name: 'Task', img: 'task.png' }
             ]
