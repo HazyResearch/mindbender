@@ -16,7 +16,6 @@ angular.module "mindbenderApp.dashboard", [
                 { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
                 { url: '#/snapshot-templates/edit', name: 'Configure Templates', img: 'gear.png' }
                 { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
-                { url: '#/dashboard', name: 'Task', img: 'task.png' }
             ]
             do @updateNavLinkForSnapshots
             $rootScope.isNavLinkActive = (navLink) ->
