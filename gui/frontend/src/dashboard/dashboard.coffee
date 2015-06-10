@@ -373,9 +373,9 @@ angular.module "mindbenderApp.dashboard", [
                 .success (data, status, headers, config) ->
                     $scope.template = $.extend({}, data)
                     
-                    # Uncomment once API works
-                    #$scope.template.scope = { report: $scope.template.scope.reports[0] }
-                    
+                    if $scope.template.scope
+                        $scope.template.scope = { report: $scope.template.scope.reports[0] }
+
                     $scope.template.params = []
                     for param in Object.keys(data.params)
                         $scope.template.params.push($.extend({ name: param }, data.params[param]))
