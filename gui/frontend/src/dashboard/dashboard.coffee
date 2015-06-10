@@ -81,8 +81,8 @@ angular.module "mindbenderApp.dashboard", [
         controller: "SnapshotReportsCtrl",
         reloadOnSearch: false
 
-    $routeProvider.when "/report-templates/edit",
-        templateUrl: "dashboard/report-templates-editor.html"
+    $routeProvider.when "/snapshot-templates/edit",
+        templateUrl: "dashboard/snapshot-template-editor.html"
         controller: "EditTemplatesCtrl",
         reloadOnSearch: false
 
@@ -691,7 +691,7 @@ angular.module "mindbenderApp.dashboard", [
 .directive 'mbTaskArea', () ->
     return {
         restrict: 'A',
-        controller: ($scope) ->
+        controller: ($scope, $http) ->
             @templates = {
                 someTask1: {
                     params: [
@@ -748,23 +748,23 @@ angular.module "mindbenderApp.dashboard", [
                     template.$show = show
 
             @bindParam = (task, param) =>
-                if !@boundParams[task]
+                if task != @selectedTask
                     @boundParams = {}
-                    @boundParams[task] = {}
-
-                if @boundParams[task][param] == @selectedValue
-                    delete @boundParams[task][param]
-                    if !Object.keys(@boundParams[task]).length
-                        @selectedTask = null
-                else
-                    @boundParams[task][param] = @selectedValue
                     @selectedTask = task
+
+                if @boundParams[param] == @selectedValue
+                    delete @boundParams[param]
+                else
+                    @boundParams[param] = @selectedValue
+
+                if !Object.keys(@boundParams).length
+                    @selectedTask = null
 
                 taskValues = []
                 if @selectedTask
                     for param in @templates[@selectedTask].params
                         found = false
-                        for boundParam, boundValue of @boundParams[@selectedTask]
+                        for boundParam, boundValue of @boundParams
                             if param.name == boundParam
                                 taskValues.push(boundValue)
                                 found = true
@@ -795,10 +795,9 @@ angular.module "mindbenderApp.dashboard", [
                     return
 
                 boundParams = {}
-                boundParams[@selectedTask] = {}
                 for param, index in @templates[@selectedTask].params
                     if @taskValues[index] != null
-                        boundParams[@selectedTask][param.name] = @taskValues[index]
+                        boundParams[param.name] = @taskValues[index]
 
                 @boundParams = boundParams
 
@@ -820,8 +819,16 @@ angular.module "mindbenderApp.dashboard", [
                 @taskValues = []
                 @selectedTask = null
                 @selectedValue = null
-    }
 
+            @runTask = () =>
+                taskPostData = {
+                    taskTemplate: @selectedTask
+                    report: $scope.currentReport
+                    params: @boundParams
+                }
+
+                $http.post("/api/snapshot/LATEST/task/", taskPostData)
+    }
 
 .directive 'mbTable', ($timeout) ->
     return {
@@ -850,6 +857,7 @@ angular.module "mindbenderApp.dashboard", [
                 })
     }
 
+
 .directive 'mbTaskControl', ($timeout) ->
     return {
         template: """
@@ -857,24 +865,30 @@ angular.module "mindbenderApp.dashboard", [
             <button id="task-button-dropdown" type="button" class="btn btn-primary dropdown-toggle" aria-expanded="false">
                 Tasks <span class="caret"></span>
             </button>
-            <div class="dropdown-menu pull-right" role="menu" style="padding:5px;width:120px">
-                <input type="text" ng-value="taskArea.selectedTask" style="width:105px">
-                <button class="btn btn-default" ng-click="taskArea.clearTask()">X</button>
-                <div style="width:70%;float:left;border:1px solid #000;padding:3px">
-                    <div ng-repeat="param in taskArea.templates[taskArea.selectedTask].params" style="list-style-type:none">
-                            {{ param.name }}:
-                    </div>
+            <div class="dropdown-menu pull-right" role="menu" style="padding:5px;width:300px">
+                <div ng-hide="taskArea.selectedTask">
+                    No task selected.
                 </div>
-                <div style="width:30%;float:right;border:1px solid #000;padding:3px">
-                    <div ui-sortable ng-model="taskArea.taskValues">
-                        <div style="cursor:pointer" ng-repeat="value in taskArea.taskValues track by $index" ng-click="taskArea.editValue($index)">
-                            <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
-                            <span >{{ value }}</span>
-                            &nbsp;
+                <div ng-show="taskArea.selectedTask">
+                    <input type="text" ng-value="taskArea.selectedTask" style="width:248px">
+                    <button class="btn btn-default" ng-click="taskArea.clearTask()">X</button>
+                    <div style="width:60%;float:left;border:1px solid #000;padding:3px">
+                        <div ng-repeat="param in taskArea.templates[taskArea.selectedTask].params" style="list-style-type:none">
+                                {{ param.name }}:
                         </div>
                     </div>
+                    <div style="width:40%;float:right;border:1px solid #000;padding:3px">
+                        <div ui-sortable ng-model="taskArea.taskValues" style="overflow:auto">
+                            <div style="cursor:pointer;white-space:nowrap" ng-repeat="value in taskArea.taskValues track by $index" ng-click="taskArea.editValue($index)">
+                                <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
+                                <span>{{ value }}</span>
+                                &nbsp;
+                            </div>
+                        </div>
+                    </div>
+                    <br style="clear:both;">
+                    <button class="btn btn-primary" style="margin-top:5px;float:right;" ng-click="taskArea.runTask()">Run Task</button>
                 </div>
-                <button class="btn btn-primary">Run Task</button>
             </div>
         </div>
         <div id="taskMatcher" style="z-index:1000;position:absolute;top:0px;left:0px;border:2px solid #000;width:300px;height:400px;background-color:#FFF;overflow:auto;padding:5px" ng-show="taskArea.matcher.show">
@@ -885,7 +899,7 @@ angular.module "mindbenderApp.dashboard", [
                     <span ng-class="{ 'selected-task' : taskArea.selectedTask == task }">
                         {{ task }}
                     </span>
-                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskArea.bindParam(task, param.name)">{{ param.name }}<span ng-if="taskArea.boundParams[task][param.name]">[{{ taskArea.boundParams[task][param.name] }}]</span>{{$last ? '' : ', '}}</span>)
+                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskArea.bindParam(task, param.name)">{{ param.name }}<span ng-if="taskArea.boundParams[param.name] && taskArea.selectedTask == task">[{{ taskArea.boundParams[param.name] }}]</span>{{$last ? '' : ', '}}</span>)
                 </div>
             </div>
         </div>
@@ -903,5 +917,4 @@ angular.module "mindbenderApp.dashboard", [
 
                 element.find("#taskMatcher").css("left", eOffset.left - eParentOffset.left + 30)
                 element.find("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
-
     }
