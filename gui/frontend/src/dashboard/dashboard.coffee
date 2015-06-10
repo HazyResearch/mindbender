@@ -418,10 +418,14 @@ angular.module "mindbenderApp.dashboard", [
         
         for param in $scope.template.params
             if !param.fromTask
-                params[param.name] = $.extend({}, param);
+                params[param.name] = $.extend({}, param)
                 delete params[param.name]['name']
 
-        template = { type: $scope.template.type, scope: { reports: [$scope.template.scope.report] }, params: params }
+        scope = {}
+        if $scope.template.scope
+            scope = $scope.template.scope
+
+        template = { type: $scope.template.type, scope: scope, params: params }
         if $scope.formatted
             template.sqlTemplate = $scope.template.sqlTemplate
         else
