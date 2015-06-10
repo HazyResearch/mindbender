@@ -1,6 +1,6 @@
 <div ng-include="'dashboard/header.html'"></div>
 
-	<div class="flash">
+<div class="flash">
 	<div class="form-inline">
 		<div class="input-group">
 			<span class="input-group-addon" style="font-weight:bold;">Template</span>
@@ -74,17 +74,19 @@
 	                                    }"></textarea>
 				</div>
 				<div class="row">
-					<div class="col-md-9">
+					<div class="col-md-9" id="param-list">
 						<h4>Parameters</h4>
 						<table class="table table-striped" style="margin-bottom: 5px">
 							<tr>
 								<th>Name</th>
+								<th>Type</th>
 								<th>Default Value</th>
 								<th>Description</th>
 								<th>Required</th>
 							</tr>
 							<tr ng-repeat="(param, details) in template.params">
 								<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].name"></td>
+								<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].type"></td>
 								<td><input type="text" ng-disabled="details.inheritedFrom" ng-model="template.params[param].defaultValue" style="width:100px"></td>
 								<td><input type="text" ng-disabled="details.inheritedFrom" style="width:250px" ng-model="template.params[param].description"></td>
 								<td style="text-align: center"><input type="checkbox" ng-disabled="details.inheritedFrom" ng-model="template.params[param].isRequired"></td>
