@@ -729,6 +729,7 @@ angular.module "mindbenderApp.dashboard", [
 .directive 'mbTaskArea', () ->
     restrict: 'A',
     controller: ($scope, $http) ->
+        # TODO: Once API works, change the below to just: @templates = {}
         @templates = {
             someTask1: {
                 params: [
@@ -752,11 +753,15 @@ angular.module "mindbenderApp.dashboard", [
         }
         @matcher = { show: false, event: null }
         @boundParams = {}
-        @taskValues = []
+        @mirroredTaskValues = []
         @selectedTask = null
         @selectedValue = null
 
-        @determineType = (string) =>
+        $http.get "/api/snapshot-templates/?type=task"
+            .success (data, status, headers, config) ->
+                @templates = data
+
+        determineType = (string) =>
             if !isNaN(string)
                 if Math.floor(string * 1) == string * 1
                     return "int"
@@ -765,11 +770,21 @@ angular.module "mindbenderApp.dashboard", [
             else
                 return "string"
 
+        paramTypesVerify = (values) =>
+            if !@selectedTask
+                return false
+
+            for param, index in @templates[@selectedTask].params
+                if values[index] != null && param.type != determineType(values[index])
+                    return false
+
+            return true
+
         @receiveValue = (event, value) =>
             @matcher.show = true
             @matcher.event = event
 
-            valueType = @determineType(value)
+            valueType = determineType(value)
             if valueType != "string"
                 value *= 1
 
@@ -797,74 +812,70 @@ angular.module "mindbenderApp.dashboard", [
             if !Object.keys(@boundParams).length
                 @selectedTask = null
 
-            taskValues = []
+            mirrorBoundParams()
+
+        $scope.$watchCollection (=> @boundParams), () =>
+            mirrorBoundParams()
+
+        mirrorBoundParams = () =>
             if @selectedTask
+                taskValues = []
+
                 for param in @templates[@selectedTask].params
                     found = false
                     for boundParam, boundValue of @boundParams
                         if param.name == boundParam
                             taskValues.push(boundValue)
                             found = true
+
                     if !found
                         taskValues.push(null)
 
-            @taskValues = taskValues
+                @mirroredTaskValues = taskValues
 
-        $scope.$watchCollection (=> @taskValues), (newValue, oldValue) =>
-            if newValue.length
-                if @paramTypesVerify(newValue)
-                    @resetBoundParams()
-                else
-                    @taskValues = oldValue
+        $scope.$watchCollection (=> @mirroredTaskValues), (newValue, oldValue) =>
+            if paramTypesVerify(@mirroredTaskValues)
+                boundParams = {}
 
-        @paramTypesVerify = (values) =>
-            if !@selectedTask
-                return false
+                if @selectedTask
+                    for param, index in @templates[@selectedTask].params
+                        if @mirroredTaskValues[index] != null
+                            boundParams[param.name] = @mirroredTaskValues[index]
 
-            for param, index in @templates[@selectedTask].params
-                if values[index] != null && param.type != @determineType(values[index])
-                    return false
-
-            return true
-
-        @resetBoundParams = () =>
-            if !@selectedTask
-                return
-
-            boundParams = {}
-            for param, index in @templates[@selectedTask].params
-                if @taskValues[index] != null
-                    boundParams[param.name] = @taskValues[index]
-
-            @boundParams = boundParams
+                @boundParams = boundParams
+            else
+                @mirroredTaskValues = oldValue
 
         @editValue = (index) =>
-            value = prompt("Old Value: " + @taskValues[index] + ", new value:")
+            value = prompt("Old Value: " + @mirroredTaskValues[index] + ", new value:")
             if value
-                valueType = @determineType(value)
+                valueType = determineType(value)
                 if valueType != "string"
                     value *= 1
 
                 if valueType != @templates[@selectedTask].params[index].type
                     alert("Invalid type. Expecting " + @templates[@selectedTask].params[index].type)
                 else
-                    @taskValues[index] = value
+                    @mirroredTaskValues[index] = value
 
         @clearTask = () =>
             @matcher.show = false
-            @boundParams = {}
-            @taskValues = []
             @selectedTask = null
             @selectedValue = null
+            @boundParams = {}
 
         @runTask = () =>
-            taskPostData = {
-                taskTemplate: @selectedTask
-                report: $scope.currentReport
-                params: @boundParams
-            }
+            if Object.keys(@boundParams).length == Object.keys(@templates[@selectedTask].params).length
+                @matcher.show = false
+                taskPostData = {
+                    taskTemplate: @selectedTask
+                    report: $scope.currentReport
+                    params: @boundParams
+                }
 
-            $http.post("/api/snapshot/LATEST/task/", taskPostData)
+                $http.post("/api/snapshot/LATEST/task/", taskPostData)
+            else
+                alert("Please fill in all task parameters.")
 
 
 .directive 'mbTable', ($timeout) ->
@@ -912,8 +923,8 @@ angular.module "mindbenderApp.dashboard", [
                         </div>
                     </div>
                     <div style="width:40%;float:right;border:1px solid #000;padding:3px">
-                        <div ui-sortable ng-model="taskArea.taskValues" style="overflow:auto">
-                            <div style="cursor:pointer;white-space:nowrap" ng-repeat="value in taskArea.taskValues track by $index" ng-click="taskArea.editValue($index)">
+                        <div ui-sortable ng-model="taskArea.mirroredTaskValues" style="overflow:auto">
+                            <div style="cursor:pointer;white-space:nowrap" ng-repeat="value in taskArea.mirroredTaskValues track by $index" ng-click="taskArea.editValue($index)">
                                 <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
                                 <span>{{ value }}</span>
                                 &nbsp;
@@ -929,7 +940,7 @@ angular.module "mindbenderApp.dashboard", [
             <button class="btn btn-default" ng-click="taskArea.matcher.show = false" style="float:right">X</button>
             <h3>Tasks</h3>
             <div ng-repeat="(task, template) in taskArea.templates">
-                <div ng-shos="template.$show">
+                <div ng-show="template.$show">
                     <span ng-class="{ 'selected-task' : taskArea.selectedTask == task }">
                         {{ task }}
                     </span>
