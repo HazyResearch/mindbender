@@ -89,7 +89,7 @@ angular.module "mindbenderApp.dashboard", [
         templateUrl: "dashboard/report-values.html"
         controller: "ReportValueListCtrl"
 
-    $routeProvider.when "/report-values/:reportId/:valueName",
+    $routeProvider.when "/report-values/:reportId*/:valueName",
         templateUrl: "dashboard/report-value.html"
         controller: "ReportValueCtrl"
 
@@ -484,6 +484,8 @@ angular.module "mindbenderApp.dashboard", [
                     i++
 
 .controller "ReportValueListCtrl", ($scope, $http, Dashboard) ->
+    $scope.title = "Snapshot Report Values"
+
     $scope.reportValues = {
         "corus/stats": [
             "v1",
