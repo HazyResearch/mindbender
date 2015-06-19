@@ -1,1 +1,13 @@
 <div ng-include="'dashboard/header.html'"></div>
+
+<div class="container-fluid">
+	<table ng-repeat="(report, values) in reportValues" class="table table-striped" style="width: 200px;">
+		<tr>
+			<th style="text-decoration:underline">{{ report }}</th>
+		</tr>
+		<tr ng-repeat="value in values">
+			<td><a href="#/snapshot/{{ snapshot }}/">{{ value }}</a></td>
+		</tr>
+	</div>
+</div>
+

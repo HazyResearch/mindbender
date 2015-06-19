@@ -87,7 +87,11 @@ angular.module "mindbenderApp.dashboard", [
 
     $routeProvider.when "/report-values",
         templateUrl: "dashboard/report-values.html"
-        controller: "ReportValuesCtrl"
+        controller: "ReportValueListCtrl"
+
+    $routeProvider.when "/report-values/:reportId/:valueName",
+        templateUrl: "dashboard/report-value.html"
+        controller: "ReportValueCtrl"
 
 .controller "IndexCtrl", ($scope, Dashboard) ->
     $scope.hideNav = true
@@ -479,7 +483,19 @@ angular.module "mindbenderApp.dashboard", [
 
                     i++
 
-.controller "ReportValuesCtrl", ($scope, $http, Dashboard) ->
+.controller "ReportValueListCtrl", ($scope, $http, Dashboard) ->
+    $scope.reportValues = {
+        "corus/stats": [
+            "v1",
+            "v2"
+        ],
+        "variable": [
+            "average_rate"
+        ]
+    }
+
+.controller "ReportValueCtrl", ($scope, $http, $routeParams, Dashboard) ->
+    console.log($routeParams)
 
 
 
