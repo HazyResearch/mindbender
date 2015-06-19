@@ -85,6 +85,10 @@ angular.module "mindbenderApp.dashboard", [
         controller: "EditTemplatesCtrl",
         reloadOnSearch: false
 
+    $routeProvider.when "/report-values",
+        templateUrl: "dashboard/report-values.html"
+        controller: "ReportValuesCtrl"
+
 .controller "IndexCtrl", ($scope, Dashboard) ->
     $scope.hideNav = true
 
@@ -474,6 +478,9 @@ angular.module "mindbenderApp.dashboard", [
                     $scope.template.params.splice(i, 0, details)
 
                     i++
+
+.controller "ReportValuesCtrl", ($scope, $http, Dashboard) ->
+
 
 
 .filter 'capitalize', () ->
