@@ -566,7 +566,7 @@ angular.module "mindbenderApp.dashboard", [
         $(".sparkline").each(() ->
             $(this).highcharts({
                 chart: {
-                    margin: 0
+                    margin: [0, -5, 0, -5]
                     backgroundColor: null
                 }
                 title: {
@@ -642,9 +642,6 @@ angular.module "mindbenderApp.dashboard", [
 .directive 'dashboardChart', () ->
     template: '<div class="dashboard-chart"></div>'
     restrict: 'E'
-    scope: {
-        text: '='
-    }
     link: (scope, element, attrs) ->
         # API will use attrs.report and attrs.valueName
         reportValuesAPIcall = [
@@ -715,12 +712,11 @@ angular.module "mindbenderApp.dashboard", [
         renderLineChart = () ->
             values = []
             categories = []
-            console.log(attrs)
 
             for snapshotValue, index in reportValuesAPIcall
                 if index >= attrs.start && index <= attrs.end && (attrs.hidenulls == "false" || snapshotValue.value != null)
                     values.push(snapshotValue.value)
-                    categories.push(snapshotValue.snapshot.name + " (" + snapshotValue.snapshot.time + ")")
+                    categories.push(snapshotValue.snapshot.time)
 
             element.find(".dashboard-chart").highcharts({
                 title: {
