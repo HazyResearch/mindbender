@@ -845,9 +845,14 @@ angular.module "mindbenderApp.dashboard", [
             scope.table = scope.report.data[attrs.file].table
             scope.bindToTask = taskArea.receiveValue if taskArea?
             $timeout ->
-                element.find("table").DataTable({
-                    pageLength: 25
-                })
+                options = {
+                    order: []
+                }
+
+                if scope.table.data.length > 25
+                    options.pageLength = 25
+
+                element.find("table").DataTable(options)
     }
 
 .directive 'mbTaskControl', ($timeout) ->
