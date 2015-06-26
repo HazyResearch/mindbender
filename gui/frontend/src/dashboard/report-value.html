@@ -1,2 +1,33 @@
 <div ng-include="'dashboard/header.html'"></div>
 
+<div style="float:right">
+	<div class="btn-group">
+		<label class="btn btn-primary" ng-model="snapshots.type" btn-radio="'values'">Values</label>
+		<label class="btn btn-primary" ng-model="snapshots.type" btn-radio="'frequency'">Frequency</label>
+	</div>
+</div>
+
+<br><br><br>
+
+<dashboard-chart report="{{ snapshots.report }}" valueName="{{ snapshots.valueName }}" start="{{ snapshots.start }}" end="{{ snapshots.end }}" type="{{ snapshots.type }}" hideNulls="{{ snapshots.hideNulls }}"></dashboard-chart>
+
+<br><br><br>
+
+<div class="container-fluid well">
+	<div class="row">
+		<div class="col-md-10">
+			<dashboard-slider></dashboard-slider>
+		</div>
+		<div class="col-md-2">
+			<button type="button" class="btn btn-primary" ng-model="snapshots.hideNulls" btn-checkbox btn-checkbox-true="true" btn-checkbox-false="false" style="margin-top:10px">
+				<ng-switch on="snapshots.hideNulls">
+					<span ng-switch-when="false">Hide</span>
+					<span ng-switch-when="true">Show</span>
+					Null Values
+				</ng-switch>
+			</button>
+		</div>
+	</div>
+</div>
+
+<br><br><br>
