@@ -1,12 +1,19 @@
 <div ng-include="'dashboard/header.html'"></div>
 
 <div class="container-fluid">
-	<table ng-repeat="(report, values) in reportValues" class="table table-striped" style="width: 200px;">
+	<table ng-repeat="(report, reportValues) in reportValueSet.reportValues" class="table table-striped" style="table-layout: fixed;">
 		<tr>
-			<th style="text-decoration:underline">{{ report }}</th>
+			<th style="width:15%;text-decoration:underline">{{ report }}</th>
+			<th style="background-color:#FFF;border:0"></th>
 		</tr>
-		<tr ng-repeat="value in values">
-			<td><a href="#/report-values/{{ report }}/{{ value }}">{{ value }}</a></td>
+		<tr ng-repeat="(valueName, values) in reportValues">
+			<td style="overflow:auto">
+				<a href="#/report-values/{{ report }}/{{ valueName }}">{{ valueName }}</a>
+			</td>
+			<td ng-switch="isNumeric(values)">
+				<div ng-switch-when="true" class="sparkline" data-report="{{ report }}" data-value-name="{{ valueName }}" style="width:100%;height:50px;"></div>
+				<div ng-switch-when="false" data-report="{{ report }}" data-value-name="{{ valueName }}" class="color-band"></div>
+			</td>
 		</tr>
 	</div>
 </div>
