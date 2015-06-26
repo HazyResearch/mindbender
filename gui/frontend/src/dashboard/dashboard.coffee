@@ -16,6 +16,7 @@ angular.module "mindbenderApp.dashboard", [
                 { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
                 { url: '#/snapshot-templates/edit', name: 'Configure Templates', img: 'gear.png' }
                 { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
+                { url: '#/report-values', name: 'Report Values', img: 'report.png' }
             ]
             do @updateNavLinkForSnapshots
             $rootScope.isNavLinkActive = (navLink) ->
@@ -483,22 +484,146 @@ angular.module "mindbenderApp.dashboard", [
 
                     i++
 
-.controller "ReportValueListCtrl", ($scope, $http, Dashboard) ->
+.controller "ReportValueListCtrl", ($scope, $http, $timeout, Dashboard) ->
     $scope.title = "Snapshot Report Values"
 
-    $scope.reportValues = {
-        "corus/stats": [
-            "v1",
-            "v2"
-        ],
-        "variable": [
-            "average_rate"
+    $scope.reportValueSet = {
+        snapshots: [
+            {
+                name: "test1"
+                time: "2015-06-21T21:54:18"
+            }
+            {
+                name: "test2"
+                time: "2015-06-22T21:54:18"
+            }
+            {
+                name: "test3"
+                time: "2015-06-22T23:54:18"
+            }
+            {
+                name: "test4"
+                time: "2015-06-24T01:54:18"
+            }
+            {
+                name: "test5"
+                time: "2015-06-25T10:54:18"
+            }
+            {
+                name: "test6"
+                time: "2015-06-26T21:54:18"
+            }
+            {
+                name: "test7"
+                time: "2015-06-27T20:54:18"
+            }
+            {
+                name: "test8"
+                time: "2015-06-27T21:54:18"
+            }
         ]
+        reportValues: {
+            "corpus/stats": {
+                "v1": [4, 53, -30, 443, 23, 43, 20, 5]
+                "v2": [64, 23, 31, 21, 34, 1, null, 34]
+            },
+            "variable": {
+                "average_value": ['a', 'b', 'c', 'a', 'b', 'd', 'b', 'e']
+            }
+        }
     }
 
-.controller "ReportValueCtrl", ($scope, $http, $routeParams, Dashboard) ->
-    console.log($routeParams)
+    getColorMap = (values) ->
+        uniqueValues = _.uniq(values)
+        increment = 360 / uniqueValues.length
 
+        colorMap = {}
+        for value, index in uniqueValues
+            colorMap[value] = 'hsl(' + (increment * index) + ', 100%, 50%)'
+
+        return colorMap
+
+
+    $scope.isNumeric = (array) ->
+        for a in array
+            if isNaN(a)
+                return false
+
+        return true
+
+    $timeout ->
+        $(".color-band").each(() ->
+            increment = 100 / $scope.reportValueSet.snapshots.length
+
+            values = $scope.reportValueSet.reportValues[$(this).data("report")][$(this).data("valueName")]
+            colorMap = getColorMap(values)
+
+            for value in values
+                $(this).append('<div title="' + value + '" style="cursor:help;float:left;width:' + increment + '%;height:40px;background-color:' + colorMap[value] + '"></div>')
+
+        )
+
+        $(".sparkline").each(() ->
+            $(this).highcharts({
+                chart: {
+                    margin: 0
+                    backgroundColor: null
+                }
+                title: {
+                    text: ''
+                }
+                credits: {
+                    enabled: false
+                }
+                legend: {
+                    enabled: false
+                }
+                tooltip: {
+                    formatter: () -> 
+                        return "<b>" + this.y + "</b><br>" + $scope.reportValueSet.snapshots[this.x].time
+                    style: {
+                        padding: 4
+                    }
+                    hideDelay: 50
+                }
+                plotOptions: {
+                    series: {
+                        lineWidth: 1
+                        states: {
+                            hover: {
+                                lineWidth: 1
+                            }
+                        }
+                        marker: {
+                           radius: 2
+                        }
+                    }
+                }
+                series: [{
+                    data: $scope.reportValueSet.reportValues[$(this).data("report")][$(this).data("valueName")]
+                }]
+            })
+        )
+
+
+.controller "ReportValueCtrl", ($scope, $http, $routeParams, Dashboard) ->
+    $scope.title = $routeParams.reportId + " - " + $routeParams.valueName
+
+    isNumeric = (array) ->
+        for a in array
+            if isNaN(a)
+                return false
+
+        return true
+
+    $scope.snapshots = {
+        report: $routeParams.reportId
+        valueName: $routeParams.valueName
+        start: 0
+        end: 7 # from API call
+        type: "values" # from API call
+        hideNulls: false
+    }
 
 
 .filter 'capitalize', () ->
@@ -513,6 +638,231 @@ angular.module "mindbenderApp.dashboard", [
             setTimeout((-> $('.flash').css('background-color', '#FFF')), 1000)
         )
 ]
+
+.directive 'dashboardChart', () ->
+    template: '<div class="dashboard-chart"></div>'
+    restrict: 'E'
+    scope: {
+        text: '='
+    }
+    link: (scope, element, attrs) ->
+        # API will use attrs.report and attrs.valueName
+        reportValuesAPIcall = [
+            {
+                snapshot: {
+                    name: "test1"
+                    time: "2015-06-21T21:54:18"
+                }
+                value: 64
+            }
+            {
+                snapshot: {
+                    name: "test2"
+                    time: "2015-06-22T21:54:18"
+                }
+                value: 23
+            }
+            {
+                snapshot: {
+                    name: "test3"
+                    time: "2015-06-22T23:54:18"
+                }
+                value: 31
+            }
+            {
+                snapshot: {
+                    name: "test4"
+                    time: "2015-06-24T01:54:18"
+                }
+                value: 21
+            }
+            {
+                snapshot: {
+                    name: "test5"
+                    time: "2015-06-25T10:54:18"
+                }
+                value: 34
+            }
+            {
+                snapshot: {
+                    name: "test6"
+                    time: "2015-06-26T21:54:18"
+                }
+                value: 1
+            }
+            {
+                snapshot: {
+                    name: "test7"
+                    time: "2015-06-26T20:54:18"
+                }
+                value: null
+            }
+            {
+                snapshot: {
+                    name: "test8"
+                    time: "2015-06-27T21:54:18"
+                }
+                value: 34
+            }
+        ]
+
+        scope.$watchCollection (-> attrs), (newValue) ->
+            if attrs.type == "values"
+                renderLineChart()
+            else if attrs.type == "frequency"
+                renderFrequencyChart()
+
+        renderLineChart = () ->
+            values = []
+            categories = []
+            console.log(attrs)
+
+            for snapshotValue, index in reportValuesAPIcall
+                if index >= attrs.start && index <= attrs.end && (attrs.hidenulls == "false" || snapshotValue.value != null)
+                    values.push(snapshotValue.value)
+                    categories.push(snapshotValue.snapshot.name + " (" + snapshotValue.snapshot.time + ")")
+
+            element.find(".dashboard-chart").highcharts({
+                title: {
+                    text: ''
+                }
+                legend: {
+                    enabled: false
+                }
+                xAxis: {
+                    title: {
+                        text: 'Snapshot'
+                    }
+                    categories: categories
+                    labels: {
+                        rotation: -45
+                    }
+                }
+                yAxis: {
+                    title: {
+                        text: 'Value'
+                    }
+                }
+                tooltip: {
+                    formatter: () -> 
+                        return "<b>" + this.y + "</b><br>" + this.x
+                }
+                series: [{
+                    data: values
+                }]
+            })
+
+        renderFrequencyChart = () ->
+            categories = []
+            frequencies = []
+            valueMap = {}
+            for snapshotValue, index in reportValuesAPIcall
+                if index >= attrs.start && index <= attrs.end && (attrs.hidenulls == "false" || snapshotValue.value != null)
+                    if !valueMap[snapshotValue.value]
+                        valueMap[snapshotValue.value] = 0
+                    valueMap[snapshotValue.value]++
+
+            if valueMap[null]
+                categories.push("null")
+                frequencies.push(valueMap[null])
+                delete valueMap[null]
+
+            for valueName, frequency of valueMap
+                categories.push(valueName)
+                frequencies.push(frequency)
+
+            element.find(".dashboard-chart").highcharts({
+                chart: {
+                    type: "column"
+                }
+                title: {
+                    text: ''
+                }
+                legend: {
+                    enabled: false
+                }
+                yAxis: {
+                    title: {
+                        text: 'Frequency'
+                    }
+                }
+                xAxis: {
+                    title: {
+                        text: 'Value'
+                    }
+                    categories: categories
+                    labels: {
+                        rotation: -45
+                    }
+                }
+                tooltip: {
+                    formatter: () -> 
+                        return "<b>" + this.x + "</b><br>Frequency: " + this.y
+                }
+                series: [{
+                    data: frequencies
+                }]
+            })
+        
+
+.directive 'dashboardSlider', ($timeout) ->
+    template: '<div class="dashboard-slider-info"></div><div class="dashboard-slider" style="margin-top: 5px"></div>'
+    restrict: 'E'
+    link: (scope, element, attrs) ->
+        snapshotsAPIcall = [
+            {
+                name: "test1"
+                time: "2015-06-21T21:54:18"
+            }
+            {
+                name: "test2"
+                time: "2015-06-22T21:54:18"
+            }
+            {
+                name: "test3"
+                time: "2015-06-22T23:54:18"
+            }
+            {
+                name: "test4"
+                time: "2015-06-24T01:54:18"
+            }
+            {
+                name: "test5"
+                time: "2015-06-25T10:54:18"
+            }
+            {
+                name: "test6"
+                time: "2015-06-26T21:54:18"
+            }
+            {
+                name: "test7"
+                time: "2015-06-26T20:54:18"
+            }
+            {
+                name: "test8"
+                time: "2015-06-27T21:54:18"
+            }
+        ]
+
+        updateInfo = () ->
+            info = """
+                #{(scope.snapshots.end - scope.snapshots.start + 1)} values:
+                #{snapshotsAPIcall[scope.snapshots.start].time} - #{snapshotsAPIcall[scope.snapshots.end].time}
+            """
+            element.find(".dashboard-slider-info").html(info)
+
+        updateInfo()
+        element.find(".dashboard-slider").slider({
+            range: true
+            min: 0
+            max: snapshotsAPIcall.length - 1
+            values: [0, snapshotsAPIcall.length - 1]
+            slide: (event, ui) ->
+                $timeout ->
+                    scope.snapshots.start = ui.values[0]
+                    scope.snapshots.end = ui.values[1]
+                    updateInfo()
+        })
 
 
 .directive 'chart', ($timeout, $compile, $parse, DashboardDataUtils) ->
