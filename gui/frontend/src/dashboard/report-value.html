@@ -2,29 +2,29 @@
 
 <div style="float:right">
 	<div class="btn-group">
-		<label class="btn btn-primary" ng-model="snapshots.type" btn-radio="'values'">Values</label>
-		<label class="btn btn-primary" ng-model="snapshots.type" btn-radio="'frequency'">Frequency</label>
+		<label class="btn btn-primary" ng-model="chartSnapshotsConfig.type" btn-radio="'values'">Values</label>
+		<label class="btn btn-primary" ng-model="chartSnapshotsConfig.type" btn-radio="'frequency'">Frequency</label>
 	</div>
 </div>
 
 <br><br><br>
 
-<dashboard-chart report="{{ snapshots.report }}" valueName="{{ snapshots.valueName }}" start="{{ snapshots.start }}" end="{{ snapshots.end }}" type="{{ snapshots.type }}" hideNulls="{{ snapshots.hideNulls }}"></dashboard-chart>
+<dashboard-chart report="{{ report }}" valueName="{{ valueName }}" chart-snapshots-config="chartSnapshotsConfig"></dashboard-chart>
 
 <br><br><br>
 
 <div class="container-fluid well">
 	<div class="row">
 		<div class="col-md-10">
-			<dashboard-slider></dashboard-slider>
+			<dashboard-slider chart-snapshots-config="chartSnapshotsConfig"></dashboard-slider>
 		</div>
 		<div class="col-md-2">
-			<button type="button" class="btn btn-primary" ng-model="snapshots.hideNulls" btn-checkbox btn-checkbox-true="true" btn-checkbox-false="false" style="margin-top:10px">
-				<ng-switch on="snapshots.hideNulls">
+			<button type="button" class="btn btn-primary" ng-model="chartSnapshotsConfig.hideNulls" btn-checkbox btn-checkbox-true="true" btn-checkbox-false="false" style="margin-top:10px">
+				<ng-switch on="chartSnapshotsConfig.hideNulls">
 					<span ng-switch-when="false">Hide</span>
 					<span ng-switch-when="true">Show</span>
-					Null Values
 				</ng-switch>
+				Null Values
 			</button>
 		</div>
 	</div>

@@ -543,7 +543,6 @@ angular.module "mindbenderApp.dashboard", [
 
         return colorMap
 
-
     $scope.isNumeric = (array) ->
         for a in array
             if isNaN(a)
@@ -607,21 +606,73 @@ angular.module "mindbenderApp.dashboard", [
 
 
 .controller "ReportValueCtrl", ($scope, $http, $routeParams, Dashboard) ->
-    $scope.title = $routeParams.reportId + " - " + $routeParams.valueName
+    $scope.report = $routeParams.reportId
+    $scope.valueName = $routeParams.valueName
+    $scope.title = $scope.report + " - " + $scope.valueName
 
-    isNumeric = (array) ->
-        for a in array
-            if isNaN(a)
-                return false
+    reportValuesAPIcall = [
+        {
+            snapshot: {
+                name: "test1"
+                time: "2015-06-21T21:54:18"
+            }
+            value: 64
+        }
+        {
+            snapshot: {
+                name: "test2"
+                time: "2015-06-22T21:54:18"
+            }
+            value: 23
+        }
+        {
+            snapshot: {
+                name: "test3"
+                time: "2015-06-22T23:54:18"
+            }
+            value: 31
+        }
+        {
+            snapshot: {
+                name: "test4"
+                time: "2015-06-24T01:54:18"
+            }
+            value: 21
+        }
+        {
+            snapshot: {
+                name: "test5"
+                time: "2015-06-25T10:54:18"
+            }
+            value: 34
+        }
+        {
+            snapshot: {
+                name: "test6"
+                time: "2015-06-26T21:54:18"
+            }
+            value: 1
+        }
+        {
+            snapshot: {
+                name: "test7"
+                time: "2015-06-26T20:54:18"
+            }
+            value: null
+        }
+        {
+            snapshot: {
+                name: "test8"
+                time: "2015-06-27T21:54:18"
+            }
+            value: 34
+        }
+    ]
 
-        return true
-
-    $scope.snapshots = {
-        report: $routeParams.reportId
-        valueName: $routeParams.valueName
+    $scope.chartSnapshotsConfig = {
         start: 0
         end: 7 # from API call
-        type: "values" # from API call
+        type: "values"
         hideNulls: false
     }
 
@@ -642,6 +693,9 @@ angular.module "mindbenderApp.dashboard", [
 .directive 'dashboardChart', () ->
     template: '<div class="dashboard-chart"></div>'
     restrict: 'E'
+    scope: {
+        chartSnapshotsConfig: '='
+    }
     link: (scope, element, attrs) ->
         # API will use attrs.report and attrs.valueName
         reportValuesAPIcall = [
@@ -703,18 +757,27 @@ angular.module "mindbenderApp.dashboard", [
             }
         ]
 
-        scope.$watchCollection (-> attrs), (newValue) ->
-            if attrs.type == "values"
-                renderLineChart()
-            else if attrs.type == "frequency"
-                renderFrequencyChart()
+        dataIsNumeric = true
+        for snapshot in reportValuesAPIcall
+            if isNaN(snapshot.value)
+                dataIsNumeric = false
 
-        renderLineChart = () ->
+        scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
+            if config.type == "values"
+                if dataIsNumeric
+                    renderLineChart(config)
+                else
+                    renderFrequencyChart(config)
+            else if config.type == "frequency"
+                renderFrequencyChart(config)
+
+
+        renderLineChart = (config) ->
             values = []
             categories = []
 
             for snapshotValue, index in reportValuesAPIcall
-                if index >= attrs.start && index <= attrs.end && (attrs.hidenulls == "false" || snapshotValue.value != null)
+                if index >= config.start && index <= config.end && (!config.hideNulls || snapshotValue.value != null)
                     values.push(snapshotValue.value)
                     categories.push(snapshotValue.snapshot.time)
 
@@ -748,12 +811,12 @@ angular.module "mindbenderApp.dashboard", [
                 }]
             })
 
-        renderFrequencyChart = () ->
+        renderFrequencyChart = (config) ->
             categories = []
             frequencies = []
             valueMap = {}
             for snapshotValue, index in reportValuesAPIcall
-                if index >= attrs.start && index <= attrs.end && (attrs.hidenulls == "false" || snapshotValue.value != null)
+                if index >= config.start && index <= config.end && (!config.hideNulls || snapshotValue.value != null)
                     if !valueMap[snapshotValue.value]
                         valueMap[snapshotValue.value] = 0
                     valueMap[snapshotValue.value]++
@@ -799,11 +862,13 @@ angular.module "mindbenderApp.dashboard", [
                     data: frequencies
                 }]
             })
-        
 
 .directive 'dashboardSlider', ($timeout) ->
     template: '<div class="dashboard-slider-info"></div><div class="dashboard-slider" style="margin-top: 5px"></div>'
     restrict: 'E'
+    scope: {
+        chartSnapshotsConfig: '='
+    }
     link: (scope, element, attrs) ->
         snapshotsAPIcall = [
             {
@@ -842,8 +907,8 @@ angular.module "mindbenderApp.dashboard", [
 
         updateInfo = () ->
             info = """
-                #{(scope.snapshots.end - scope.snapshots.start + 1)} values:
-                #{snapshotsAPIcall[scope.snapshots.start].time} - #{snapshotsAPIcall[scope.snapshots.end].time}
+                #{(scope.chartSnapshotsConfig.end - scope.chartSnapshotsConfig.start + 1)} values:
+                #{snapshotsAPIcall[scope.chartSnapshotsConfig.start].time} - #{snapshotsAPIcall[scope.chartSnapshotsConfig.end].time}
             """
             element.find(".dashboard-slider-info").html(info)
 
@@ -855,8 +920,8 @@ angular.module "mindbenderApp.dashboard", [
             values: [0, snapshotsAPIcall.length - 1]
             slide: (event, ui) ->
                 $timeout ->
-                    scope.snapshots.start = ui.values[0]
-                    scope.snapshots.end = ui.values[1]
+                    scope.chartSnapshotsConfig.start = ui.values[0]
+                    scope.chartSnapshotsConfig.end = ui.values[1]
                     updateInfo()
         })
 
