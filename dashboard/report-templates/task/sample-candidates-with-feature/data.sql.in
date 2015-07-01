@@ -1,0 +1,46 @@
+<$ ### $num_samples random candidates sharing given feature
+table=${variable%%.*}
+column=${variable#$table.}
+: ${feature:?description of the feature to sample candidates}
+
+if [[ -n "${candidate_id_column:-}" ]]; then
+case ${features_layout:-} in
+
+array_column)
+    if [[ -n "${features_column:-}" ]]; then
+        # when features are stored as array in the candidate table
+        $>
+            SELECT *
+              FROM ${table}
+             WHERE \$token\$${feature}\$token\$ IN ${features_column}
+             ORDER BY RANDOM()
+             LIMIT ${num_samples}
+        <$
+    else
+        report-warn "Parameter features_column= undefined for features_layout=array_column"
+    fi
+    ;;
+
+own_table)
+    if [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
+        # when features are stored in a separate table
+        $>
+            SELECT *
+              FROM ${table} candidates, (
+                SELECT DISTINCT ${candidate_id_column} AS candidate_id
+                  FROM ${features_table}
+                 WHERE \$token\$${feature}\$token\$ = ${features_column}
+              ) features
+             WHERE candidates.${candidate_id_column} = features.candidate_id
+             ORDER BY RANDOM()
+             LIMIT ${num_samples}
+        <$
+    else
+        report-warn "Parameters features_table= and/or features_column= undefined for features_layout=own_table"
+    fi
+    ;;
+
+esac
+fi
+$>
+

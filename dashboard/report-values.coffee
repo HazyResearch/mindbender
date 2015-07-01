@@ -7,15 +7,26 @@
 
 fs = require "fs"
 jsonFile = process.env.JSON_FILE ? "report.json"
-keyValuePairs = process.argv[2..]
+args = process.argv[2..]
 
 obj =
     if jsonFile is "-" then {}
     else (try JSON.parse (fs.readFileSync jsonFile)) ? {}
 
-for kv in keyValuePairs
-    [key] = kv.split "=", 1
-    value = kv.substring (key.length + 1)
+keyValuePairs =
+    if args[0] is "--alternating"  # TODO need better option parsing
+        args.shift()
+        for i in [0...args.length] by 2
+            key = args[i]
+            value = args[i+1]
+            [key,value]
+    else
+        for kv in args
+            [key] = kv.split "=", 1
+            value = kv.substring (key.length + 1)
+            [key,value]
+
+for [key,value] in keyValuePairs
     obj[key] =
         try JSON.parse value # see if the value looks like JSON
         catch err then value # or treat it simply as string

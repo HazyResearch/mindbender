@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# mindbender-report-task -- Run a given task on a report of the LATEST snapshot of the current DeepDive app
+# > mindbender report-task REPORT_ID TASK [NAME=VALUE]...
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-06-30
+set -eu
+
+# find path to the DeepDive app based on the snapshot path
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+cd "$DEEPDIVE_APP"
+
+[[ $# -ge 2 ]] || usage "$0" "Both REPORT_ID and TASK required"
+ReportId=$1; shift
+TaskName=$1; shift
+
+mindbender-produce-reports snapshot/LATEST <(
+    escape-args-for-shell report-task "$ReportId" "$TaskName" "$@"
+)

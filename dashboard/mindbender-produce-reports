@@ -22,25 +22,24 @@ reportTemplateImportOrder=(
 "$DEEPDIVE_APP"/report-templates
 )
 
+# normalize some path names
+SnapshotDir=${SnapshotDir%/}
+
 # make sure there is a dashboard snapshot configuration in DeepDive app as well as the given snapshot
 [[ -e "$SnapshotConfiguration" ]] || error "$SnapshotConfiguration: SNAPSHOT_CONFIG does not exist"
-cp -f "$SnapshotConfiguration" "$SnapshotDir"/
-snapshotConfigurationName=$(basename "$SnapshotConfiguration")
+{
+    echo "# snapshot at $(date +%FT%T)"
+    cat "$SnapshotConfiguration"
+} | tee "$SnapshotDir"/snapshot.last.conf >>"$SnapshotDir"/snapshot.conf
+snapshotConfigurationPath="snapshot.last.conf"
 
 # move into the given snapshot
 cd "$SnapshotDir" || error "$SnapshotDir: No such snapshot"
-[[ -r "$snapshotConfigurationName" ]] || error "$snapshotConfigurationName: missing configuration"
+[[ -r "$snapshotConfigurationPath" ]] || error "No snapshot configuration to run"
 
 # TODO factor out these shell functions into separate scripts, and add unit tests
 
 ## some utility commands
-escape-shell-string() {
-    local s=
-    for s; do
-        sq=${s//\'/\'\\\'\'}
-        echo "'$sq'"
-    done
-}
 json-string() {
     local s=
     for s; do
@@ -73,6 +72,7 @@ assign-unique-serial() {
 }
 
 ## commands for report-template and instance handling
+# TODO factor out as a standalone command
 list-all-reports() {
     local instance=$1; shift
     # find all executable report.sh in the given instance and output their dirnames
@@ -88,6 +88,7 @@ list-all-reports() {
                 -o -name README.md.in \
                 \) 2>/dev/null | sort || true
             done
+            # TODO exclude task templates
         }
         # TODO use list-all-reports recursively to support nested reports.order
         if [[ -s reports.order ]]; then
@@ -123,7 +124,7 @@ list-all-reports() {
 }
 create-report-instance() {
     local name=$1; shift
-    local reportsPrefix="reports/"  # keep instances under reports/
+    local reportsPrefix=$1; shift
     # create a directory for the report instance
     local instance=$(
         no-instance-already-there() { ! [[ -e "$1" ]]; }
@@ -136,7 +137,7 @@ create-report-instance() {
         local template="$dir/$name"
         [[ -d "$template" ]] || continue
         # clone all template files into the instance
-        rsync -a "$template"/ "$instance"/ --exclude=reports.order
+        rsync -a --copy-unsafe-links "$template"/ "$instance"/ --exclude=reports.order
         # merge reports.order
         ! [[ -s "$template"/reports.order ]] ||
             merge-order-specs "$instance"/reports.order "$template"/reports.order
@@ -153,6 +154,12 @@ create-report-instance() {
             cp -f "$params" "$reportsPrefix$p"/
         done
     done
+    ensure-nested-reports-inherits-params "$instance"
+    echo "$instance"
+}
+ensure-nested-reports-inherits-params() {
+    local instance=$1; shift
+    local report= p=
     # make sure all nested reports in the instance inherits their parents' report.params
     list-all-reports "$instance" |
     (
@@ -167,11 +174,42 @@ create-report-instance() {
             done >"$report"/.report.params
         done
     )
-    echo "$instance"
+}
+compile-task-params() {
+    local reportId=$1; shift
+    local reportName=$1; shift
+    local reportPath=$1; shift
+    local taskName=$1; shift
+    local taskPath=$1; shift
+    { # compile task.params into report.params
+        scope() {
+            local scopeType=$1; shift
+            case $scopeType in
+                report) ;;
+                *) error "$scopeType: Invalid scope for task $taskPath"
+            esac
+            local scopeValue=
+            for scopeValue; do
+                # find a matching scope
+                ! [[ $reportName = $scopeValue ]] || return 0
+            done
+            error "report $reportId is out of scope for task $taskName"
+        }
+        required() { escape-args-for-shell required "$@" >>"$taskPath"/report.params; }
+        optional() { escape-args-for-shell optional "$@" >>"$taskPath"/report.params; }
+        ( source "$taskPath"/task.params )
+        ensure-nested-reports-inherits-params "$taskPath"
+    }
+    { # make sure task inherits parameter bindings from the its scope report
+        echo "## parameters from report $reportPath"
+        cat "$reportPath"/.report.params.sh
+        echo
+        echo "## parameters for task $taskPath"
+    } >"$taskPath"/.report.params.sh
 }
 record-report-params() {
-    local reportPath=$1; shift
     local reportName=$1; shift
+    local reportPath=$1; shift
     (
         cd "$reportPath"
         # generate .report.params.sh (recording given parameters in shell script) based on report.params specification
@@ -179,29 +217,39 @@ record-report-params() {
             # produce a line for each parameter passed
             echo "# named parameters given"
             local namedParam=
-            for namedParam; do
+            for namedParam in "$@"; do
                 local name=${namedParam%%=*}
                 local value=${namedParam#*=}
-                echo "export $name=$(escape-shell-string "$value")"
+                escape-args-for-shell export "$name=$value"
             done
             echo
-        } >.report.params.sh
-        : >.report.params.required
-        : >.report.params.optional
+        } >>.report.params.sh
+        :  >.report.params.required
+        :  >.report.params.optional
 
         # interpret the report.params specification
         if [[ -e .report.params ]]; then
             # vocabularies allowed in the report.params file, to generate shell script lines
             required() {
-                local name=$1; shift
+                local nametype=$1; shift
                 local desc=$1; shift
-                echo >>.report.params.sh ": \${$name:?$desc} # required"
+                # parse optional type from name
+                local name= type=
+                name=${nametype%:*}
+                type=${nametype#$name}
+                type=${type#:}
+                echo >>.report.params.sh ": \${$name:?Missing parameter${type:+ of type $type}: $desc} # required"
                 echo >>.report.params.required "$name"
             }
             optional() {
-                local name=$1; shift
+                local nametype=$1; shift
                 local valueDefault=$1; shift
                 local desc=$1; shift
+                # parse optional type from name
+                local name= type=
+                name=${nametype%:*}
+                type=${nametype#$name}
+                type=${type#:}
                 echo >>.report.params.sh ": \${$name:=$valueDefault}  # $desc"
                 echo >>.report.params.optional "$name"
             }
@@ -225,7 +273,7 @@ record-report-params() {
         " "$@"
 
         # generate a report id from the required parameters
-        id=$(generate-report-id "$reportPath" "$reportName" "$@")
+        id=$(generate-report-id "$reportName" "$reportPath" "$@")
         echo "$id" >.report.id 
         # mark them read-only
         chmod -w .report.params* .report.id
@@ -235,8 +283,8 @@ record-report-params() {
 # next to the templates that require them, e.g.:
 # /variable(foo.is_true)/feature/sample(bar)/histogram
 generate-report-id() {
-    local reportPath=$1; shift
     local reportName=$1; shift
+    local reportPath=$1; shift
     id=$(
         # traverse up the parents to produce the desired report id
         cd "$DEEPDIVE_APP/$SnapshotDir/$reportPath"
@@ -250,7 +298,7 @@ generate-report-id() {
             if [[ -e report.params ]]; then
                 argsExpr=$(
                     (
-                        required() { echo "$1"; }
+                        required() { echo "${1%:*}"; }
                         optional() { :; }
                         source report.params
                     ) |
@@ -260,7 +308,7 @@ generate-report-id() {
                 )
                 argsExpr=${argsExpr%,}
                 [[ -z "$argsExpr" ]] || printf '(%s)' "$(
-                        declare -- "$@"
+                        source .report.params.sh
                         eval "printf '%s' $argsExpr"
                     )"
             fi
@@ -304,32 +352,43 @@ produce-report() {
         fi
     )
 }
+produce-nested-reports() {
+    local reportBaseName=$1; shift
+    local instance=$1; shift
+    # run all report.sh scripts found in the report instance
+    list-all-reports "$instance" |
+    while read report; do
+        # determine name and path
+        reportName=$reportBaseName reportPath=$instance
+        case $report in .) ;; *) reportName+="/$report" reportPath+="/$report"; esac
+        report-log "Producing $SnapshotDir/$reportPath"
+        # first record parameter bindings for the instance
+        record-report-params "$reportName" "$reportPath" "$@"
+        # then produce the report
+        if produce-report "$reportPath" "$reportName" "$@"; then
+            # and register it when successful
+            register-report "$reportPath" "$reportName" "$@"
+        fi
+    done
+    report-log "Produced $SnapshotDir/$instance"
+}
 
 ## commands for producing the snapshot-level report
-begin-report() {
+begin-snapshot() {
     # initialize
-    : >reports.ids
-    : >reports.paths
-    echo '{}' >reports.json
+    [[ -e reports.ids   ]] || : >reports.ids
+    [[ -e reports.paths ]] || : >reports.paths
+    [[ -e reports.json  ]] || echo >reports.json '{}'
 
-    timestamp=$(date +%FT%T)
-
-    cat >README.md <<EOF
+    [[ -e README.md     ]] || cat >README.md <<EOF
 # $SnapshotDir
-Produced: $timestamp
-
 EOF
 
-    {
-        echo "<!-- Generated: $timestamp -->"
-        echo "<section>"
-    } >reports.html
+    echo >>README.md "<!-- Production begins at $(date +%FT%T) -->"
 }
-end-report() {
+end-snapshot() {
     # no-op
-    {
-        echo "</section>"
-    } >>reports.html
+    echo >>README.md "<!-- Production ends at $(date +%FT%T) -->"
 }
 register-report() {
     local reportPath=$1; shift
@@ -341,6 +400,9 @@ register-report() {
     # record path to the report
     echo "$reportPath" >>reports.paths
 
+    # record name of the template for the report
+    echo "$reportName" >>reports.names
+
     # concatenate the produced report to the snapshot-level README.md
     ! [[ -e "$reportPath"/README.md ]] ||
     {
@@ -348,28 +410,9 @@ register-report() {
         echo
     } >>README.md
 
-    # add blocks to the dashboard index
-    {
-        reportPathQuoted=$(quote-html-attr "$reportPath")
-        cat <<-EOF
-	<div mb-report="$reportPathQuoted"
-	     name="$(quote-html-attr "$reportName")"
-	     $(
-                for namedParam; do
-                    paramName=${namedParam%%=*}
-                    paramName=${paramName//_/-}
-                    paramValue=${namedParam#*=}
-                    echo "    param-$paramName=\"$(quote-html-attr "$paramValue")\""
-                done
-            )></div>
-	EOF
-    } >>reports.html
-
     # aggregate the report.params.json and report.json in reports.json indexed by .report.id
     JSON_FILE=reports.json \
-        report-values "$(
-            cat "$reportPath"/.report.id
-        )={$(
+        report-values --alternating "$(cat "$reportPath"/.report.id)" "{$(
             cd "$reportPath"
             # first, the path, name of the report
             echo -n ' "path":'  ; json-string "$reportPath"
@@ -384,7 +427,7 @@ register-report() {
         )}"
 }
 
-## commands reports.conf is expected to rely on
+## commands snapshot.conf is expected to rely on
 section() {
     local title=$1
     # add a heading for this section in snapshot-level README.md
@@ -393,33 +436,30 @@ section() {
         echo "# $title"
         echo
     } >>README.md
-    {
-        echo "</section>"
-        echo
-        echo "<section>"
-        echo "<h1>$title</h1>"
-    } >>reports.html
 }
 report() {
     local reportBaseName=$1; shift
-    local instance=$(create-report-instance "$reportBaseName" "$@")
-    report-log "Instantiated $SnapshotDir/$instance${*:+ ($*)}"
-    # run all report.sh scripts found in the report instance
-    list-all-reports "$instance" |
-    while read report; do
-        # determine name and path
-        reportName=$reportBaseName reportPath=$instance
-        case $report in .) ;; *) reportName+="/$report" reportPath+="/$report"; esac
-        report-log "Producing $SnapshotDir/$reportPath"
-        # first record parameter bindings for the instance
-        record-report-params "$reportPath" "$reportName" "$@"
-        # then produce the report
-        if produce-report "$reportPath" "$reportName" "$@"; then
-            # and register it when successful
-            register-report "$reportPath" "$reportName" "$@"
-        fi
-    done
-    report-log "Produced $SnapshotDir/$instance"
+    local instance=$(create-report-instance "$reportBaseName" "reports/" "$@")  # keeping new instances under reports/
+    report-log "Instantiated report $SnapshotDir/$instance${*:+ ($*)}"
+    produce-nested-reports "$reportBaseName" "$instance" "$@"
+}
+
+## additional commands snapshot.conf may contain for running tasks
+report-task() {
+    local reportId=$1; shift
+    local taskName=$1; shift
+    # find the target report
+    local reportPath=$(
+        # lookup the report path for the id
+        paste reports.{ids,paths} | grep -F "$reportId"$'\t' | cut -f2
+    )
+    [[ -d "$reportPath" ]] || error "$reportId: No such report found"
+    local reportName=$(sed 's/([^()]*)//g' <<<"$reportId")
+    # instantiate and run
+    local instance=$(create-report-instance "$taskName" "$reportPath/" "$@")  # keeping new instances under given report
+    report-log "Instantiated task $SnapshotDir/$instance${*:+ ($*)}"
+    compile-task-params "$reportId" "$reportName" "$reportPath" "$taskName" "$instance"
+    produce-nested-reports "$reportName/$taskName" "$instance" "$@"
 }
 
 
@@ -431,9 +471,9 @@ report-log "Producing reports under $SnapshotDir/"
 report-log " about DeepDive database $(find-deepdive-db-uri)..."
 
 # use dashboard configuration to produce reports
-begin-report
-( . "$snapshotConfigurationName" )
-end-report
+begin-snapshot
+( source "$snapshotConfigurationPath" )
+end-snapshot
 
 numReports=$(wc -l <reports.paths || echo 0)
 report-log "Produced $numReports reports under $SnapshotDir/"

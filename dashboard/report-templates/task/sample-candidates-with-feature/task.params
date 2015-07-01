@@ -1,0 +1,4 @@
+scope report 'variable/feature'
+
+required feature               'A description text of the feature'
+optional num_samples:int  100  'Number of sample candidates to enumerate'
