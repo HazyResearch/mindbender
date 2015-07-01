@@ -11,7 +11,7 @@
 		<span ng-if="v.$report_key" ng-style="currentReport == v.$report_key && { 'font-weight': 'bold' }">
 		    <!-- first click on non-leaves will first show its children -->
 		    <span ng-if=" (v.$leaf || v.$show)">
-		        <a href="#/snapshot/{{snapshotId}}/?report={{v.$report_key}}">{{ k }}</a>
+		        <a ng-href="#/snapshot/{{snapshotId | urlEncode}}/?report={{v.$report_key | urlEncode}}">{{ k }}</a>
 		    </span>
 		    <span ng-if="!(v.$leaf || v.$show)" ng-click="v.$show = true">{{k}}</span>
 		</span>

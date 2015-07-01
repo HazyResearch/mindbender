@@ -822,3 +822,7 @@ angular.module "mindbenderApp.dashboard", [
                 element.find("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
 
     }
+
+.filter "urlEncode", () ->
+    (input) -> encodeURIComponent input
+
