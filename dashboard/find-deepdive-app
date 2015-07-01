@@ -10,10 +10,14 @@ if [[ -n "${DEEPDIVE_APP:-}" ]]; then
     # short circuit if DEEPDIVE_APP environment is already defined
     echo "$DEEPDIVE_APP"
 else
-    until [[ $PWD = / || -e application.conf ]]; do
+    # TODO use deepdive command
+    at-a-deepdive-app() {
+        [[ -e deepdive.conf || -e application.conf ]]
+    }
+    until [[ $PWD = / ]] || at-a-deepdive-app; do
         cd ..
     done
 
-    [[ -e application.conf ]] || error "Not inside a DeepDive app"
+    at-a-deepdive-app || error "Not inside a DeepDive app"
     pwd -P
 fi
