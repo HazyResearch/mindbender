@@ -23,7 +23,7 @@ html-table-for                          bin/mindbender.d/
 list-breadcrumb-paths                   bin/mindbender.d/
 merge-order-specs                       bin/mindbender.d/
 
-report-templates                        etc/
+snapshot-template                       etc/
 report-sql-template.sh                  etc/
 snapshot-files                          etc/
 

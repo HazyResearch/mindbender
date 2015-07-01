@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Print warning messages from report-templates
+# Print warning messages from snapshot-templates
 #
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2015-02-21

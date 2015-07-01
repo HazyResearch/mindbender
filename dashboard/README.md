@@ -61,9 +61,9 @@ Each report in a snapshot is produced by a *report template*.
 * **Structure**.
   A report template is a carefully structured directory on the file system.
     * It resides under either:
-        * `report-templates/` of the target DeepDive app (app-specific), or
-        * `dashboard/report-templates/` of Mindbender's source tree (built-in).
-    * It is referred from the snapshot configuration with the path name relative to `report-templates/`.
+        * `snapshot-template/` of the target DeepDive app (app-specific), or
+        * `dashboard/snapshot-template/` of Mindbender's source tree (built-in).
+    * It is referred from the snapshot configuration with the path name relative to `snapshot-template/`.
     * It must contain one or more of the following:
         * An executable file named `report.sh`.
         * An executable document `README.md.in`.

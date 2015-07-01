@@ -18,8 +18,8 @@ DEEPDIVE_APP=$(find-deepdive-app)
 export DEEPDIVE_APP
 
 reportTemplateImportOrder=(
-"$MINDBENDER_HOME"/etc/report-templates
-"$DEEPDIVE_APP"/report-templates
+"$MINDBENDER_HOME"/etc/snapshot-template
+"$DEEPDIVE_APP"/snapshot-template
 )
 
 # normalize some path names
@@ -71,7 +71,7 @@ assign-unique-serial() {
     fi
 }
 
-## commands for report-template and instance handling
+## commands for snapshot-template and instance handling
 # TODO factor out as a standalone command
 list-all-reports() {
     local instance=$1; shift

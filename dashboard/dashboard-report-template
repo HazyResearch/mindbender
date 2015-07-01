@@ -27,8 +27,8 @@ case $Command in
 esac
 
 reportTemplateImportOrder=(
-"$DEEPDIVE_APP"/report-templates
-"$MINDBENDER_HOME"/etc/report-templates
+"$DEEPDIVE_APP"/snapshot-template
+"$MINDBENDER_HOME"/etc/snapshot-template
 )
 
 # TODO speed up JSON generation
@@ -39,7 +39,7 @@ case $Command in
             \( -name "README.md.in" \
             -o -name "data.sql.in" \
             \) -print |
-        sed 's:^.*/report-templates/::; s:/[^/]*$::' |
+        sed 's:^.*/snapshot-template/::; s:/[^/]*$::' |
         sort -u |
         while read template; do
             echo ","
@@ -54,7 +54,7 @@ case $Command in
         trap "rm -rf $tmp" EXIT
         export JSON_FILE=-  # to use report-values for constructing JSON
 
-        # find the report-template
+        # find the snapshot-template
         for dir in "${reportTemplateImportOrder[@]}"; do
             reportTemplatePath="$dir/$TemplateName"
             [[ -d "$reportTemplatePath" ]] || continue
@@ -125,7 +125,7 @@ case $Command in
         ;;
 
     put) # decode report template from given JSON object
-        reportTemplatePath="$DEEPDIVE_APP"/report-templates/"$TemplateName"
+        reportTemplatePath="$DEEPDIVE_APP"/snapshot-template/"$TemplateName"
         mkdir -p "$reportTemplatePath"
         cd "$reportTemplatePath"
 
@@ -176,7 +176,7 @@ case $Command in
         ;;
 
     delete) # delete given report template
-        reportTemplatePath="$DEEPDIVE_APP"/report-templates/"$TemplateName"
+        reportTemplatePath="$DEEPDIVE_APP"/snapshot-template/"$TemplateName"
         [[ -d "$reportTemplatePath" ]] ||
             error "$TemplateName: No deletable report template found"
         rm -rf "$reportTemplatePath"

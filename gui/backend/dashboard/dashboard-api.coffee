@@ -61,8 +61,7 @@ exports.init = (app) ->
 
     ## Creating New Snapshots
     # List Report Templates
-    # TODO fix the singular/plural issue of report-template[s]
-    app.get "/api/report-templates/", (req, res) ->
+    app.get "/api/snapshot-template/", (req, res) ->
         sendStdoutOf res, "dashboard-report-template", ["ls"]
 
     # List Snapshot Configurations
@@ -120,22 +119,22 @@ exports.init = (app) ->
 
     ## Authoring Report Templates
     # Create a New Report Template or Update an Existing One
-    app.put "/api/report-template/*", (req, res) ->
+    app.put "/api/snapshot-template/*", (req, res) ->
         [reportTemplateId] = req.params
         res
-            .location "/api/report-template/#{reportTemplateId}"
+            .location "/api/snapshot-template/#{reportTemplateId}"
             .status 201
         sendStdoutOf res, "dashboard-report-template", ["put", reportTemplateId]
             # XXX it's silly to parse and stringify the body right away
             .stdin.end JSON.stringify req.body
 
     # Read a Report Template
-    app.get "/api/report-template/*", (req, res) ->
+    app.get "/api/snapshot-template/*", (req, res) ->
         [reportTemplateId] = req.params
         sendStdoutOf res, "dashboard-report-template", ["get", reportTemplateId]
 
     # Delete a Report Template
-    app.delete "/api/report-template/*", (req, res) ->
+    app.delete "/api/snapshot-template/*", (req, res) ->
         [reportTemplateId] = req.params
         res
             .status 204 # no content

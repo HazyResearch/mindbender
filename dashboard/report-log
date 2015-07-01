@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Print log messages from report-templates
+# Print log messages from snapshot-templates
 #
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2015-02-11
