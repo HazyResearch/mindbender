@@ -1,0 +1,5 @@
+Scatter plot that shows an overview of the supervised labels by feature.
+Each bubble corresponds to one of the most frequently extracted features.
+X and Y axes show the number positive and negative candidates per feature, respectively.
+The size of the bubble indicates how many unsupervised candidates have the feature.
+Ideally, there should be a variety of features distributed on every side of the plot.

@@ -34,6 +34,10 @@ for reportId in reportIds
 
     ## augment the report object with content
 
+    # description
+    try
+    	report.description = String fs.readFileSync "#{report.path}/report.desc"
+
     # HTML from Markdown
     try
         markdownPath = "#{report.path}/README.md"

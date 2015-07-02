@@ -14,9 +14,8 @@ angular.module "mindbenderApp.dashboard", [
             # prepare array of links for navbar
             $rootScope.navLinks = [
                 { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
-                { url: '#/report-templates/edit', name: 'Configure Templates', img: 'gear.png' }
+                { url: '#/snapshot-templates/edit', name: 'Configure Templates', img: 'gear.png' }
                 { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
-                { url: '#/dashboard', name: 'Task', img: 'task.png' }
             ]
             do @updateNavLinkForSnapshots
             $rootScope.isNavLinkActive = (navLink) ->
@@ -81,8 +80,8 @@ angular.module "mindbenderApp.dashboard", [
         controller: "SnapshotReportsCtrl",
         reloadOnSearch: false
 
-    $routeProvider.when "/report-templates/edit",
-        templateUrl: "dashboard/report-templates-editor.html"
+    $routeProvider.when "/snapshot-templates/edit",
+        templateUrl: "dashboard/snapshot-template-editor.html"
         controller: "EditTemplatesCtrl",
         reloadOnSearch: false
 
@@ -164,7 +163,7 @@ angular.module "mindbenderApp.dashboard", [
     $scope.title = "Snapshot " + $routeParams.snapshotId
     $scope.loading = false
     $scope.tabs = {
-        table: { active: true }
+        table: { }
         bar: { show: false }
         scatter: { show: false }
     }
@@ -204,17 +203,17 @@ angular.module "mindbenderApp.dashboard", [
                     $scope.report.formattedReport = $scope.report.data[data_name]
                     $scope.report.formattedReport.name = data_name
 
-                    $scope.tabs.table.active = true
+                    $scope.tabs.bar.show = false
+                    $scope.tabs.scatter.show = false
 
                     chart = $scope.report.formattedReport.chart
                     if chart
                         if $scope.report.formattedReport.table.columns[chart.y]?.isNumeric
                             $scope.tabs.bar.show = true
-
                             $scope.tabs.scatter.show = $scope.report.formattedReport.table.columns[chart.x]?.isNumeric
-                        else
-                            $scope.tabs.bar.show = false
-                            $scope.tabs.scatter.show = false
+
+                    $scope.tabs.bar.active = $scope.tabs.bar.show
+                    $scope.tabs.table.active = !$scope.tabs.bar.active
 
                 Dashboard.updateNavLinkForSnapshots $location.search()
 
@@ -355,6 +354,7 @@ angular.module "mindbenderApp.dashboard", [
 
 .controller "EditTemplatesCtrl", ($scope, $http, $location, Dashboard) ->
     $scope.title = "Configure Templates"
+    $scope.template = {}
 
     $scope.loadTemplates = (switchToTemplate) ->
         $http.get "/api/snapshot-template/"
@@ -371,6 +371,10 @@ angular.module "mindbenderApp.dashboard", [
             $http.get "/api/snapshot-template/" + $scope.currentTemplateName
                 .success (data, status, headers, config) ->
                     $scope.template = $.extend({}, data)
+                    
+                    if $scope.template.scope
+                        $scope.template.scope = { report: $scope.template.scope.reports[0] }
+
                     $scope.template.params = []
                     for param in Object.keys(data.params)
                         $scope.template.params.push($.extend({ name: param }, data.params[param]))
@@ -387,6 +391,21 @@ angular.module "mindbenderApp.dashboard", [
 
     $scope.loadTemplates()
 
+
+    removeInheritedTaskParams = () ->
+        params = []
+        for param in $scope.template.params
+            if !param.fromTask
+                params.push(param)
+
+        $scope.template.params = params
+
+    $scope.$watch (-> $scope.template.type), (newValue) ->
+        if newValue == 'report'
+            removeInheritedTaskParams()
+        else if $scope.template.scope
+            $scope.addInheritedParams()
+
     $scope.changeCurrentTemplate = () ->
         $location.search('template', $scope.currentTemplateName)
 
@@ -397,10 +416,15 @@ angular.module "mindbenderApp.dashboard", [
         params = {}
         
         for param in $scope.template.params
-            params[param.name] = $.extend({}, param);
-            delete params[param.name]['name']
+            if !param.fromTask
+                params[param.name] = $.extend({}, param)
+                delete params[param.name]['name']
 
-        template = { params: params }
+        scope = {}
+        if $scope.template.scope
+            scope = $scope.template.scope
+
+        template = { type: $scope.template.type, scope: scope, params: params }
         if $scope.formatted
             template.sqlTemplate = $scope.template.sqlTemplate
         else
@@ -434,6 +458,23 @@ angular.module "mindbenderApp.dashboard", [
             .success (data, status, headers, config) ->
                 $scope.loadTemplates($scope.newTemplateName)
 
+    $scope.addInheritedParams = () ->
+        $http.get "/api/report-template/" + $scope.template.scope.report
+            .success (data, status, headers, config) ->
+                removeInheritedTaskParams()
+
+                i = 0
+                for name, details of data.params
+                    details.name = name
+                    details.fromTask = true
+
+                    if !details.inheritedFrom
+                        details.inheritedFrom = $scope.template.scope.report
+
+                    $scope.template.params.splice(i, 0, details)
+
+                    i++
+
 
 .filter 'capitalize', () ->
     (input) ->
@@ -441,154 +482,235 @@ angular.module "mindbenderApp.dashboard", [
 
 
 .directive 'flash', ['$document', ($document) ->
-    return {
-        link: (scope, element, attr) ->
-            element.on("click", (event) ->
-                $('.flash').css('background-color', attr['flash'])
-                setTimeout((-> $('.flash').css('background-color', '#FFF')), 1000)
-            )
-    }
+    link: (scope, element, attr) ->
+        element.on("click", (event) ->
+            $('.flash').css('background-color', attr['flash'])
+            setTimeout((-> $('.flash').css('background-color', '#FFF')), 1000)
+        )
 ]
 
 
-.directive 'chart', ($timeout, $parse, DashboardDataUtils) ->
+.directive 'chart', ($timeout, $compile, $parse, DashboardDataUtils) ->
     template: '<div class="chart"></div><div class="slider"></div>',
     restrict: 'E',
-    link: (scope, element, attrs) ->
-       
-        recursiveMerge = (obj1, obj2) ->
-            for k of obj2
-                if typeof obj1[k] == 'object' && typeof obj2[k] == 'object'
-                    obj1[k] = recursiveMerge(obj1[k], obj2[k])
+    require: '?^mbTaskArea',
+    link: (scope, element, attrs, taskArea) ->
+        scope.hasSlider = false
+        renderChart = ->
+            recursiveMerge = (obj1, obj2) ->
+                for k of obj2
+                    if typeof obj1[k] == 'object' && typeof obj2[k] == 'object'
+                        obj1[k] = recursiveMerge(obj1[k], obj2[k])
+                    else
+                        obj1[k] = obj2[k]
+
+                return obj1
+
+            binData = (data, numBins, x = "x", y = "y") ->
+                bucketSize = Math.ceil(data.length/numBins)
+                labels = []
+                buckets = []
+                i = 0
+                bucket = 0
+                previousLabel = data[0][x]
+
+                if bucketSize == 1
+                    for point in data
+                        buckets.push(point[y])
+                        labels.push(point[x])
                 else
-                    obj1[k] = obj2[k]
+                    for point in data
+                        if i >= bucketSize
+                            buckets.push(bucket)
+                            labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + ")")
+                            previousLabel = point[x]
+                            bucket = 0
+                            i = 0
+                        bucket += point[y]
+                        i++
 
-            return obj1
-
-        binData = (data, numBins, x = "x", y = "y") ->
-            bucketSize = Math.ceil(data.length/numBins)
-            labels = []
-            buckets = []
-            i = 0
-            bucket = 0
-            previousLabel = data[0][x]
-
-            if bucketSize == 1
-                for point in data
-                    buckets.push(point[y])
-                    labels.push(point[x])
-            else
-                for point in data
-                    if i >= bucketSize
+                    if bucket > 0
                         buckets.push(bucket)
-                        labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + ")")
-                        previousLabel = point[x]
-                        bucket = 0
-                        i = 0
-                    bucket += point[y]
-                    i++
+                        labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + "]")
 
-                if bucket > 0
-                    buckets.push(bucket)
-                    labels.push("[" + previousLabel.toLocaleString() + ", " + point[x].toLocaleString() + "]")
+                return { buckets: buckets, labels: labels }
 
-            return { buckets: buckets, labels: labels }
-
-        options =
-            title:
-                text: attrs.title
-            xAxis:
+            options =
                 title:
-                    text: attrs.label
-            yAxis:
-                title:
-                    text: attrs.yLabel
-            legend:
-                enabled: false
+                    text: attrs.title
+                xAxis:
+                    title:
+                        text: attrs.label
+                yAxis:
+                    title:
+                        text: attrs.yLabel
+                legend:
+                    enabled: false
 
-        # Get data to chart
-        full_data =
-            if attrs.data?
-                DashboardDataUtils.normalizeData (scope.$eval attrs.data)
-            else if attrs.file?
-                scope.report.data[attrs.file].table
-            else
-                console.error "No chart data or file attribute specified"
-                { columns: [], data: [] }
+            # Get data to chart
+            full_data =
+                if attrs.data?
+                    DashboardDataUtils.normalizeData (scope.$eval attrs.data)
+                else if attrs.file?
+                    scope.report.data[attrs.file]?.table
+                else
+                    console.error "No chart data or file attribute specified"
+                    null
 
-        # Prepare a data array for the chart series to be rendered
-        seriesData = do ->
+            return unless full_data?
+
             # use a column name map (mostly set by directive attrs) to construct the series data
             seriesDataToColumnName =
                 name : attrs.pointName
                 x    : attrs.axis
                 y    : attrs.yAxis
                 z    : attrs.zAxis
+
             seriesDataToColumnIndex = {}
             for key,columnName of seriesDataToColumnName
                 i = full_data.columns[columnName]?.index
                 seriesDataToColumnIndex[key] = i if i?
+
+            seriesData = []
             for data in full_data.data
                 seriesDataPoint = {}
                 for key,i of seriesDataToColumnIndex
                     seriesDataPoint[key] = data[i]
-                seriesDataPoint
+                seriesData.push(seriesDataPoint)
 
-        # Apply custom user options
-        if attrs.highchartsOptions?
-            # TODO move this to bottom, so user can override everything
-            options = recursiveMerge options, (scope.$eval attrs.highchartsOptions)
+            # Apply custom user options
+            if attrs.highchartsOptions?
+                # TODO move this to bottom, so user can override everything
+                options = recursiveMerge options, (scope.$eval attrs.highchartsOptions)
 
-        # Prepare a chart series by type
-        chartSeries = switch attrs.type
+            # Prepare a chart series by type
+            chartSeries = switch attrs.type
 
-            when "bar"
-                type: "column"
-                data: seriesData
-                name: attrs.yLabel
+                when "bar"
+                    type: "column"
+                    data: seriesData
+                    name: attrs.yLabel
 
-            when "scatter", "bubble"
-                type: attrs.type
-                data: seriesData
-                name: attrs.yLabel
+                when "scatter", "bubble"
+                    type: attrs.type
+                    data: seriesData
+                    name: attrs.yLabel
 
-            else
-                console.error "#{attrs.type}: Unsupported chart type"
-                null
+                else
+                    console.error "#{attrs.type}: Unsupported chart type"
+                    null
 
-        (options.series ?= []).push chartSeries if chartSeries?
+            if taskArea?
+                setUpDialogTable = (point_index) ->
+                    columnIndexToSeriesData = _.invert(seriesDataToColumnIndex)
 
-        # Extra work for certain chart types
-        switch attrs.type
+                    dialogTable = $("<table></table>")
+                    dialogData = $("<tr></tr>").append("<th>Column</th><th>Value</th><th>Chart Label</th>")
 
-            when "bar"
-                xHasTooManyNumbers = full_data.columns[attrs.axis]?.isNumeric and seriesData.length > 3 ** 3
-                formatChartData = (numBins) ->
-                    if (numBins? and numBins < seriesData.length) or xHasTooManyNumbers
-                        numBins ?= Math.floor(Math.sqrt(seriesData.length, 1/3))
-                        bins = binData(seriesData, numBins)
-                        chartSeries.data         = bins.buckets
-                        options.xAxis.categories = bins.labels
-                    else
-                        chartSeries.data         = seriesData
-                        delete options.xAxis.categories
-                do formatChartData
-                if xHasTooManyNumbers
-                    # Configure slider if X-axis is numeric
-                    element.find('.slider').slider({
-                        min: 1
-                        max: seriesData.length
-                        value: chartSeries.data.length
-                        slide: (event, ui) ->
-                            formatChartData ui.value
-                            element.find('.chart').highcharts(options)
+                    for name, info of full_data.columns
+                        value = full_data.data[point_index][info.index]
+
+                        nameCell = $("<td></td>").attr("data-task-value", name).html(name)
+                        valueCell = $("<td></td>").attr("data-task-value", value).html(value)
+                        labelCell = $("<td></td>")
+
+                        if columnIndexToSeriesData[info.index]
+                            labelCell.attr("data-task-value", columnIndexToSeriesData[info.index]).html(columnIndexToSeriesData[info.index])
+
+                        dialogData = dialogData.add(
+                            $("<tr></tr>").append(nameCell, valueCell, labelCell)
+                        )
+
+                    dialogTable.append(dialogData)
+
+                    return dialogTable
+
+                chartSeries.point = { events: { click: (e) ->
+                    element.find(".dialog").remove()
+
+                    # this.series.data is equivalent to seriesData, but contains extra Highcharts properties needed to match with e.point
+                    point_index = this.series.data.indexOf(e.point)
+
+                    dialogTable = setUpDialogTable(point_index)
+                    eDialog = $('<div class="dialog"></div>').append(dialogTable)
+
+                    eDialog.on("click", "td", (e) ->
+                        $timeout => taskArea.receiveValue(e, $(this).data("task-value"))
+                    )
+                    eDialog.dialog({
+                        title: "Task inputs"
+                        position: { my: "bottom", at: "center", of: event },
+                        appendTo: element.find(".chart")
                     })
+                } }
 
-            when "bubble"
-                chartSeries.name = attrs.title ? ""
+            (options.series ?= []).push chartSeries if chartSeries?
 
-        # Render chart with Highcharts
-        $timeout -> element.find('.chart').highcharts(options)
+            # Clear slider
+            if scope.hasSlider
+                element.find('.slider').slider("destroy")
+                scope.hasSlider = false
+
+            # Extra work for certain chart types
+            switch attrs.type
+                when "bar"
+                    setUpNormalDialogTable = setUpDialogTable
+                    setUpBinnedDialogTable = (point_index) ->
+                        dialogTable = $("<table></table>")
+
+                        for name, value of seriesData[point_index]
+                            categoryCell = $("<td></td>").attr("data-task-value", seriesDataToColumnName[name]).html(seriesDataToColumnName[name] + ":")
+                            valueCell = $("<td></td>")
+
+                            if name == "x"
+                                valueCell.attr("data-task-value", options.xAxis.categories[point_index]).html(options.xAxis.categories[point_index])
+                            else
+                                valueCell.attr("data-task-value", value).html(value)
+
+                            dialogTable.append($("<tr></tr>").append(categoryCell, valueCell))
+
+                        return dialogTable
+
+                    xHasTooManyNumbers = full_data.columns[attrs.axis]?.isNumeric and seriesData.length > 3 ** 3
+                    formatChartData = (numBins) ->
+                        if (numBins? and numBins < seriesData.length) and xHasTooManyNumbers
+                            numBins ?= Math.floor(Math.sqrt(seriesData.length, 1/3))
+                            bins = binData(seriesData, numBins)
+                            chartSeries.data         = bins.buckets
+                            options.xAxis.categories = bins.labels
+                            setUpDialogTable         = setUpBinnedDialogTable
+                        else
+                            chartSeries.data         = seriesData
+                            setUpDialogTable         = setUpNormalDialogTable
+                            delete options.xAxis.categories
+
+                    if full_data.columns[attrs.axis].isNumeric
+                        do formatChartData
+
+                        if xHasTooManyNumbers
+                            # Configure slider if X-axis is numeric
+                            element.find('.slider').slider({
+                                min: 1
+                                max: seriesData.length
+                                value: chartSeries.data.length
+                                slide: (event, ui) ->
+                                    formatChartData ui.value
+                                    element.find('.chart').highcharts(options)
+                            })
+                            scope.hasSlider = true
+                    else
+                        options.xAxis.categories = []
+                        for data, i in seriesData
+                            options.xAxis.categories.push(data.x)
+                            seriesData[i].x = i
+
+                when "bubble"
+                    chartSeries.name = attrs.title ? ""
+
+            # Render chart with Highcharts
+            $timeout -> element.find('.chart').highcharts(options)
+
+        scope.$watchCollection (-> attrs), renderChart
 
 .directive 'compileHtml', ['$compile', ($compile) ->
     return (scope, element, attrs) ->
@@ -604,225 +726,242 @@ angular.module "mindbenderApp.dashboard", [
 
 
 
-
 .directive 'mbTaskArea', () ->
-    return {
-        restrict: 'A',
-        controller: ($scope) ->
-            @templates = {
-                someTask1: {
-                    params: [
-                        { name: "foo", type: "int" }
-                        { name: "bar", type: "float" }
-                    ]
-                },
-                someTask2: {
-                    params: [
-                        { name: "fooText", type: "string" }
-                        { name: "barNum", type: "int" }
-                    ]
-                },
-                someTask3: {
-                    params: [
-                        { name: "fooText", type: "string" }
-                        { name: "barNum", type: "int" }
-                        { name: "anotherNum", type: "int" }
-                    ]
-                }
+    restrict: 'A',
+    controller: ($scope, $http) ->
+        # TODO: Once API works, change the below to just: @templates = {}
+        @templates = {
+            someTask1: {
+                params: [
+                    { name: "foo", type: "int" }
+                    { name: "bar", type: "float" }
+                ]
+            },
+            someTask2: {
+                params: [
+                    { name: "fooText", type: "string" }
+                    { name: "barNum", type: "int" }
+                ]
+            },
+            someTask3: {
+                params: [
+                    { name: "fooText", type: "string" }
+                    { name: "barNum", type: "int" }
+                    { name: "anotherNum", type: "int" }
+                ]
             }
-            @matcher = { show: false, event: null }
-            @boundParams = {}
-            @taskValues = []
-            @selectedTask = null
-            @selectedValue = null
+        }
+        @matcher = { show: false, event: null }
+        @boundParams = {}
+        @mirroredTaskValues = []
+        @selectedTask = null
+        @selectedValue = null
 
-            @determineType = (string) =>
-                if !isNaN(string)
-                    if Math.floor(string * 1) == string * 1
-                        return "int"
-                    else
-                        return "float"
+        $http.get "/api/snapshot-templates/?type=task"
+            .success (data, status, headers, config) ->
+                @templates = data
+
+        determineType = (string) =>
+            if !isNaN(string)
+                if Math.floor(string * 1) == string * 1
+                    return "int"
                 else
-                    return "string"
+                    return "float"
+            else
+                return "string"
 
-            @receiveValue = (event, value) =>
-                @matcher.show = true
-                @matcher.event = event
+        paramTypesVerify = (values) =>
+            if !@selectedTask
+                return false
 
-                valueType = @determineType(value)
+            for param, index in @templates[@selectedTask].params
+                if values[index] != null && param.type != determineType(values[index])
+                    return false
+
+            return true
+
+        @receiveValue = (event, value) =>
+            @matcher.show = true
+            @matcher.event = event
+
+            valueType = determineType(value)
+            if valueType != "string"
+                value *= 1
+
+            @selectedValue = value
+
+            for name, template of @templates
+                show = false
+                for param in template.params
+                    param.$selected = (param.type == valueType)
+                    if param.$selected
+                        show = true
+
+                template.$show = show
+
+        @bindParam = (task, param) =>
+            if task != @selectedTask
+                @boundParams = {}
+                @selectedTask = task
+
+            if @boundParams[param] == @selectedValue
+                delete @boundParams[param]
+            else
+                @boundParams[param] = @selectedValue
+
+            if !Object.keys(@boundParams).length
+                @selectedTask = null
+
+            mirrorBoundParams()
+
+        $scope.$watchCollection (=> @boundParams), () =>
+            mirrorBoundParams()
+
+        mirrorBoundParams = () =>
+            if @selectedTask
+                taskValues = []
+
+                for param in @templates[@selectedTask].params
+                    found = false
+                    for boundParam, boundValue of @boundParams
+                        if param.name == boundParam
+                            taskValues.push(boundValue)
+                            found = true
+
+                    if !found
+                        taskValues.push(null)
+
+                @mirroredTaskValues = taskValues
+
+        $scope.$watchCollection (=> @mirroredTaskValues), (newValue, oldValue) =>
+            if paramTypesVerify(@mirroredTaskValues)
+                boundParams = {}
+
+                if @selectedTask
+                    for param, index in @templates[@selectedTask].params
+                        if @mirroredTaskValues[index] != null
+                            boundParams[param.name] = @mirroredTaskValues[index]
+
+                @boundParams = boundParams
+            else
+                @mirroredTaskValues = oldValue
+
+        @editValue = (index) =>
+            value = prompt("Old Value: " + @mirroredTaskValues[index] + ", new value:")
+            if value
+                valueType = determineType(value)
                 if valueType != "string"
                     value *= 1
 
-                @selectedValue = value
-
-                for name, template of @templates
-                    show = false
-                    for param in template.params
-                        param.$selected = (param.type == valueType)
-                        if param.$selected
-                            show = true
-
-                    template.$show = show
-
-            @bindParam = (task, param) =>
-                if !@boundParams[task]
-                    @boundParams = {}
-                    @boundParams[task] = {}
-
-                if @boundParams[task][param] == @selectedValue
-                    delete @boundParams[task][param]
-                    if !Object.keys(@boundParams[task]).length
-                        @selectedTask = null
+                if valueType != @templates[@selectedTask].params[index].type
+                    alert("Invalid type. Expecting " + @templates[@selectedTask].params[index].type)
                 else
-                    @boundParams[task][param] = @selectedValue
-                    @selectedTask = task
+                    @mirroredTaskValues[index] = value
 
-                taskValues = []
-                if @selectedTask
-                    for param in @templates[@selectedTask].params
-                        found = false
-                        for boundParam, boundValue of @boundParams[@selectedTask]
-                            if param.name == boundParam
-                                taskValues.push(boundValue)
-                                found = true
-                        if !found
-                            taskValues.push(null)
+        @clearTask = () =>
+            @matcher.show = false
+            @selectedTask = null
+            @selectedValue = null
+            @boundParams = {}
 
-                @taskValues = taskValues
-
-            $scope.$watchCollection (=> @taskValues), (newValue, oldValue) =>
-                if newValue.length
-                    if @paramTypesVerify(newValue)
-                        @resetBoundParams()
-                    else
-                        @taskValues = oldValue
-
-            @paramTypesVerify = (values) =>
-                if !@selectedTask
-                    return false
-
-                for param, index in @templates[@selectedTask].params
-                    if values[index] != null && param.type != @determineType(values[index])
-                        return false
-
-                return true
-
-            @resetBoundParams = () =>
-                if !@selectedTask
-                    return
-
-                boundParams = {}
-                boundParams[@selectedTask] = {}
-                for param, index in @templates[@selectedTask].params
-                    if @taskValues[index] != null
-                        boundParams[@selectedTask][param.name] = @taskValues[index]
-
-                @boundParams = boundParams
-
-            @editValue = (index) =>
-                value = prompt("Old Value: " + @taskValues[index] + ", new value:")
-                if value
-                    valueType = @determineType(value)
-                    if valueType != "string"
-                        value *= 1
-
-                    if valueType != @templates[@selectedTask].params[index].type
-                        alert("Invalid type. Expecting " + @templates[@selectedTask].params[index].type)
-                    else
-                        @taskValues[index] = value
-
-            @clearTask = () =>
+        @runTask = () =>
+            if Object.keys(@boundParams).length == Object.keys(@templates[@selectedTask].params).length
                 @matcher.show = false
-                @boundParams = {}
-                @taskValues = []
-                @selectedTask = null
-                @selectedValue = null
-    }
+                taskPostData = {
+                    taskTemplate: @selectedTask
+                    report: $scope.currentReport
+                    params: @boundParams
+                }
+
+                $http.post("/api/snapshot/LATEST/task/", taskPostData)
+            else
+                alert("Please fill in all task parameters.")
 
 
 .directive 'mbTable', ($timeout) ->
-    return {
-        template: """
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th style="text-align:center" ng-repeat="column in table.columnsByIndex">{{ column.name }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr ng-repeat="row in table.data">
-                        <td ng-repeat="data in row track by $index" ng-style="table.columnsByIndex[$index].isNumeric && {'text-align':'right'}"><span style="cursor:pointer" ng-click="bindToTask($event, data)">{{ data }}</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        """,
-        restrict: 'E',
-        require: '?^mbTaskArea',
-        link: (scope, element, attrs, taskArea) ->
-            scope.table = scope.report.data[attrs.file].table
-            scope.bindToTask = taskArea.receiveValue if taskArea?
-            $timeout ->
-                element.find("table").DataTable({
-                    pageLength: 25
-                })
-    }
+    template: """
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="text-align:center" ng-repeat="column in table.columnsByIndex">{{ column.name }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="row in table.data">
+                    <td ng-repeat="data in row track by $index" ng-style="table.columnsByIndex[$index].isNumeric && {'text-align':'right'}"><span style="cursor:pointer" ng-click="bindToTask($event, data)">{{ data }}</span></td>
+                </tr>
+            </tbody>
+        </table>
+    """,
+    restrict: 'E',
+    require: '?^mbTaskArea',
+    link: (scope, element, attrs, taskArea) ->
+        scope.table = scope.report.data[attrs.file].table
+        scope.bindToTask = taskArea.receiveValue if taskArea?
+        $timeout ->
+            element.find("table").DataTable({
+                pageLength: 25
+            })
+
 
 .directive 'mbTaskControl', ($timeout) ->
-    return {
-        template: """
+    template: """
         <div id="task-button" class="btn-group" style="float:right">
             <button id="task-button-dropdown" type="button" class="btn btn-primary dropdown-toggle" aria-expanded="false">
                 Tasks <span class="caret"></span>
             </button>
-            <div class="dropdown-menu pull-right" role="menu" style="padding:5px;width:120px">
-                <input type="text" ng-value="taskArea.selectedTask" style="width:105px">
-                <button class="btn btn-default" ng-click="taskArea.clearTask()">X</button>
-                <div style="width:70%;float:left;border:1px solid #000;padding:3px">
-                    <div ng-repeat="param in taskArea.templates[taskArea.selectedTask].params" style="list-style-type:none">
-                            {{ param.name }}:
-                    </div>
+            <div class="dropdown-menu pull-right" role="menu" style="padding:5px;width:300px">
+                <div ng-hide="taskArea.selectedTask">
+                    No task selected.
                 </div>
-                <div style="width:30%;float:right;border:1px solid #000;padding:3px">
-                    <div ui-sortable ng-model="taskArea.taskValues">
-                        <div style="cursor:pointer" ng-repeat="value in taskArea.taskValues track by $index" ng-click="taskArea.editValue($index)">
-                            <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
-                            <span >{{ value }}</span>
-                            &nbsp;
+                <div ng-show="taskArea.selectedTask">
+                    <input type="text" ng-value="taskArea.selectedTask" style="width:248px">
+                    <button class="btn btn-default" ng-click="taskArea.clearTask()">X</button>
+                    <div style="width:60%;float:left;border:1px solid #000;padding:3px">
+                        <div ng-repeat="param in taskArea.templates[taskArea.selectedTask].params" style="list-style-type:none">
+                                {{ param.name }}:
                         </div>
                     </div>
+                    <div style="width:40%;float:right;border:1px solid #000;padding:3px">
+                        <div ui-sortable ng-model="taskArea.mirroredTaskValues" style="overflow:auto">
+                            <div style="cursor:pointer;white-space:nowrap" ng-repeat="value in taskArea.mirroredTaskValues track by $index" ng-click="taskArea.editValue($index)">
+                                <span class="ui-icon ui-icon-arrowthick-2-n-s" style="float:left;width:20px"></span>
+                                <span>{{ value }}</span>
+                                &nbsp;
+                            </div>
+                        </div>
+                    </div>
+                    <br style="clear:both;">
+                    <button class="btn btn-primary" style="margin-top:5px;float:right;" ng-click="taskArea.runTask()">Run Task</button>
                 </div>
-                <button class="btn btn-primary">Run Task</button>
             </div>
         </div>
-        <div id="taskMatcher" style="z-index:10;position:absolute;top:0px;left:0px;border:2px solid #000;width:300px;height:400px;background-color:#FFF;overflow:auto;padding:5px" ng-show="taskArea.matcher.show">
+        <div id="taskMatcher" style="z-index:1000;position:absolute;top:0px;left:0px;border:2px solid #000;width:300px;height:400px;background-color:#FFF;overflow:auto;padding:5px" ng-show="taskArea.matcher.show">
             <button class="btn btn-default" ng-click="taskArea.matcher.show = false" style="float:right">X</button>
             <h3>Tasks</h3>
             <div ng-repeat="(task, template) in taskArea.templates">
-                <div ng-shos="template.$show">
+                <div ng-show="template.$show">
                     <span ng-class="{ 'selected-task' : taskArea.selectedTask == task }">
                         {{ task }}
                     </span>
-                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskArea.bindParam(task, param.name)">{{ param.name }}<span ng-if="taskArea.boundParams[task][param.name]">[{{ taskArea.boundParams[task][param.name] }}]</span>{{$last ? '' : ', '}}</span>)
+                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskArea.bindParam(task, param.name)">{{ param.name }}<span ng-if="taskArea.boundParams[param.name] && taskArea.selectedTask == task">[{{ taskArea.boundParams[param.name] }}]</span>{{$last ? '' : ', '}}</span>)
                 </div>
             </div>
         </div>
-        """,
-        require: '^mbTaskArea',
-        restrict: 'E',
-        link: (scope, element, attrs, taskArea) ->
-            scope.taskArea = taskArea
+    """,
+    require: '^mbTaskArea',
+    restrict: 'E',
+    link: (scope, element, attrs, taskArea) ->
+        scope.taskArea = taskArea
 
-            scope.$watch (-> taskArea.matcher.event), (event) ->
-                return unless event?
+        scope.$watch (-> taskArea.matcher.event), (event) ->
+            return unless event?
 
-                eOffset = angular.element(event.currentTarget).offset()
-                eParentOffset = angular.element("#taskMatcher").parent().offset()
+            eOffset = angular.element(event.currentTarget).offset()
+            eParentOffset = angular.element("#taskMatcher").parent().offset()
 
-                element.find("#taskMatcher").css("left", eOffset.left - eParentOffset.left + 30)
-                element.find("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
-
-    }
+            element.find("#taskMatcher").css("left", eOffset.left - eParentOffset.left + 30)
+            element.find("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
 
 .filter "urlEncode", () ->
     (input) -> encodeURIComponent input
-

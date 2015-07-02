@@ -1,0 +1,2 @@
+This histogram shows an overview of how sparse or dense the extracted features are distributed among candidates.
+If all features are very sparse (having only a small support among candidates), DeepDive will not be able to learn or generalize from the supervised ones.

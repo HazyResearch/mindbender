@@ -24,28 +24,28 @@
 		</div>
 	</div>
 
-	<div ng-if="!reportLoadError" mb-task-area>
-		<div ng-show="loading" class="col-md-9">
+	<div ng-if="!reportLoadError" mb-task-area class="col-md-9">
+		<div ng-show="loading">
 			<img src="dashboard/images/loading.gif">
 		</div>
-		<div class="col-md-9" ng-show="!report.isFormatted && !loading">
+		<div ng-show="!loading">
+
+		<div ng-if="report.description">
+			<div class="well well-sm">{{report.description}}</div>
+		</div>
+
+		<!-- Button to show raw content in modal -->
+		<button type="button" class="btn btn-default pull-right" data-toggle="modal" data-target="#report-metadata-modal">Details</button>
+
+		<mb-task-control></mb-task-control>
+
+		<div ng-show="!report.isFormatted">
 			<div compile-html="report.html"></div>
 		</div>
-		<div class="col-md-9" ng-show="report.isFormatted && !loading">
 
-                        <!-- Button to show raw content in modal -->
-                        <button type="button" class="btn btn-default pull-right" data-toggle="modal" data-target="#report-metadata-modal">Details</button>
-
-			<mb-task-control></mb-task-control>
-
+		<div ng-show="report.isFormatted">
 			<tabset>
-				<tab active="tabs['table'].active">
-					<tab-heading style="font-size:18pt;">
-						<i class="fa fa-table"></i>
-					</tab-heading>
-					<mb-table ng-if="report.isFormatted && !loading" data-file="{{ report.formattedReport.name }}"></mb-table>
-				</tab>
-				<tab ng-show="tabs['bar'].show">
+				<tab active="tabs['bar'].active" ng-show="tabs['bar'].show">
 					<tab-heading style="font-size:18pt;">
 						<i class="fa fa-bar-chart"></i>
 					</tab-heading>
@@ -73,7 +73,15 @@
 					    y-label="{{ report.formattedReport.chart.y }}"
 					></chart>
 				</tab>
+				<tab active="tabs['table'].active">
+					<tab-heading style="font-size:18pt;">
+						<i class="fa fa-table"></i>
+					</tab-heading>
+					<mb-table ng-if="report.isFormatted && !loading" data-file="{{ report.formattedReport.name }}"></mb-table>
+				</tab>
 			</tabset>
+		</div>
+
 		</div>
 	</div>
 </div>
@@ -103,9 +111,10 @@
 		setTimeout(function() {
 			$('#nav').affix({
 				offset: {
-					top: $('#nav').offset().top
+					top: 160
 				}
 			});
+
 			$('#task-button-dropdown').click(function() {
 				$(this).parent().toggleClass('open');
 			});
