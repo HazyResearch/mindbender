@@ -161,8 +161,10 @@ case $Command in
                                 local scopeValue=
                                 for scopeValue; do
                                     parse-template-parts "$snapshotTemplateRoot" "$scopeValue" params
-                                    JSON_FILE=$tmp/template.json report-values scope="$scopeValue"
                                 done
+                                JSON_FILE=$tmp/template.json report-values \
+                                    scope="{$(json-string "$scopeType"):[$(
+                                        json-string "$@" | tr '\n' , | sed 's/,$//')]}"
                             }
                             ( cd "$reportTemplatePath"
                             source task.params

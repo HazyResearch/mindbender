@@ -373,7 +373,7 @@ angular.module "mindbenderApp.dashboard", [
                     $scope.template = $.extend({}, data)
                     
                     if $scope.template.scope
-                        $scope.template.scope = { report: $scope.template.scope.reports[0] }
+                        $scope.template.scope = { report: $scope.template.scope.report[0] }
 
                     $scope.template.params = []
                     for param in Object.keys(data.params)
@@ -459,7 +459,7 @@ angular.module "mindbenderApp.dashboard", [
                 $scope.loadTemplates($scope.newTemplateName)
 
     $scope.addInheritedParams = () ->
-        $http.get "/api/report-template/" + $scope.template.scope.report
+        $http.get "/api/snapshot-template/" + $scope.template.scope.report
             .success (data, status, headers, config) ->
                 removeInheritedTaskParams()
 
