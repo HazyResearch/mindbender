@@ -82,7 +82,7 @@
 					    </div>
 					    <span ng-if="template.type == 'task'">
 					    	Scope:
-					    	<select ng-model="template.scope.report" ng-change="addInheritedParams()">
+					    	<select ng-model="template.scope.report[0]" ng-change="addInheritedParams()">
 					    		<option ng-repeat="templateName in templateList">{{ templateName }}</option>
 					    	</select>
 					    </span>

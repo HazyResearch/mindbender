@@ -372,9 +372,6 @@ angular.module "mindbenderApp.dashboard", [
                 .success (data, status, headers, config) ->
                     $scope.template = $.extend({}, data)
                     
-                    if $scope.template.scope
-                        $scope.template.scope = { report: $scope.template.scope.report[0] }
-
                     $scope.template.params = []
                     for param in Object.keys(data.params)
                         $scope.template.params.push($.extend({ name: param }, data.params[param]))
@@ -420,11 +417,7 @@ angular.module "mindbenderApp.dashboard", [
                 params[param.name] = $.extend({}, param)
                 delete params[param.name]['name']
 
-        scope = {}
-        if $scope.template.scope
-            scope = $scope.template.scope
-
-        template = { type: $scope.template.type, scope: scope, params: params }
+        template = { type: $scope.template.type, scope: $scope.template.scope, params: params }
         if $scope.formatted
             template.sqlTemplate = $scope.template.sqlTemplate
         else

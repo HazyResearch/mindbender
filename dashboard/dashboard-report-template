@@ -222,7 +222,7 @@ case $Command in
         coffee -e '
             fs = require "fs"
             _ = require "underscore"
-            [jsonFile] = process.argv[4..]
+            [jsonFile,reportTemplateName] = process.argv[4..]
 
             ## read and parse input report template object
             reportTemplate = JSON.parse fs.readFileSync jsonFile
@@ -238,20 +238,45 @@ case $Command in
                 if content?
                     fs.writeFileSync fileName, content
                     yes
-            write "report.params", (
-                if (_.size reportTemplate.params) > 0
-                    for name,{isRequired,defaultValue,description,inheritedFrom} of reportTemplate.params when not inheritedFrom?
-                        if isRequired
-                            "required #{esc name} #{esc description}"
-                        else
-                            "optional #{esc name} #{esc defaultValue} #{esc description}"
-            )?.join "\n"
+
+            # whether the given path a param comes from overlaps with reportTemplateName
+            paramNeeded = (inheritedFrom) ->
+                not inheritedFrom? or (
+                    reportTemplate.type isnt "task" and
+                    (inheritedFrom.substring 0, reportTemplateName.length) isnt reportTemplateName
+                )
+            # how to format the .params file
+            formatParams = (reportTemplate) -> (
+                    if (_.size reportTemplate.params) > 0
+                        for name,{type,isRequired,defaultValue,description,inheritedFrom} of reportTemplate.params when paramNeeded inheritedFrom
+                            nametype = "#{esc name}#{if type? then ":#{esc type}" else ""}"
+                            if isRequired
+                                "required #{nametype} #{esc description}"
+                            else
+                                "optional #{nametype} #{esc defaultValue} #{esc description}"
+                )?.join "\n"
+
+            # write the parameter declarations
+            if reportTemplate.type is "task"
+                write "task.params",
+                    # write a scope line for task templates
+                    ((
+                        for scopeType,scopeValues of reportTemplate.scope
+                            ["scope", scopeType, (esc v for v in scopeValues)...].join " "
+                     )?.join "\n") + "\n" +
+                    (formatParams reportTemplate)
+            else
+                # ordinary report templates simply need parameter declarations
+                write "report.params", (formatParams reportTemplate)
+
+            # write the contents
             write "README.md.in", reportTemplate.markdownTemplate
             write "data.sql.in", reportTemplate.sqlTemplate
+
             # keep chart parameters
             write "report.chart",
                 JSON.stringify reportTemplate.chart if reportTemplate.chart?
-        ' /dev/stdin
+        ' /dev/stdin "$TemplateName"
 
         # clean up conflicting artifacts after decoding
         if [[ -e data.sql.in ]]; then
