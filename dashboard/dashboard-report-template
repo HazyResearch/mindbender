@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # dashboard-report-template -- Manipulate report templates
 # > dashboard-report-template ls
+# > dashboard-report-template ls-tasks
 # > dashboard-report-template get NAME
 # > dashboard-report-template put NAME <TEMPLATE_JSON
 # > dashboard-report-template delete NAME
@@ -15,7 +16,7 @@ export DEEPDIVE_APP
 [[ $# -gt 0 ]] || usage "$0" "No verb given"
 Command=$1; shift
 case $Command in
-    ls)
+    ls|ls-tasks)
         ;;
     get|put|delete)
         [[ $# -gt 0 ]] || usage "$0" "No NAME given"
@@ -35,7 +36,7 @@ reportTemplateImportOrder=(
 case $Command in
     ls) # list report templates in JSON array
         echo "["
-        find "${reportTemplateImportOrder[@]}" \
+        find "${reportTemplateImportOrder[@]}" 2>/dev/null \
             \( -name "README.md.in" \
             -o -name "data.sql.in" \
             \) -print |
@@ -43,80 +44,158 @@ case $Command in
         sort -u |
         while read template; do
             echo ","
-            # TODO need to do complete JSON escaping
-            printf '"%s"\n' "$template"
+            json-string "$template"
         done | tail -n +2
         echo "]"
+        ;;
+
+    ls-tasks)
+        echo "{"
+        find "${reportTemplateImportOrder[@]}" 2>/dev/null \
+            -execdir [ -e task.params ] \; \
+            \( -name "README.md.in" \
+            -o -name "data.sql.in" \
+            \) -print |
+        sed 's:^.*/snapshot-template/::; s:/[^/]*$::' |
+        sort -u |
+        while read template; do
+            echo ","
+            json-string "$template"
+            echo ":"
+            dashboard-report-template get "$template" type params
+        done | tail -n +2
+        echo "}"
         ;;
 
     get) # encode report template into a JSON object
         tmp=$(mktemp -d ${TMPDIR:-/tmp}/dashboard-report-template.XXXXXX)
         trap "rm -rf $tmp" EXIT
         export JSON_FILE=-  # to use report-values for constructing JSON
+        echo '{}' >$tmp/params.json
+
+        [[ $# -gt 0 ]] || set -- type params markdownTemplate sqlTemplate
+
+        # TODO It's probably a very good idea to implement this JSON construction in another language as this is already pretty slow.  A small obstacle would be interpreting the report.params files.
+        parse-template-parts() {
+            local snapshotTemplateRoot=$1; shift
+            local template=$1; shift
+            local reportTemplatePath="$snapshotTemplateRoot/$template"
+
+            # it has to be a report/task template
+            [[ -d "$reportTemplatePath" ]] || return 1
+            [[ -e "$reportTemplatePath/README.md.in" ||
+               -e "$reportTemplatePath/data.sql.in" ]] || return 1
+
+            local part=
+            for part; do
+                case $part in
+                    type)
+                        if [[ -e "$reportTemplatePath"/task.params ]]; then
+                            JSON_FILE=$tmp/template.json report-values type=task
+                        else
+                            JSON_FILE=$tmp/template.json report-values type=report
+                        fi
+                        ;;
+
+                    params) # encode parameters by interpreting report.params and task.params
+                        local inheritedFrom=null
+                        required() {
+                            local nametype=$1; shift
+                            local desc=$1; shift
+                            # parse optional type from name
+                            local name= type=
+                            name=${nametype%:*}
+                            type=${nametype#$name}
+                            type=${type#:}
+                            JSON_FILE=$tmp/params.json report-values \
+                                "$name=$(report-values \
+                                    type=${type:-null} \
+                                    inheritedFrom=$inheritedFrom \
+                                    isRequired=true \
+                                    description="$desc")"
+                        }
+                        optional() {
+                            local nametype=$1; shift
+                            local valueDefault=$1; shift
+                            local desc=$1; shift
+                            # parse optional type from name
+                            local name= type=
+                            name=${nametype%:*}
+                            type=${nametype#$name}
+                            type=${type#:}
+                            JSON_FILE=$tmp/params.json report-values \
+                                "$name=$(report-values \
+                                    type=${type:-null} \
+                                    inheritedFrom=$inheritedFrom \
+                                    isRequired=false \
+                                    defaultValue="$valueDefault" \
+                                    description="$desc")"
+                        }
+                        # taking care of inherited parameters as well
+                        ( cd "$snapshotTemplateRoot"
+                        list-breadcrumb-paths "$template" |
+                        while read path; do
+                            (
+                            path=${path%/}
+                            cd "$path"
+                            [[ -e report.params ]] || continue
+                            # record provenance of inherited parameters
+                            if [[ "$path" = "$TemplateName" ]]
+                            then inheritedFrom=null
+                            else inheritedFrom=$path
+                            fi
+                            # interpret report.params
+                            source report.params
+                            )
+                        done
+                        )
+                        # task templates require special care
+                        if [[ -e "$reportTemplatePath"/task.params ]]; then
+                            # parameters from any report appearing in the task's scope should be inherited
+                            scope() {
+                                local scopeType=$1; shift
+                                case $scopeType in
+                                    report) ;;
+                                    *) error "$scopeType: Invalid scope for task $taskPath"
+                                esac
+                                local scopeValue=
+                                for scopeValue; do
+                                    parse-template-parts "$snapshotTemplateRoot" "$scopeValue" params
+                                    JSON_FILE=$tmp/template.json report-values scope="$scopeValue"
+                                done
+                            }
+                            ( cd "$reportTemplatePath"
+                            source task.params
+                            )
+                        fi
+                        JSON_FILE=$tmp/template.json report-values \
+                            params="$(cat $tmp/params.json)"
+                        ;;
+
+                    markdownTemplate) # encode markdownTemplate
+                        ( cd "$reportTemplatePath"
+                        if [[ -e README.md.in ]]; then
+                            JSON_FILE=$tmp/template.json report-values \
+                                markdownTemplate="$(cat README.md.in)"
+                        fi
+                        )
+                        ;;
+
+                    sqlTemplate) # encode sqlTemplate
+                        ( cd "$reportTemplatePath"
+                        if [[ -e data.sql.in ]]; then
+                            JSON_FILE=$tmp/template.json report-values \
+                                sqlTemplate="$(cat data.sql.in)"
+                        fi
+                        )
+                        ;;
+                esac
+            done
+        }
 
         # find the snapshot-template
-        for dir in "${reportTemplateImportOrder[@]}"; do
-            reportTemplatePath="$dir/$TemplateName"
-            [[ -d "$reportTemplatePath" ]] || continue
-            [[ -e "$reportTemplatePath/README.md.in" ||
-               -e "$reportTemplatePath/data.sql.in" ]] || continue
-
-            # TODO It's probably a very good idea to implement this JSON construction in another language as this is already pretty slow.  A small obstacle would be interpreting the report.params files.
-            # encode parameters by interpreting report.params
-            required() {
-                local name=$1; shift
-                local desc=$1; shift
-                JSON_FILE=$tmp/params.json report-values \
-                    "$name=$(report-values \
-                        inheritedFrom=$inheritedFrom \
-                        isRequired=true \
-                        description="$desc")"
-            }
-            optional() {
-                local name=$1; shift
-                local valueDefault=$1; shift
-                local desc=$1; shift
-                JSON_FILE=$tmp/params.json report-values \
-                    "$name=$(report-values \
-                        inheritedFrom=$inheritedFrom \
-                        isRequired=false \
-                        defaultValue="$valueDefault" \
-                        description="$desc")"
-            }
-            echo '{}' >$tmp/params.json
-            (
-            list-breadcrumb-paths "$TemplateName" |
-            while read path; do
-                (
-                path=${path%/}
-                cd "$dir/$path"
-                [[ -e report.params ]] || continue
-                # record provenance of inherited parameters
-                if [[ "$path" = "$TemplateName" ]]
-                then inheritedFrom=null
-                else inheritedFrom=$path
-                fi
-                # interpret report.params
-                source report.params
-                )
-            done
-            )
-            JSON_FILE=$tmp/template.json report-values \
-                params="$(cat $tmp/params.json)"
-
-            cd "$reportTemplatePath"
-
-            # encode markdownTemplate
-            if [[ -e README.md.in ]]; then
-                JSON_FILE=$tmp/template.json report-values \
-                    markdownTemplate="$(cat README.md.in)"
-            fi
-
-            # encode sqlTemplate
-            if [[ -e data.sql.in ]]; then
-                JSON_FILE=$tmp/template.json report-values \
-                    sqlTemplate="$(cat data.sql.in)"
-            fi
+        for snapshotTemplateRoot in "${reportTemplateImportOrder[@]}"; do
+            parse-template-parts "$snapshotTemplateRoot" "$TemplateName" "$@" || continue
             break
         done
 

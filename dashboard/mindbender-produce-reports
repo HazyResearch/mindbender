@@ -40,13 +40,6 @@ cd "$SnapshotDir" || error "$SnapshotDir: No such snapshot"
 # TODO factor out these shell functions into separate scripts, and add unit tests
 
 ## some utility commands
-json-string() {
-    local s=
-    for s; do
-        s=${s//\"/\\\"}
-        echo -n "\"$s\""
-    done
-}
 quote-html-attr() {
     local s=
     for s; do

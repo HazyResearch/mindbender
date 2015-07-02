@@ -62,7 +62,10 @@ exports.init = (app) ->
     ## Creating New Snapshots
     # List Report Templates
     app.get "/api/snapshot-template/", (req, res) ->
-        sendStdoutOf res, "dashboard-report-template", ["ls"]
+        if (req.param "type") is "task"
+            sendStdoutOf res, "dashboard-report-template", ["ls-tasks"]
+        else
+            sendStdoutOf res, "dashboard-report-template", ["ls"]
 
     # List Snapshot Configurations
     app.get "/api/snapshot-config/", (req, res) ->
