@@ -10,6 +10,8 @@
 # Created: 2015-04-29
 set -eu
 
+: ${DASHBOARD_TASK_TEMPLATES_INCLUDE_SUPPLIED_PARAMS:=false}
+
 DEEPDIVE_APP=$(find-deepdive-app)
 export DEEPDIVE_APP
 
@@ -158,10 +160,12 @@ case $Command in
                                     report) ;;
                                     *) error "$scopeType: Invalid scope for task $taskPath"
                                 esac
-                                local scopeValue=
-                                for scopeValue; do
-                                    parse-template-parts "$snapshotTemplateRoot" "$scopeValue" params
-                                done
+                                if $DASHBOARD_TASK_TEMPLATES_INCLUDE_SUPPLIED_PARAMS; then
+                                    local scopeValue=
+                                    for scopeValue; do
+                                        parse-template-parts "$snapshotTemplateRoot" "$scopeValue" params
+                                    done
+                                fi
                                 JSON_FILE=$tmp/template.json report-values \
                                     scope="{$(json-string "$scopeType"):[$(
                                         json-string "$@" | tr '\n' , | sed 's/,$//')]}"
