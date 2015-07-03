@@ -722,37 +722,27 @@ angular.module "mindbenderApp.dashboard", [
 .directive 'mbTaskArea', () ->
     restrict: 'A',
     controller: ($scope, $http) ->
-        # TODO: Once API works, change the below to just: @templates = {}
-        @templates = {
-            someTask1: {
-                params: [
-                    { name: "foo", type: "int" }
-                    { name: "bar", type: "float" }
-                ]
-            },
-            someTask2: {
-                params: [
-                    { name: "fooText", type: "string" }
-                    { name: "barNum", type: "int" }
-                ]
-            },
-            someTask3: {
-                params: [
-                    { name: "fooText", type: "string" }
-                    { name: "barNum", type: "int" }
-                    { name: "anotherNum", type: "int" }
-                ]
-            }
-        }
+        @templates = {}
         @matcher = { show: false, event: null }
         @boundParams = {}
         @mirroredTaskValues = []
         @selectedTask = null
         @selectedValue = null
 
-        $http.get "/api/snapshot-templates/?type=task"
-            .success (data, status, headers, config) ->
-                @templates = data
+        $http.get "/api/snapshot-template/?type=task"
+            .success (data, status, headers, config) =>
+                # import task definitions from response
+                for taskName,taskDef of data
+                    @templates[taskName] = {
+                        params: (
+                            for name,paramDef of taskDef.params
+                                {
+                                    name
+                                    type: paramDef.type ? "string"  # TODO keep this null and allow null type to match any type determined from data
+                                    # TODO default values for optional
+                                }
+                        )
+                    }
 
         determineType = (string) =>
             if !isNaN(string)
