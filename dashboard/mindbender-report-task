@@ -15,6 +15,6 @@ cd "$DEEPDIVE_APP"
 ReportId=$1; shift
 TaskName=$1; shift
 
-mindbender-produce-reports snapshot/LATEST <(
+mindbender-snapshot <(
     escape-args-for-shell report-task "$ReportId" "$TaskName" "$@"
-)
+) snapshot/LATEST
