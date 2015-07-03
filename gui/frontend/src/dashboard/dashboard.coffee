@@ -467,11 +467,6 @@ angular.module "mindbenderApp.dashboard", [
 
                     i++
 
-.filter 'capitalize', () ->
-    (input) ->
-        input[0].toUpperCase() + input.substring(1)
-
-
 .directive 'flash', ['$document', ($document) ->
     link: (scope, element, attr) ->
         element.on("click", (event) ->
