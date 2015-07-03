@@ -365,6 +365,8 @@ angular.module "mindbenderApp.dashboard", [
                 else
                     $location.search('template', data[0])
 
+    $scope.loadTemplates($location.search()['template'])
+
     $scope.$watch (-> $location.search()['template']), (newValue) ->
         if newValue
             $scope.currentTemplateName = newValue
@@ -385,9 +387,6 @@ angular.module "mindbenderApp.dashboard", [
                         $scope.template.hasChart = true
                     else
                         $scope.template.hasChart = false
-
-    $scope.loadTemplates()
-
 
     removeInheritedTaskParams = () ->
         params = []
@@ -452,7 +451,7 @@ angular.module "mindbenderApp.dashboard", [
                 $scope.loadTemplates($scope.newTemplateName)
 
     $scope.addInheritedParams = () ->
-        $http.get "/api/snapshot-template/" + $scope.template.scope.report
+        $http.get "/api/snapshot-template/" + $scope.template.scope.report[0]
             .success (data, status, headers, config) ->
                 removeInheritedTaskParams()
 
@@ -462,12 +461,11 @@ angular.module "mindbenderApp.dashboard", [
                     details.fromTask = true
 
                     if !details.inheritedFrom
-                        details.inheritedFrom = $scope.template.scope.report
+                        details.inheritedFrom = $scope.template.scope.report[0]
 
                     $scope.template.params.splice(i, 0, details)
 
                     i++
-
 
 .filter 'capitalize', () ->
     (input) ->
