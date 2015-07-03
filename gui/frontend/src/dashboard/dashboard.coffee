@@ -14,7 +14,7 @@ angular.module "mindbenderApp.dashboard", [
             # prepare array of links for navbar
             $rootScope.navLinks = [
                 { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
-                { url: '#/snapshot-templates/edit', name: 'Configure Templates', img: 'gear.png' }
+                { url: '#/snapshot-template/edit', name: 'Configure Templates', img: 'gear.png' }
                 { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
             ]
             do @updateNavLinkForSnapshots
@@ -80,7 +80,7 @@ angular.module "mindbenderApp.dashboard", [
         controller: "SnapshotReportsCtrl",
         reloadOnSearch: false
 
-    $routeProvider.when "/snapshot-templates/edit",
+    $routeProvider.when "/snapshot-template/edit",
         templateUrl: "dashboard/snapshot-template-editor.html"
         controller: "EditTemplatesCtrl",
         reloadOnSearch: false
