@@ -85,6 +85,7 @@
 					    	<select ng-model="template.scope.report[0]" ng-change="addInheritedParams()">
 					    		<option ng-repeat="templateName in templateList">{{ templateName }}</option>
 					    	</select>
+							<img ng-show="template.inheritedParamsLoading" src="dashboard/images/loading.gif">
 					    </span>
 						<h4>Parameters</h4>
 						<table class="table table-striped" style="margin-bottom: 5px">

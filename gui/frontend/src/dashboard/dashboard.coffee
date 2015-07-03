@@ -451,8 +451,12 @@ angular.module "mindbenderApp.dashboard", [
                 $scope.loadTemplates($scope.newTemplateName)
 
     $scope.addInheritedParams = () ->
+        $scope.template.inheritedParamsLoading = true
+
         $http.get "/api/snapshot-template/" + $scope.template.scope.report[0]
             .success (data, status, headers, config) ->
+                $scope.template.inheritedParamsLoading = false
+
                 removeInheritedTaskParams()
 
                 i = 0
@@ -467,6 +471,7 @@ angular.module "mindbenderApp.dashboard", [
 
                     i++
 
+
 .directive 'flash', ['$document', ($document) ->
     link: (scope, element, attr) ->
         element.on("click", (event) ->
@@ -474,7 +479,6 @@ angular.module "mindbenderApp.dashboard", [
             setTimeout((-> $('.flash').css('background-color', '#FFF')), 1000)
         )
 ]
-
 
 .directive 'chart', ($timeout, $compile, $parse, DashboardDataUtils) ->
     template: '<div class="chart"></div><div class="slider"></div>',
