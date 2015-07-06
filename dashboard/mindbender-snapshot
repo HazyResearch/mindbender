@@ -51,6 +51,9 @@ mkdir -p "$SnapshotDir"/files
 
 # display the snapshot ID
 echo "${SnapshotDir#snapshot/}"
+
+{ # nothing should go into stdout from the rest
+
 # record as latest failure if RUNNING symlink exists
 if [[ -L snapshot/RUNNING ]]; then
     pgidFile=snapshot/"$(readlink snapshot/RUNNING)".RUNNING
@@ -94,3 +97,5 @@ if [[ -e snapshot/LATEST && ! snapshot/LATEST -ef snapshot/PREVIOUS ]]; then
     mv -f snapshot/LATEST snapshot/PREVIOUS
 fi
 ln -sfnv "${SnapshotDir#snapshot/}" snapshot/LATEST
+
+} >&2

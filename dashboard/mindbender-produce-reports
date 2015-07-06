@@ -470,4 +470,4 @@ end-snapshot
 
 numReports=$(wc -l <reports.paths || echo 0)
 report-log "Produced $numReports reports under $SnapshotDir/"
-} 2>&1 | tee -a reports.log
+} 2>&1 | tee -a reports.log >&2

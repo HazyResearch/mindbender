@@ -15,6 +15,18 @@ cd "$DEEPDIVE_APP"
 ReportId=$1; shift
 TaskName=$1; shift
 
+(
+# output the last reportId created
+# FIXME this has timing issues and can get wrong esp. when other snapshot runs concurrently
+sleep 1
+tail -n 1 snapshot/LATEST/reports.ids
+) &
+tailPid=$!
+trap "kill $tailPid" ERR  # prevent from a bogus report id getting printed out when snapshot fails fast
+
+# run the task under the LATEST snapshot
 mindbender-snapshot <(
     escape-args-for-shell report-task "$ReportId" "$TaskName" "$@"
 ) snapshot/LATEST
+
+trap - ERR

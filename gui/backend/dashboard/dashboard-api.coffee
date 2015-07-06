@@ -144,8 +144,39 @@ exports.init = (app) ->
         sendStdoutOf res, "dashboard-report-template", ["delete", reportTemplateId]
 
     ## Running Tasks
-    # TODO
+    app.post "/api/snapshot/LATEST/task/", (req, res) ->
+        reportId = req.body.report
+        taskName = req.body.taskTemplate
+        params =
+            "#{name}=#{value}" for name,value of req.body.params
+        # run mindbender-report-task command
+        proc = spawn "mindbender-report-task", [reportId, taskName, params...], detached: yes
+        # read two lines from it containing snapshotId and reportId
+        # XXX You're right. This is pretty ugly.
+        lineNo = 0
+        snapshotId = reportId = null
+        exitStatus = null
+        lineStream = byline proc.stdout
+        lineStream
+            .on "data", (line) ->
+                switch ++lineNo
+                    when 1
+                        snapshotId = line
+                    when 2
+                        reportId = line
+                        if not exitStatus? or exitStatus == 0
+                            res
+                                .location "/api/snapshot/#{snapshotId}/#{reportId}"
+                                .sendStatus 201
+                        proc.unref()  # detach
+            .on "error", ->
+                res.status 500
+                    .send "Error while processing output of report-task"
+        proc
+            .on "close", (code) ->
+                exitStatus = code
+                unless exitStatus == 0
+                    res.status 500
+                        .send "report-task exited with status #{exitStatus}"
 
-    ## Authoring Task Templates
-    # TODO
 
