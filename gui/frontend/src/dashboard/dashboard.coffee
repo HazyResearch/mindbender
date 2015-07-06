@@ -735,8 +735,7 @@ angular.module "mindbenderApp.dashboard", [
                             for name,paramDef of taskDef.params
                                 {
                                     name
-                                    type: paramDef.type ? "string"  # TODO keep this null and allow null type to match any type determined from data
-                                    # TODO default values for optional
+                                    type: paramDef.type
                                 }
                         )
                     }
@@ -750,13 +749,19 @@ angular.module "mindbenderApp.dashboard", [
             else
                 return "string"
 
-        paramTypesVerify = (values) =>
+        valuesVerify = (values) =>
             if !@selectedTask
                 return false
 
             for param, index in @templates[@selectedTask].params
-                if values[index] != null && param.type != determineType(values[index])
+                if !valueVerifies(param, values[index])
                     return false
+
+            return true
+
+        valueVerifies = (param, value) =>
+            if param.type != null && value != null && param.type != determineType(value)
+                return false
 
             return true
 
@@ -773,7 +778,7 @@ angular.module "mindbenderApp.dashboard", [
             for name, template of @templates
                 show = false
                 for param in template.params
-                    param.$selected = (param.type == valueType)
+                    param.$selected = valueVerifies(param, value)
                     if param.$selected
                         show = true
 
@@ -814,7 +819,7 @@ angular.module "mindbenderApp.dashboard", [
                 @mirroredTaskValues = taskValues
 
         $scope.$watchCollection (=> @mirroredTaskValues), (newValue, oldValue) =>
-            if paramTypesVerify(@mirroredTaskValues)
+            if valuesVerify(@mirroredTaskValues)
                 boundParams = {}
 
                 if @selectedTask
@@ -828,15 +833,16 @@ angular.module "mindbenderApp.dashboard", [
 
         @editValue = (index) =>
             value = prompt("Old Value: " + @mirroredTaskValues[index] + ", new value:")
+
             if value
                 valueType = determineType(value)
                 if valueType != "string"
                     value *= 1
 
-                if valueType != @templates[@selectedTask].params[index].type
-                    alert("Invalid type. Expecting " + @templates[@selectedTask].params[index].type)
-                else
+                if valueVerifies(@templates[@selectedTask].params[index], value)
                     @mirroredTaskValues[index] = value
+                else
+                    alert("Invalid type. Expecting " + @templates[@selectedTask].params[index].type)
 
         @clearTask = () =>
             @matcher.show = false
