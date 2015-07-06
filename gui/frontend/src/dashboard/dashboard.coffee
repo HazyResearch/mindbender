@@ -728,17 +728,7 @@ angular.module "mindbenderApp.dashboard", [
 
         $http.get "/api/snapshot-template/?type=task"
             .success (data, status, headers, config) =>
-                # import task definitions from response
-                for taskName,taskDef of data
-                    @templates[taskName] = {
-                        params: (
-                            for name,paramDef of taskDef.params
-                                {
-                                    name
-                                    type: paramDef.type
-                                }
-                        )
-                    }
+                @templates = data
 
         determineType = (string) =>
             if !isNaN(string)
@@ -753,7 +743,8 @@ angular.module "mindbenderApp.dashboard", [
             if !@selectedTask
                 return false
 
-            for param, index in @templates[@selectedTask].params
+            for name, param of @templates[@selectedTask].params
+                index = Object.keys(@templates[@selectedTask].params).indexOf(name)
                 if !valueVerifies(param, values[index])
                     return false
 
@@ -777,7 +768,7 @@ angular.module "mindbenderApp.dashboard", [
 
             for name, template of @templates
                 show = false
-                for param in template.params
+                for paramName, param of template.params
                     param.$selected = valueVerifies(param, value)
                     if param.$selected
                         show = true
@@ -806,10 +797,10 @@ angular.module "mindbenderApp.dashboard", [
             if @selectedTask
                 taskValues = []
 
-                for param in @templates[@selectedTask].params
+                for name, param of @templates[@selectedTask].params
                     found = false
                     for boundParam, boundValue of @boundParams
-                        if param.name == boundParam
+                        if name == boundParam
                             taskValues.push(boundValue)
                             found = true
 
@@ -823,9 +814,11 @@ angular.module "mindbenderApp.dashboard", [
                 boundParams = {}
 
                 if @selectedTask
-                    for param, index in @templates[@selectedTask].params
-                        if @mirroredTaskValues[index] != null
-                            boundParams[param.name] = @mirroredTaskValues[index]
+                    i = 0
+                    for name of @templates[@selectedTask].params
+                        if @mirroredTaskValues[i] != null
+                            boundParams[name] = @mirroredTaskValues[i]
+                        i++
 
                 @boundParams = boundParams
             else
@@ -839,10 +832,11 @@ angular.module "mindbenderApp.dashboard", [
                 if valueType != "string"
                     value *= 1
 
-                if valueVerifies(@templates[@selectedTask].params[index], value)
+                param = @templates[@selectedTask].params[Object.keys(@templates[@selectedTask].params)[index]]
+                if valueVerifies(param, value)
                     @mirroredTaskValues[index] = value
                 else
-                    alert("Invalid type. Expecting " + @templates[@selectedTask].params[index].type)
+                    alert("Invalid type. Expecting " + param.type)
 
         @clearTask = () =>
             @matcher.show = false
@@ -912,8 +906,8 @@ angular.module "mindbenderApp.dashboard", [
                     <input type="text" ng-value="taskArea.selectedTask" style="width:248px">
                     <button class="btn btn-default" ng-click="taskArea.clearTask()">X</button>
                     <div style="width:60%;float:left;border:1px solid #000;padding:3px">
-                        <div ng-repeat="param in taskArea.templates[taskArea.selectedTask].params" style="list-style-type:none">
-                                {{ param.name }}:
+                        <div ng-repeat="(paramName, param) in taskArea.templates[taskArea.selectedTask].params" style="list-style-type:none">
+                                {{ paramName }}:
                         </div>
                     </div>
                     <div style="width:40%;float:right;border:1px solid #000;padding:3px">
@@ -938,7 +932,7 @@ angular.module "mindbenderApp.dashboard", [
                     <span ng-class="{ 'selected-task' : taskArea.selectedTask == task }">
                         {{ task }}
                     </span>
-                    (<span ng-repeat="param in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskArea.bindParam(task, param.name)">{{ param.name }}<span ng-if="taskArea.boundParams[param.name] && taskArea.selectedTask == task">[{{ taskArea.boundParams[param.name] }}]</span>{{$last ? '' : ', '}}</span>)
+                    (<span ng-repeat="(paramName, param) in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskArea.bindParam(task, paramName)">{{ paramName }}<span ng-if="taskArea.boundParams[paramName] && taskArea.selectedTask == task">[{{ taskArea.boundParams[paramName] }}]</span>{{$last ? '' : ', '}}</span>)
                 </div>
             </div>
         </div>
