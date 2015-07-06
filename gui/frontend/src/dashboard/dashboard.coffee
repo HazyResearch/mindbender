@@ -718,7 +718,7 @@ angular.module "mindbenderApp.dashboard", [
 
 .directive 'mbTaskArea', () ->
     restrict: 'A',
-    controller: ($scope, $http) ->
+    controller: ($scope, $http, $location) ->
         @templates = {}
         @matcher = { show: false, event: null }
         @boundParams = {}
@@ -860,7 +860,15 @@ angular.module "mindbenderApp.dashboard", [
                 }
 
                 $http.post("/api/snapshot/LATEST/task/", taskPostData)
+                    .success (data, status, headers, config) =>
+                        $location
+                            .path("/snapshot/#{data.snapshot}")
+                            .search("report", data.report)
+                    .error (data, status, headers, config) ->
+                        # TODO better error message presentation
+                        alert "Error while running task #{taskPostData.taskTemplate} on #{taskPostData.report}:\n#{data}"
             else
+                # TODO better error message presentation
                 alert("Please fill in all task parameters.")
 
 

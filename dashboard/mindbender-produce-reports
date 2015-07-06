@@ -184,7 +184,7 @@ compile-task-params() {
             local scopeValue=
             for scopeValue; do
                 # find a matching scope
-                ! [[ $reportName = $scopeValue ]] || return 0
+                ! [[ $reportName = $scopeValue || $reportName = $scopeValue/* ]] || return 0
             done
             error "report $reportId is out of scope for task $taskName"
         }
@@ -470,4 +470,4 @@ end-snapshot
 
 numReports=$(wc -l <reports.paths || echo 0)
 report-log "Produced $numReports reports under $SnapshotDir/"
-} 2>&1 | tee -a reports.log
+} 2>&1 | tee -a reports.log >&2

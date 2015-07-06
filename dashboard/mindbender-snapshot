@@ -13,6 +13,8 @@ cd "$DEEPDIVE_APP"
 
 ConfigName=${1:-default}
 [[ $# -eq 0 ]] || shift
+SnapshotDir=${1:-}
+[[ $# -eq 0 ]] || shift
 
 # figure out snapshot configuration file name
 if [[ -e "$ConfigName" ]]; then
@@ -33,17 +35,25 @@ dburi=$(find-deepdive-db-uri)
 run-sql "SELECT 1" >/dev/null ||
     error "Cannot run queries against the database at $dburi"
 
-# create a fresh snapshot directory
-SnapshotDir=snapshot/$(date +%Y%m%d)
-serial=1
-while [[ -e "$SnapshotDir-$serial" ]]; do
-    let ++serial
-done
-SnapshotDir="$SnapshotDir-$serial"
+if [[ -z "$SnapshotDir" ]]; then
+    # create a fresh snapshot directory
+    SnapshotDir=snapshot/$(date +%Y%m%d)
+    serial=1
+    while [[ -e "$SnapshotDir-$serial" ]]; do
+        let ++serial
+    done
+    SnapshotDir="$SnapshotDir-$serial"
+elif [[ -L "$SnapshotDir" ]]; then
+    SnapshotDir=$(cd "$SnapshotDir" && pwd -P)
+    SnapshotDir=${SnapshotDir#$DEEPDIVE_APP/}
+fi
 mkdir -p "$SnapshotDir"/files
 
 # display the snapshot ID
 echo "${SnapshotDir#snapshot/}"
+
+{ # nothing should go into stdout from the rest
+
 # record as latest failure if RUNNING symlink exists
 if [[ -L snapshot/RUNNING ]]; then
     pgidFile=snapshot/"$(readlink snapshot/RUNNING)".RUNNING
@@ -67,19 +77,25 @@ xargs -I{} -- cp -a {} "$SnapshotDir"/files/
 # record process group id
 echo $(ps -o pgid= -p $$) >"$SnapshotDir".RUNNING
 
-# produce reports for the snapshot
-if mindbender-produce-reports "$SnapshotDir" "$snapshotConfiguration"; then
-    # bookkeep symlinks to the latest, previous snapshots
-    if [[ -e snapshot/LATEST ]]; then
-        rm -f snapshot/PREVIOUS
-        mv -f snapshot/LATEST snapshot/PREVIOUS
-    fi
-    ln -sfnv "${SnapshotDir#snapshot/}" snapshot/LATEST
-else
-    # keep a symlink to the last aborted one
-    ln -sfnv "${SnapshotDir#snapshot/}" snapshot/ABORTED
-fi
+# cleanup RUNNING
+cleanupRUNNING() {
+    # remove the RUNNING symlink as well as the process group id
+    ! [[ snapshot/RUNNING -ef "$SnapshotDir" ]] || rm -f snapshot/RUNNING
+    rm -f "$SnapshotDir".RUNNING
+}
+trap 'cleanupRUNNING' EXIT
 
-# remove the RUNNING symlink as well as the process group id
-! [[ snapshot/RUNNING -ef "$SnapshotDir" ]] || rm -f snapshot/RUNNING
-rm -f "$SnapshotDir".RUNNING
+# keep a symlink to the last aborted one if any error happens
+trap 'ln -sfnv "${SnapshotDir#snapshot/}" snapshot/ABORTED' ERR
+
+# produce reports for the snapshot
+mindbender-produce-reports "$SnapshotDir" "$snapshotConfiguration"
+
+# bookkeep symlinks to the latest, previous snapshots
+if [[ -e snapshot/LATEST && ! snapshot/LATEST -ef snapshot/PREVIOUS ]]; then
+    rm -f snapshot/PREVIOUS
+    mv -f snapshot/LATEST snapshot/PREVIOUS
+fi
+ln -sfnv "${SnapshotDir#snapshot/}" snapshot/LATEST
+
+} >&2
