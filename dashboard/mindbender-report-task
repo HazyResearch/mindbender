@@ -17,8 +17,11 @@ TaskName=$1; shift
 
 (
 # output the last reportId created
-# FIXME this has timing issues and can get wrong esp. when other snapshot runs concurrently
-sleep 1
+# FIXME this ugly hack can get wrong when tasks are run concurrently
+numReports=$(wc -l <snapshot/LATEST/reports.ids)
+while [[ $numReports -eq $(wc -l <snapshot/LATEST/reports.ids) ]]; do
+    sleep 0.3
+done
 tail -n 1 snapshot/LATEST/reports.ids
 ) &
 tailPid=$!
