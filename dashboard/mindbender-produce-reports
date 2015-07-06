@@ -184,7 +184,7 @@ compile-task-params() {
             local scopeValue=
             for scopeValue; do
                 # find a matching scope
-                ! [[ $reportName = $scopeValue ]] || return 0
+                ! [[ $reportName = $scopeValue || $reportName = $scopeValue/* ]] || return 0
             done
             error "report $reportId is out of scope for task $taskName"
         }
