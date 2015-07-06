@@ -886,11 +886,11 @@ angular.module "mindbenderApp.dashboard", [
 
 .directive 'mbTaskControl', ($timeout) ->
     template: """
-        <div id="task-button" class="btn-group" style="float:right">
-            <button id="task-button-dropdown" type="button" class="btn btn-primary dropdown-toggle" aria-expanded="false">
+        <div class="btn-group" style="float:right">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
                 Tasks <span class="caret"></span>
             </button>
-            <div class="dropdown-menu pull-right" role="menu" style="padding:5px;width:300px">
+            <div class="dropdown-menu pull-right" style="padding:5px;width:300px">
                 <div ng-hide="taskArea.selectedTask">
                     No task selected.
                 </div>
@@ -933,6 +933,17 @@ angular.module "mindbenderApp.dashboard", [
     restrict: 'E',
     link: (scope, element, attrs, taskArea) ->
         scope.taskArea = taskArea
+
+        angular.element("body").click(($event) ->
+            if $event.timeStamp != taskArea.matcher.event?.timeStamp && angular.element($event.target).closest("#taskMatcher").length == 0
+                taskArea.matcher.show = false
+                scope.$digest()
+        )
+
+        # Prevent clicks inside the task dropdown from closing it
+        angular.element(".dropdown-menu").click(($event) ->
+            $event.stopPropagation()
+        )
 
         scope.$watch (-> taskArea.matcher.event), (event) ->
             return unless event?
