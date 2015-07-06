@@ -165,9 +165,10 @@ exports.init = (app) ->
                     when 2
                         reportId = line
                         if not exitStatus? or exitStatus == 0
-                            res
-                                .location "/api/snapshot/#{snapshotId}/#{reportId}"
-                                .sendStatus 201
+                            res.json {
+                                    snapshot: String snapshotId
+                                    report:   String reportId
+                                }
                         proc.unref()  # detach
             .on "error", ->
                 res.status 500
