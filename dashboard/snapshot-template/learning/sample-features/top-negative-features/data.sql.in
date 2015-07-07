@@ -1,5 +1,13 @@
 -- Top $num_top_weighted_features Negatively Weighted Features
- SELECT weight, description
-   FROM dd_inference_result_variables_mapped_weights
-  ORDER BY weight ASC
-  LIMIT ${num_top_weighted_features}
+SELECT weight, description
+FROM (
+    SELECT weight, description
+         , RANK() OVER (PARTITION BY factor ORDER BY weight ASC) AS rank
+    FROM (
+    	SELECT weight, description
+             , SUBSTRING(description, 0, POSITION('-' IN description)) AS factor
+      	  FROM dd_inference_result_variables_mapped_weights
+    ) features_by_factor
+) ranked_features
+WHERE rank <= ${num_top_weighted_features}
+ORDER BY weight ASC
