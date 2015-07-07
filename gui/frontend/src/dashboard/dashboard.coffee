@@ -718,7 +718,7 @@ angular.module "mindbenderApp.dashboard", [
 
 .directive 'mbTaskArea', () ->
     restrict: 'A',
-    controller: ($scope, $http, $location) ->
+    controller: ($scope, $http, $location, $timeout) ->
         @templates = {}
         @matcher = { show: false, event: null }
         @boundParams = {}
@@ -775,7 +775,7 @@ angular.module "mindbenderApp.dashboard", [
 
                 template.$show = show
 
-        @bindParam = (task, param) =>
+        @bindParam = (task, param) => $timeout =>
             if task != @selectedTask
                 @selectedTask = task
                 @boundParams = {}
