@@ -777,8 +777,11 @@ angular.module "mindbenderApp.dashboard", [
 
         @bindParam = (task, param) =>
             if task != @selectedTask
-                @boundParams = {}
                 @selectedTask = task
+                @boundParams = {}
+                for name, paramObj of @templates[task].params
+                    if paramObj.defaultValue
+                        @boundParams[name] = paramObj.defaultValue
 
             if @boundParams[param] == @selectedValue
                 delete @boundParams[param]
@@ -787,6 +790,9 @@ angular.module "mindbenderApp.dashboard", [
 
             if !Object.keys(@boundParams).length
                 @selectedTask = null
+
+            @selectedTask = null  if _.every (_.keys @boundParams), (name) =>
+                @boundParams[name] == @templates[task].params[name].defaultValue
 
             mirrorBoundParams()
 
@@ -932,7 +938,7 @@ angular.module "mindbenderApp.dashboard", [
                     <span ng-class="{ 'selected-task' : taskArea.selectedTask == task }">
                         {{ task }}
                     </span>
-                    (<span ng-repeat="(paramName, param) in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskArea.bindParam(task, paramName)">{{ paramName }}<span ng-if="taskArea.boundParams[paramName] && taskArea.selectedTask == task">[{{ taskArea.boundParams[paramName] }}]</span>{{$last ? '' : ', '}}</span>)
+                    (<span ng-repeat="(paramName, param) in template.params" ng-class="{ 'potentialParam': param.$selected }" ng-click="param.$selected && taskArea.bindParam(task, paramName)">{{ paramName }}<span ng-if="(taskArea.boundParams[paramName] && taskArea.selectedTask == task) || param.defaultValue">[{{ taskArea.boundParams[paramName] || param.defaultValue }}]</span>{{$last ? '' : ', '}}</span>)
                 </div>
             </div>
         </div>
