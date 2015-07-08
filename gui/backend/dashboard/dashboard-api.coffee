@@ -162,12 +162,20 @@ exports.init = (app) ->
 
     ## Dashboard Values
     # Enumerate Dashboard Values
-    # TODO app.get "/api/dashboard/values/", (req, res) ->
+    app.get "/api/dashboard/values/", (req, res) ->
+        sendStdoutOf res, "dashboard-trends-config", ["get.json"]
 
     # Update Dashboard Values
-    # TODO app.put "/api/dashboard/values/", (req, res) ->
+    app.put "/api/dashboard/values/", (req, res) ->
+        sendStdoutOf res, "dashboard-trends-config", ["put"]
+            # XXX it's silly to parse and stringify the body right away
+            .stdin.end JSON.stringify req.body
 
     # Add a Dashboard Value
-    # TODO app.post "/api/dashboard/values/", (req, res) ->
+    app.post "/api/dashboard/values/", (req, res) ->
+        reportId = req.body.report
+        valueName = req.body.value
+        sendStdoutOf res, "dashboard-trends-config", ["add", reportId, valueName]
+
 
 

@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+// escape given string arguments as JSON
+for (var i=2; i<process.argv.length; ++i) {
+    console.log(JSON.stringify(process.argv[i]));
+}

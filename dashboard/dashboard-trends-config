@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# dashboard-trends-config -- Manipulate trends configuration
+# > dashboard-trends-config get
+# > dashboard-trends-config get.json
+# > dashboard-trends-config put <JSON
+# > dashboard-trends-config add REPORT_ID VALUE_NAME
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-07-08
+set -eu
+
+DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
+
+[[ $# -gt 0 ]] || usage "$0" "No verb given"
+Command=$1; shift
+case $Command in
+    get|get.json|put)
+        ;;
+    add)
+        [[ $# -gt 0 ]] || usage "$0" "No REPORT_ID given"
+        ReportId=$1; shift
+        [[ $# -gt 0 ]] || usage "$0" "No VALUE_NAME given"
+        ValueName=$1; shift
+        ;;
+    *)
+        usage "$0" "get, get.json, put, or add must be given"
+esac
+
+trendsConfig="$DEEPDIVE_APP"/dashboard-trends.conf
+case $Command in
+    get)
+        # output trends configuration in plain text format
+        cat "$trendsConfig"
+        ;;
+
+    # TODO speed up JSON generation
+    get.json)
+        # output trends configuration in JSON format
+        echo "["
+        (
+            trend() {
+                local report=$1 value=$2
+                echo ,
+                printf '{ "report": %s, "value": %s }\n' \
+                    "$(json-string "$report")" "$(json-string "$value")"
+            }
+            . "$trendsConfig"
+        ) | tail -n +2
+        echo "]"
+        ;;
+
+    put)
+        # replace the trends configuration with the JSON input
+        cat |
+        coffee -e '
+            fs = require "fs"
+            trendsConfig = try JSON.parse (fs.readFileSync "/dev/stdin")
+
+            # XXX string escaping is ugly and very convoluted, but is contained in the next line
+            esc = (s) -> "'\''" + (
+                    unless s? then ""
+                    else (String s).replace /'\''/g, "'\''\\'\'\''"
+                ) + "'\''"
+
+            for {report,value} in trendsConfig
+                console.log "trend #{esc report} #{esc value}"
+        ' >"$trendsConfig".$$
+        mv -f "$trendsConfig".$$ "$trendsConfig"
+        ;;
+
+    add)
+        # add an entry to the trends configuration
+        echo "trend $(escape-args-for-shell "$ReportId" "$ValueName")" >>"$trendsConfig"
+        ;;
+
+esac
