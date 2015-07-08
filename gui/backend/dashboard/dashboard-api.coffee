@@ -147,13 +147,16 @@ exports.init = (app) ->
     ## Trends
     # Enumerate All Report Values
     app.get "/api/report-value/", (req, res) ->
-        sendStdoutOf res, "sh", ["-c", "dashboard-ls-snapshots | xargs dashboard-aggregate-values"] # FIXME xargs will produce more than one JSON when there are too many snapshots
+        # TODO cache aggregate values
+        # FIXME xargs will produce more than one JSON when there are too many snapshots
+        sendStdoutOf res, "sh", ["-c", "dashboard-ls-snapshots | xargs dashboard-aggregate-values"]
 
     # Read Report Values
     app.get "/api/report-value/*", (req, res) ->
         # parse reportId and valueName from URL
         [reportValue] = req.params
         [whole, reportId, valueName] = /// (.*) / ([^/]+) ///.exec reportValue
+        # TODO use the cached aggregate values
         # FIXME xargs will produce more than one JSON when there are too many snapshots
         sendStdoutOf res, "bash", ["-c", "exec dashboard-project-values <(dashboard-ls-snapshots | xargs dashboard-aggregate-values) \"$@\"", "--", reportId, valueName]
 
