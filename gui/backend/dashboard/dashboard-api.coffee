@@ -144,6 +144,22 @@ exports.init = (app) ->
     ## Running Tasks
     # TODO
 
-    ## Authoring Task Templates
-    # TODO
+    ## Trends
+    # Enumerate All Report Values
+    app.get "/api/report-value/", (req, res) ->
+        sendStdoutOf res, "sh", ["-c", "dashboard-ls-snapshots | xargs dashboard-aggregate-values"] # FIXME xargs will produce more than one JSON when there are too many snapshots
+
+    # Read Report Values
+    # TODO app.get "/api/report-value/:reportId/:valueName", (req, res) ->
+
+    ## Dashboard Values
+    # Enumerate Dashboard Values
+    # TODO app.get "/api/dashboard/values/", (req, res) ->
+
+    # Update Dashboard Values
+    # TODO app.put "/api/dashboard/values/", (req, res) ->
+
+    # Add a Dashboard Value
+    # TODO app.post "/api/dashboard/values/", (req, res) ->
+
 
