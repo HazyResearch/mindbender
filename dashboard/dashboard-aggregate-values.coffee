@@ -1,4 +1,8 @@
 #!/usr/bin/env coffee
+# dashboard-aggregate-values -- Aggregates data collected via report-values for all snapshots 
+#
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-07-07
 fs = require "fs"
 _ = require "underscore"
 [snapshotNames...] = process.argv[2..]

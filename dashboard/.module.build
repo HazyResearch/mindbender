@@ -19,3 +19,4 @@ compile-exe() {
 }
 compile-exe report-values.coffee
 compile-exe dashboard-aggregate-values.coffee
+compile-exe dashboard-project-values.coffee

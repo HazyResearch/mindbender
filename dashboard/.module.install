@@ -7,6 +7,7 @@ dashboard-report-content                bin/mindbender.d/
 dashboard-report-template               bin/mindbender.d/
 dashboard-snapshot-config               bin/mindbender.d/
 dashboard-aggregate-values              bin/mindbender.d/
+dashboard-project-values                bin/mindbender.d/
 find-deepdive-db-uri                    bin/mindbender.d/
 find-deepdive-app                       bin/mindbender.d/
 eval-coffee-on-deepdive-app-conf        bin/mindbender.d/
