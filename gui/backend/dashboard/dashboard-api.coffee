@@ -72,10 +72,10 @@ exports.init = (app) ->
     # Create a New Snapshot Configuration or Update an Existing One
     app.put "/api/snapshot-config/:configName", (req, res) ->
         configName = req.param "configName"
-        return res.sendStatus 400 unless configName?.length > 0
+        return res.status(400).send "no configName" unless configName?.length > 0
         isValidInstantiation = (inst) ->
-            inst.reportTemplate? and (not inst.params? or (_.size inst.params) > 0)
-        return res.sendStatus 400 unless _.every req.body, isValidInstantiation
+            inst.reportTemplate? and (not inst.params?)
+        return res.status(400).send "invalid instantiation" unless _.every req.body, isValidInstantiation
         res
             .location "/api/snapshot-config/#{configName}"
             .status 201
