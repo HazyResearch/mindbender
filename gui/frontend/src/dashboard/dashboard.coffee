@@ -582,13 +582,37 @@ angular.module "mindbenderApp.dashboard", [
     $scope.title = $scope.report + " - " + $scope.valueName
 
     renderValues = (reportValueSet) ->
-        $scope.chartSnapshotsConfig = {
-            reportValueSet: reportValueSet
-            start: 0
-            end: reportValueSet.snapshots.length
-            type: "values"
-            hideNulls: false
-        }
+        $http.get "/api/dashboard/values/"
+            .success (data, status, headers, config) ->
+                $scope.onDashboard = false
+                for reportValue in data
+                    if reportValue.report == $scope.report && reportValue.value == $scope.valueName
+                        $scope.onDashboard = true
+
+                 $scope.chartSnapshotsConfig = {
+                    reportValues: reportValueSet.reportValues
+                    snapshots: reportValueSet.snapshots
+                    start: 0
+                    end: reportValueSet.snapshots.length - 1
+                    type: "values"
+                    hideNulls: false
+                    dashboardValues: data
+                }
+
+                $scope.$watch (-> $scope.onDashboard), (onDashboard, oldValue) ->
+                    return if onDashboard == oldValue
+    
+                    reportValue = { report: $scope.report, value: $scope.valueName }
+
+                    if onDashboard
+                        $http.post "/api/dashboard/values/", reportValue
+                    else
+                        dashboardValues = []
+                        for dashboardValue in $scope.chartSnapshotsConfig.dashboardValues
+                            if !_.isEqual(reportValue, dashboardValue)
+                                dashboardValues.push(dashboardValue)
+
+                        $http.put "/api/dashboard/values/", dashboardValues
 
     Dashboard.getReportValueList(renderValues)
 
@@ -624,7 +648,7 @@ angular.module "mindbenderApp.dashboard", [
             return if !config
 
             if config.type == "values"
-                if isNumeric(config.reportValueSet.reportValues[attrs.report][attrs.valuename])
+                if isNumeric(config.reportValues[attrs.report][attrs.valuename])
                     renderLineChart(config)
                 else
                     renderFrequencyChart(config)
@@ -635,11 +659,12 @@ angular.module "mindbenderApp.dashboard", [
             values = []
             categories = []
 
-            for snapshotValue, index in config.reportValueSet.snapshots
-                for i in [config.start...(config.end + 1)]
-                    if !config.hideNulls || snapshotValue.value != null
-                        values.push(config.reportValueSet.reportValues[attrs.report][attrs.valuename][i])
-                        categories.push(config.reportValueSet.snapshots[i].time)
+            for snapshot, index in config.snapshots
+                if index >= config.start && index <= config.end
+                    value = config.reportValues[attrs.report][attrs.valuename][index]
+                    if !config.hideNulls || value != null
+                        values.push(value)
+                        categories.push(snapshot.time)
 
             element.find(".dashboard-chart").highcharts({
                 title: {
@@ -675,11 +700,12 @@ angular.module "mindbenderApp.dashboard", [
             categories = []
             frequencies = []
             valueMap = {}
-            for snapshotValue, index in reportValuesAPIcall
-                if index >= config.start && index <= config.end && (!config.hideNulls || snapshotValue.value != null)
-                    if !valueMap[snapshotValue.value]
-                        valueMap[snapshotValue.value] = 0
-                    valueMap[snapshotValue.value]++
+
+            for value, index in config.reportValues[attrs.report][attrs.valuename]
+                if index >= config.start && index <= config.end && (!config.hideNulls || value != null)
+                    if !valueMap[value]
+                        valueMap[value] = 0
+                    valueMap[value]++
 
             if valueMap[null]
                 categories.push("null")
@@ -730,60 +756,38 @@ angular.module "mindbenderApp.dashboard", [
         chartSnapshotsConfig: '='
     }
     link: (scope, element, attrs) ->
-        snapshotsAPIcall = [
-            {
-                name: "test1"
-                time: "2015-06-21T21:54:18"
-            }
-            {
-                name: "test2"
-                time: "2015-06-22T21:54:18"
-            }
-            {
-                name: "test3"
-                time: "2015-06-22T23:54:18"
-            }
-            {
-                name: "test4"
-                time: "2015-06-24T01:54:18"
-            }
-            {
-                name: "test5"
-                time: "2015-06-25T10:54:18"
-            }
-            {
-                name: "test6"
-                time: "2015-06-26T21:54:18"
-            }
-            {
-                name: "test7"
-                time: "2015-06-26T20:54:18"
-            }
-            {
-                name: "test8"
-                time: "2015-06-27T21:54:18"
-            }
-        ]
+        updateInfo = (config) ->
+            filteredSnapshots = []
+            for snapshot, index in config.snapshots
+                if index >= config.start && index <= config.end
+                    if config.hideNulls && attrs.report && attrs.valuename
+                        value = config.reportValues[attrs.report][attrs.valuename][index]
+                        if value != null
+                            filteredSnapshots.push(snapshot)
+                    else
+                        filteredSnapshots.push(snapshot)
 
-        updateInfo = () ->
             info = """
-                #{(scope.chartSnapshotsConfig.end - scope.chartSnapshotsConfig.start + 1)} values:
-                #{snapshotsAPIcall[scope.chartSnapshotsConfig.start].time} - #{snapshotsAPIcall[scope.chartSnapshotsConfig.end].time}
+                #{filteredSnapshots.length} values:
+                #{filteredSnapshots[0].time} - #{filteredSnapshots[filteredSnapshots.length - 1].time}
             """
             element.find(".dashboard-slider-info").html(info)
 
-        updateInfo()
-        element.find(".dashboard-slider").slider({
-            range: true
-            min: 0
-            max: snapshotsAPIcall.length - 1
-            values: [0, snapshotsAPIcall.length - 1]
-            slide: (event, ui) ->
-                $timeout ->
-                    scope.chartSnapshotsConfig.start = ui.values[0]
-                    scope.chartSnapshotsConfig.end = ui.values[1]
-                    updateInfo()
-        })
+        scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
+            return if !config
+
+            updateInfo(config)
+            element.find(".dashboard-slider").slider({
+                range: true
+                min: 0
+                max: config.end - 1
+                values: [0, config.end - 1]
+                slide: (event, ui) ->
+                    $timeout ->
+                        config.start = ui.values[0]
+                        config.end = ui.values[1]
+                        updateInfo(config)
+            })
 
 
 .directive 'chart', ($timeout, $compile, $parse, DashboardDataUtils) ->
