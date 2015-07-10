@@ -74,7 +74,7 @@ exports.init = (app) ->
         configName = req.param "configName"
         return res.status(400).send "no configName" unless configName?.length > 0
         isValidInstantiation = (inst) ->
-            inst.reportTemplate? and (not inst.params?)
+            inst.reportTemplate? and (not inst.params? or (typeof inst.params) is "object")
         return res.status(400).send "invalid instantiation" unless _.every req.body, isValidInstantiation
         res
             .location "/api/snapshot-config/#{configName}"
