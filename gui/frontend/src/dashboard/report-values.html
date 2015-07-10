@@ -11,7 +11,7 @@
 				<a href="#/report-values/{{ report }}/{{ valueName }}">{{ valueName }}</a>
 			</td>
 			<td ng-switch="isNumeric(values)">
-				<div ng-switch-when="true" class="sparkline" data-report="{{ report }}" data-value-name="{{ valueName }}" style="position:relative;left:{{ 100 / values.length / 2 }}%;right:{{ 100 / values.length / 2 }}%;width:{{ 100 - 100 / values.length }}%;height:50px;"></div>
+				<div ng-switch-when="true" class="sparkline" data-report="{{ report }}" data-value-name="{{ valueName }}" style="position:relative;left:{{ 100 / values.length / 2 }}%;right:{{ 100 / values.length / 2 }}%;width:{{ 100 - 100 / values.length + 1 }}%;height:50px;"></div>
 				<div ng-switch-when="false" data-report="{{ report }}" data-value-name="{{ valueName }}" class="color-band"></div>
 			</td>
 		</tr>

@@ -58,6 +58,15 @@ angular.module "mindbenderApp.dashboard", [
         getSnapshotList: =>
             $http.get "/api/snapshot"
 
+        getReportValueList: (callback) =>
+            if @reportValues
+                callback @reportValues
+            else
+                $http.get "/api/report-value/"
+                    .success (data) =>
+                        @reportValues = data # caching
+                        callback @reportValues
+
         # TODO move some common parts to the Dashboard class
 
     # the singleton instance registered as an Angular service
@@ -99,6 +108,10 @@ angular.module "mindbenderApp.dashboard", [
 
 .controller "SnapshotRunCtrl", ($scope, $http, Dashboard) ->
     $scope.title = "Run Snapshot"
+
+    Dashboard.getReportValueList((data) ->
+        console.log data
+    )
 
     $scope.loadConfigs = (switchToConfig) ->
         $http.get "/api/snapshot-config/"
@@ -487,52 +500,6 @@ angular.module "mindbenderApp.dashboard", [
 .controller "ReportValueListCtrl", ($scope, $http, $timeout, Dashboard) ->
     $scope.title = "Snapshot Report Values"
 
-    $scope.reportValueSet = {
-        snapshots: [
-            {
-                name: "test1"
-                time: "2015-06-21T21:54:18"
-            }
-            {
-                name: "test2"
-                time: "2015-06-22T21:54:18"
-            }
-            {
-                name: "test3"
-                time: "2015-06-22T23:54:18"
-            }
-            {
-                name: "test4"
-                time: "2015-06-24T01:54:18"
-            }
-            {
-                name: "test5"
-                time: "2015-06-25T10:54:18"
-            }
-            {
-                name: "test6"
-                time: "2015-06-26T21:54:18"
-            }
-            {
-                name: "test7"
-                time: "2015-06-27T20:54:18"
-            }
-            {
-                name: "test8"
-                time: "2015-06-27T21:54:18"
-            }
-        ]
-        reportValues: {
-            "corpus/stats": {
-                "v1": [4, 53, -30, 443, 23, 43, 20, 5]
-                "v2": [64, 23, 31, 21, 34, 1, null, 34]
-            },
-            "variable": {
-                "average_value": ['a', 'b', 'c', 'a', 'b', 'd', 'b', 'e']
-            }
-        }
-    }
-
     getColorMap = (values) ->
         uniqueValues = _.uniq(values)
         increment = 360 / uniqueValues.length
@@ -550,59 +517,63 @@ angular.module "mindbenderApp.dashboard", [
 
         return true
 
-    $timeout ->
-        $(".color-band").each(() ->
-            increment = 100 / $scope.reportValueSet.snapshots.length
+    renderValues = (reportValueSet) ->
+        $scope.reportValueSet = reportValueSet
 
-            values = $scope.reportValueSet.reportValues[$(this).data("report")][$(this).data("valueName")]
-            colorMap = getColorMap(values)
+        $timeout ->
+            $(".color-band").each(() ->
+                increment = 100 / $scope.reportValueSet.snapshots.length
 
-            for value in values
-                $(this).append('<div title="' + value + '" style="cursor:help;float:left;width:' + increment + '%;height:40px;background-color:' + colorMap[value] + '"></div>')
+                values = $scope.reportValueSet.reportValues[$(this).data("report")][$(this).data("valueName")]
+                colorMap = getColorMap(values)
 
-        )
+                for value in values
+                    $(this).append('<div title="' + value + '" style="cursor:help;float:left;width:' + increment + '%;height:40px;background-color:' + colorMap[value] + '"></div>')
+            )
 
-        $(".sparkline").each(() ->
-            $(this).highcharts({
-                chart: {
-                    margin: [0, -5, 0, -5]
-                    backgroundColor: null
-                }
-                title: {
-                    text: ''
-                }
-                credits: {
-                    enabled: false
-                }
-                legend: {
-                    enabled: false
-                }
-                tooltip: {
-                    formatter: () -> 
-                        return "<b>" + this.y + "</b><br>" + $scope.reportValueSet.snapshots[this.x].time
-                    style: {
-                        padding: 4
+            $(".sparkline").each(() ->
+                $(this).highcharts({
+                    chart: {
+                        margin: [0, 0, 3, 0]
+                        backgroundColor: null
                     }
-                    hideDelay: 50
-                }
-                plotOptions: {
-                    series: {
-                        lineWidth: 1
-                        states: {
-                            hover: {
-                                lineWidth: 1
+                    title: {
+                        text: ''
+                    }
+                    credits: {
+                        enabled: false
+                    }
+                    legend: {
+                        enabled: false
+                    }
+                    tooltip: {
+                        formatter: () -> 
+                            return "<b>" + this.y + "</b><br>" + $scope.reportValueSet.snapshots[this.x].time
+                        style: {
+                            padding: 4
+                        }
+                        hideDelay: 50
+                    }
+                    plotOptions: {
+                        series: {
+                            lineWidth: 1
+                            states: {
+                                hover: {
+                                    lineWidth: 1
+                                }
+                            }
+                            marker: {
+                               radius: 2
                             }
                         }
-                        marker: {
-                           radius: 2
-                        }
                     }
-                }
-                series: [{
-                    data: $scope.reportValueSet.reportValues[$(this).data("report")][$(this).data("valueName")]
-                }]
-            })
-        )
+                    series: [{
+                        data: $scope.reportValueSet.reportValues[$(this).data("report")][$(this).data("valueName")]
+                    }]
+                })
+            )
+
+    Dashboard.getReportValueList(renderValues)
 
 
 .controller "ReportValueCtrl", ($scope, $http, $routeParams, Dashboard) ->
@@ -610,71 +581,16 @@ angular.module "mindbenderApp.dashboard", [
     $scope.valueName = $routeParams.valueName
     $scope.title = $scope.report + " - " + $scope.valueName
 
-    reportValuesAPIcall = [
-        {
-            snapshot: {
-                name: "test1"
-                time: "2015-06-21T21:54:18"
-            }
-            value: 64
+    renderValues = (reportValueSet) ->
+        $scope.chartSnapshotsConfig = {
+            reportValueSet: reportValueSet
+            start: 0
+            end: reportValueSet.snapshots.length
+            type: "values"
+            hideNulls: false
         }
-        {
-            snapshot: {
-                name: "test2"
-                time: "2015-06-22T21:54:18"
-            }
-            value: 23
-        }
-        {
-            snapshot: {
-                name: "test3"
-                time: "2015-06-22T23:54:18"
-            }
-            value: 31
-        }
-        {
-            snapshot: {
-                name: "test4"
-                time: "2015-06-24T01:54:18"
-            }
-            value: 21
-        }
-        {
-            snapshot: {
-                name: "test5"
-                time: "2015-06-25T10:54:18"
-            }
-            value: 34
-        }
-        {
-            snapshot: {
-                name: "test6"
-                time: "2015-06-26T21:54:18"
-            }
-            value: 1
-        }
-        {
-            snapshot: {
-                name: "test7"
-                time: "2015-06-26T20:54:18"
-            }
-            value: null
-        }
-        {
-            snapshot: {
-                name: "test8"
-                time: "2015-06-27T21:54:18"
-            }
-            value: 34
-        }
-    ]
 
-    $scope.chartSnapshotsConfig = {
-        start: 0
-        end: 7 # from API call
-        type: "values"
-        hideNulls: false
-    }
+    Dashboard.getReportValueList(renderValues)
 
 
 .filter 'capitalize', () ->
@@ -697,89 +613,33 @@ angular.module "mindbenderApp.dashboard", [
         chartSnapshotsConfig: '='
     }
     link: (scope, element, attrs) ->
-        # API will use attrs.report and attrs.valueName
-        reportValuesAPIcall = [
-            {
-                snapshot: {
-                    name: "test1"
-                    time: "2015-06-21T21:54:18"
-                }
-                value: 64
-            }
-            {
-                snapshot: {
-                    name: "test2"
-                    time: "2015-06-22T21:54:18"
-                }
-                value: 23
-            }
-            {
-                snapshot: {
-                    name: "test3"
-                    time: "2015-06-22T23:54:18"
-                }
-                value: 31
-            }
-            {
-                snapshot: {
-                    name: "test4"
-                    time: "2015-06-24T01:54:18"
-                }
-                value: 21
-            }
-            {
-                snapshot: {
-                    name: "test5"
-                    time: "2015-06-25T10:54:18"
-                }
-                value: 34
-            }
-            {
-                snapshot: {
-                    name: "test6"
-                    time: "2015-06-26T21:54:18"
-                }
-                value: 1
-            }
-            {
-                snapshot: {
-                    name: "test7"
-                    time: "2015-06-26T20:54:18"
-                }
-                value: null
-            }
-            {
-                snapshot: {
-                    name: "test8"
-                    time: "2015-06-27T21:54:18"
-                }
-                value: 34
-            }
-        ]
+        isNumeric = (values) ->
+            for value in values
+                if isNaN(value)
+                    return false
 
-        dataIsNumeric = true
-        for snapshot in reportValuesAPIcall
-            if isNaN(snapshot.value)
-                dataIsNumeric = false
+            return true
 
         scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
+            return if !config
+
             if config.type == "values"
-                if dataIsNumeric
+                if isNumeric(config.reportValueSet.reportValues[attrs.report][attrs.valuename])
                     renderLineChart(config)
                 else
                     renderFrequencyChart(config)
             else if config.type == "frequency"
                 renderFrequencyChart(config)
 
-
         renderLineChart = (config) ->
             values = []
             categories = []
 
-            for snapshotValue, index in reportValuesAPIcall
-                if index >= config.start && index <= config.end && (!config.hideNulls || snapshotValue.value != null)
-                    values.push(snapshotValue.value)
-                    categories.push(snapshotValue.snapshot.time)
+            for snapshotValue, index in config.reportValueSet.snapshots
+                for i in [config.start...(config.end + 1)]
+                    if !config.hideNulls || snapshotValue.value != null
+                        values.push(config.reportValueSet.reportValues[attrs.report][attrs.valuename][i])
+                        categories.push(config.reportValueSet.snapshots[i].time)
 
             element.find(".dashboard-chart").highcharts({
                 title: {
