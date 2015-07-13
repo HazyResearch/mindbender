@@ -417,6 +417,8 @@ angular.module "mindbenderApp.dashboard", [
     $scope.$watch (-> $location.search()['template']), (newValue) ->
         if newValue
             $scope.currentTemplateName = newValue
+            localStorage.lastTemplate = newValue
+
             $http.get "/api/report-template/" + $scope.currentTemplateName
                 .success (data, status, headers, config) ->
                     $scope.template = $.extend({}, data)
@@ -438,7 +440,7 @@ angular.module "mindbenderApp.dashboard", [
                     else
                         $scope.template.hasChart = false
 
-    $scope.loadTemplates()
+    $scope.loadTemplates(localStorage.lastTemplate)
 
 
     removeInheritedTaskParams = () ->
@@ -449,7 +451,9 @@ angular.module "mindbenderApp.dashboard", [
 
         $scope.template.params = params
 
-    $scope.$watch (-> $scope.template.type), (newValue) ->
+    $scope.$watch (-> $scope.template.type), (newValue, oldValue) ->
+        return if newValue == oldValue
+
         if newValue == 'report'
             removeInheritedTaskParams()
         else if $scope.template.scope
