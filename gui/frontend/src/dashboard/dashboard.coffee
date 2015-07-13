@@ -141,7 +141,7 @@ angular.module "mindbenderApp.dashboard", [
 .controller "SnapshotRunCtrl", ($scope, $http, Dashboard) ->
     $scope.title = "Run Snapshot"
 
-    $scope.loadConfigs = (switchToConfig) ->
+    loadConfigs = (switchToConfig) ->
         $http.get "/api/snapshot-config/"
             .success (data, status, headers, config) -> 
                 $scope.configs = data
@@ -150,15 +150,16 @@ angular.module "mindbenderApp.dashboard", [
                 else
                     $scope.currentSnapshotConfig = data[0]
 
-    $scope.loadConfigs()
+    loadConfigs(localStorage.lastSnapshotConfig)
 
     $http.get "/api/report-templates/"
         .success (data, status, headers, config) -> 
             $scope.templates = data 
 
-    $scope.$watch "currentSnapshotConfig", (newValue, oldValue) ->
-        if newValue
-            $http.get "/api/snapshot-config/" + newValue
+    $scope.$watch "currentSnapshotConfig", (snapshotConfig) ->
+        if snapshotConfig
+            localStorage.lastSnapshotConfig = snapshotConfig
+            $http.get "/api/snapshot-config/" + snapshotConfig
                 .success (data, status, headers, config) -> 
                     $scope.configTemplates = data
 
@@ -417,7 +418,7 @@ angular.module "mindbenderApp.dashboard", [
     $scope.$watch (-> $location.search()['template']), (newValue) ->
         if newValue
             $scope.currentTemplateName = newValue
-            localStorage.lastTemplate = newValue
+            localStorage.lastTemplate = $scope.currentTemplateName
 
             $http.get "/api/report-template/" + $scope.currentTemplateName
                 .success (data, status, headers, config) ->
