@@ -508,7 +508,7 @@ angular.module "mindbenderApp.dashboard", [
         )
 
     $scope.createTemplate = () ->
-        $http.put("/api/report-template/" + $scope.newTemplateName, {params: {}, sqlTemplate: "" })
+        $http.put("/api/report-template/" + $scope.newTemplateName, { type: "report", params: {}, sqlTemplate: "" })
             .success (data, status, headers, config) ->
                 $scope.loadTemplates($scope.newTemplateName)
 
