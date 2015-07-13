@@ -1,14 +1,17 @@
 <div ng-include="'dashboard/header.html'"></div>
 
 <div class="container-fluid">
-	<div class="row menu well">
-		<div class="col-sm-3" ng-repeat="navLink in navLinks">
-			<a href="{{ navLink.url }}">
-				<div class="item">
-				    <div><img ng-src="dashboard/images/{{ navLink.img }} "></div>
-				    {{ navLink.name }}
+	<div class="row" ng-repeat="chartSet in charts">
+		<div class="col-md-{{ 12 / chartSnapshotsConfig.chartsPerRow }}" ng-repeat="chart in chartSet">
+			<div style="height: 250px; border: 1px solid #CCC; padding: 5px">
+				<div style="font-weight: bold">
+					<a href="#/report-values/{{ chart.report }}/{{ chart.value }}">{{ chart.report }}: {{ chart.value }}</a>
 				</div>
-			</a>
+				<ng-switch on="chart.isNumeric">
+					<dashboard-chart ng-switch-when="true" report="{{ chart.report }}" valueName="{{ chart.value }}" chart-snapshots-config="chartSnapshotsConfig"></dashboard-chart>
+					<color-band ng-switch-when="false" chart-snapshots-config="chartSnapshotsConfig" report="{{ chart.report }}" valueName="{{ chart.value }}"></color-band>
+				</ng-switch>
+			</div>
 		</div>
 	</div>
 </div>

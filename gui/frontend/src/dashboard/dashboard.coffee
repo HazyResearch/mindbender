@@ -103,15 +103,43 @@ angular.module "mindbenderApp.dashboard", [
         templateUrl: "dashboard/report-value.html"
         controller: "ReportValueCtrl"
 
-.controller "IndexCtrl", ($scope, Dashboard) ->
-    $scope.hideNav = true
+.controller "IndexCtrl", ($scope, $http, Dashboard) ->
+    $scope.charts = []
+
+    isNumeric = (array) ->
+        for a in array
+            if isNaN(a)
+                return false
+
+        return true
+
+    renderDashboard = (reportValueSet) ->
+        $http.get "/api/dashboard/values/"
+            .success (data, status, headers, config) ->
+                $scope.chartSnapshotsConfig = {
+                    reportValues: reportValueSet.reportValues
+                    snapshots: reportValueSet.snapshots
+                    start: 0
+                    end: reportValueSet.snapshots.length - 1
+                    type: "values"
+                    hideNulls: false
+                    dashboardValues: data
+                    chartsPerRow: 3
+                    minimalDisplay: true
+                }
+
+                i = 0
+                for reportValue in data
+                    $scope.charts[i] = [] if !$scope.charts[i]
+                    $scope.charts[i].push({ report: reportValue.report, value: reportValue.value, isNumeric: isNumeric($scope.chartSnapshotsConfig.reportValues[reportValue.report][reportValue.value]) })
+
+                    i++ if $scope.charts[i].length == $scope.chartSnapshotsConfig.chartsPerRow
+
+    Dashboard.getReportValueList(renderDashboard)
+
 
 .controller "SnapshotRunCtrl", ($scope, $http, Dashboard) ->
     $scope.title = "Run Snapshot"
-
-    Dashboard.getReportValueList((data) ->
-        console.log data
-    )
 
     $scope.loadConfigs = (switchToConfig) ->
         $http.get "/api/snapshot-config/"
@@ -133,7 +161,6 @@ angular.module "mindbenderApp.dashboard", [
             $http.get "/api/snapshot-config/" + newValue
                 .success (data, status, headers, config) -> 
                     $scope.configTemplates = data
-                    console.log($scope.configTemplates)
 
     $scope.addTemplate = () ->
         $scope.configTemplates.push({"reportTemplate":"", "params": {}})
@@ -500,16 +527,6 @@ angular.module "mindbenderApp.dashboard", [
 .controller "ReportValueListCtrl", ($scope, $http, $timeout, Dashboard) ->
     $scope.title = "Snapshot Report Values"
 
-    getColorMap = (values) ->
-        uniqueValues = _.uniq(values)
-        increment = 360 / uniqueValues.length
-
-        colorMap = {}
-        for value, index in uniqueValues
-            colorMap[value] = 'hsl(' + (increment * index) + ', 100%, 50%)'
-
-        return colorMap
-
     $scope.isNumeric = (array) ->
         for a in array
             if isNaN(a)
@@ -518,23 +535,16 @@ angular.module "mindbenderApp.dashboard", [
         return true
 
     renderValues = (reportValueSet) ->
-        $scope.reportValueSet = reportValueSet
+        $scope.chartSnapshotsConfig = {
+            reportValues: reportValueSet.reportValues
+            snapshots: reportValueSet.snapshots
+        }
 
         $timeout ->
-            $(".color-band").each(() ->
-                increment = 100 / $scope.reportValueSet.snapshots.length
-
-                values = $scope.reportValueSet.reportValues[$(this).data("report")][$(this).data("valueName")]
-                colorMap = getColorMap(values)
-
-                for value in values
-                    $(this).append('<div title="' + value + '" style="cursor:help;float:left;width:' + increment + '%;height:40px;background-color:' + colorMap[value] + '"></div>')
-            )
-
             $(".sparkline").each(() ->
                 $(this).highcharts({
                     chart: {
-                        margin: [0, 0, 3, 0]
+                        margin: [0, 0, 3, -6]
                         backgroundColor: null
                     }
                     title: {
@@ -548,7 +558,7 @@ angular.module "mindbenderApp.dashboard", [
                     }
                     tooltip: {
                         formatter: () -> 
-                            return "<b>" + this.y + "</b><br>" + $scope.reportValueSet.snapshots[this.x].time
+                            return "<b>" + this.y + "</b><br>" + $scope.chartSnapshotsConfig.snapshots[this.x].time
                         style: {
                             padding: 4
                         }
@@ -568,7 +578,7 @@ angular.module "mindbenderApp.dashboard", [
                         }
                     }
                     series: [{
-                        data: $scope.reportValueSet.reportValues[$(this).data("report")][$(this).data("valueName")]
+                        data: $scope.chartSnapshotsConfig.reportValues[$(this).data("report")][$(this).data("valueName")]
                     }]
                 })
             )
@@ -580,6 +590,13 @@ angular.module "mindbenderApp.dashboard", [
     $scope.report = $routeParams.reportId
     $scope.valueName = $routeParams.valueName
     $scope.title = $scope.report + " - " + $scope.valueName
+
+    isNumeric = (values) ->
+        for value in values
+            if isNaN(value)
+                return false
+
+        return true
 
     renderValues = (reportValueSet) ->
         $http.get "/api/dashboard/values/"
@@ -596,6 +613,7 @@ angular.module "mindbenderApp.dashboard", [
                     end: reportValueSet.snapshots.length - 1
                     type: "values"
                     hideNulls: false
+                    isNumeric: isNumeric(reportValueSet.reportValues[$scope.report][$scope.valueName])
                     dashboardValues: data
                 }
 
@@ -630,6 +648,38 @@ angular.module "mindbenderApp.dashboard", [
         )
 ]
 
+.directive 'colorBand', () ->
+    template: '<div class="color-band"></div>'
+    restrict: 'E'
+    scope: {
+        chartSnapshotsConfig: '='
+    }
+    link: (scope, element, attrs) ->
+        getColorMap = (values) ->
+            uniqueValues = _.uniq(values)
+            increment = 360 / uniqueValues.length
+
+            colorMap = {}
+            for value, index in uniqueValues
+                colorMap[value] = 'hsl(' + (increment * index) + ', 100%, 50%)'
+
+            return colorMap
+
+        scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
+            return if !config
+
+            height = 40
+            if attrs.height
+                height = attrs.height
+
+            increment = 100 / config.snapshots.length
+            values = config.reportValues[attrs.report][attrs.valuename]
+            colorMap = getColorMap(values)
+
+            for value in values
+                element.find('.color-band').append('<div title="' + value + '" style="cursor:help;float:left;width:' + increment + '%;"><div style="border:0px solid transparent; border-right-width: 1px"><div style="background-color:' + colorMap[value] + ';height:' + height + 'px;"></div></div></div>')
+
+
 .directive 'dashboardChart', () ->
     template: '<div class="dashboard-chart"></div>'
     restrict: 'E'
@@ -637,22 +687,12 @@ angular.module "mindbenderApp.dashboard", [
         chartSnapshotsConfig: '='
     }
     link: (scope, element, attrs) ->
-        isNumeric = (values) ->
-            for value in values
-                if isNaN(value)
-                    return false
-
-            return true
-
         scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
             return if !config
 
             if config.type == "values"
-                if isNumeric(config.reportValues[attrs.report][attrs.valuename])
-                    renderLineChart(config)
-                else
-                    renderFrequencyChart(config)
-            else if config.type == "frequency"
+                renderLineChart(config)
+            else
                 renderFrequencyChart(config)
 
         renderLineChart = (config) ->
@@ -666,7 +706,8 @@ angular.module "mindbenderApp.dashboard", [
                         values.push(value)
                         categories.push(snapshot.time)
 
-            element.find(".dashboard-chart").highcharts({
+            options = {
+                chart: {}
                 title: {
                     text: ''
                 }
@@ -694,7 +735,15 @@ angular.module "mindbenderApp.dashboard", [
                 series: [{
                     data: values
                 }]
-            })
+            }
+
+            if config.minimalDisplay
+                options.chart.height = 200
+                options.xAxis.labels.enabled = false
+                options.xAxis.title = { text: null }
+                options.yAxis.title = { text: null }
+
+            element.find(".dashboard-chart").highcharts(options)
 
         renderFrequencyChart = (config) ->
             categories = []
@@ -716,7 +765,7 @@ angular.module "mindbenderApp.dashboard", [
                 categories.push(valueName)
                 frequencies.push(frequency)
 
-            element.find(".dashboard-chart").highcharts({
+            options = {
                 chart: {
                     type: "column"
                 }
@@ -725,11 +774,6 @@ angular.module "mindbenderApp.dashboard", [
                 }
                 legend: {
                     enabled: false
-                }
-                yAxis: {
-                    title: {
-                        text: 'Frequency'
-                    }
                 }
                 xAxis: {
                     title: {
@@ -740,6 +784,11 @@ angular.module "mindbenderApp.dashboard", [
                         rotation: -45
                     }
                 }
+                yAxis: {
+                    title: {
+                        text: 'Frequency'
+                    }
+                }
                 tooltip: {
                     formatter: () -> 
                         return "<b>" + this.x + "</b><br>Frequency: " + this.y
@@ -747,7 +796,15 @@ angular.module "mindbenderApp.dashboard", [
                 series: [{
                     data: frequencies
                 }]
-            })
+            }
+
+            if config.minimalDisplay
+                options.chart.height = 200
+                options.xAxis.title = { text: null }
+                options.yAxis.title = { text: null }
+
+            element.find(".dashboard-chart").highcharts(options)
+
 
 .directive 'dashboardSlider', ($timeout) ->
     template: '<div class="dashboard-slider-info"></div><div class="dashboard-slider" style="margin-top: 5px"></div>'
@@ -756,16 +813,20 @@ angular.module "mindbenderApp.dashboard", [
         chartSnapshotsConfig: '='
     }
     link: (scope, element, attrs) ->
-        updateInfo = (config) ->
+        updateSnapshots = (config) ->
             filteredSnapshots = []
-            for snapshot, index in config.snapshots
-                if index >= config.start && index <= config.end
-                    if config.hideNulls && attrs.report && attrs.valuename
-                        value = config.reportValues[attrs.report][attrs.valuename][index]
-                        if value != null
-                            filteredSnapshots.push(snapshot)
-                    else
+            start = 0
+            end = config.snapshots.length - 1
+            if config.hideNulls && attrs.report && attrs.valuename
+                for snapshot, index in config.snapshots
+                    value = config.reportValues[attrs.report][attrs.valuename][index]
+                    if value != null
+                        end = index
+                        if filteredSnapshots.length == 0
+                            start = index
                         filteredSnapshots.push(snapshot)
+            else
+                filteredSnapshots = config.snapshots
 
             info = """
                 #{filteredSnapshots.length} values:
@@ -773,21 +834,27 @@ angular.module "mindbenderApp.dashboard", [
             """
             element.find(".dashboard-slider-info").html(info)
 
+            return { min: start, max: end }
+
         scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
             return if !config
 
-            updateInfo(config)
-            element.find(".dashboard-slider").slider({
-                range: true
-                min: 0
-                max: config.end - 1
-                values: [0, config.end - 1]
-                slide: (event, ui) ->
-                    $timeout ->
-                        config.start = ui.values[0]
-                        config.end = ui.values[1]
-                        updateInfo(config)
-            })
+            range = updateSnapshots(config)
+
+            if element.find(".dashboard-slider").slider("instance")
+                element.find(".dashboard-slider").slider("option", range)
+            else
+                element.find(".dashboard-slider").slider({
+                    range: true
+                    min: 0
+                    max: range.max
+                    values: [0, range.max]
+                    slide: (event, ui) ->
+                        $timeout ->
+                            config.start = ui.values[0]
+                            config.end = ui.values[1]
+                            updateSnapshots(config)
+                })
 
 
 .directive 'chart', ($timeout, $compile, $parse, DashboardDataUtils) ->
