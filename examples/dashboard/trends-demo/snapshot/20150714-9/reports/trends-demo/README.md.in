@@ -1,0 +1,21 @@
+<$
+# A report template that simply generates some random values
+set -eu
+
+x=$RANDOM y=0.$RANDOM
+
+if [[ $x -lt 10000 ]]; then
+    flag=PASS
+else
+    flag=FAIL
+fi
+
+report-values x=$x y=$y flag=$flag
+
+$>
+
+### <$= $flag $>
+Here are some generated values:
+
+* x: <$= $x $>
+* y: <$= $y $>
