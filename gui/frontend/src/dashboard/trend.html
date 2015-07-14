@@ -1,0 +1,51 @@
+<div ng-include="'dashboard/header.html'"></div>
+
+<div style="float:left" ng-show="chartSnapshotsConfig.isNumeric">
+	<div class="btn-group">
+		<label class="btn btn-primary" ng-model="chartSnapshotsConfig.type" btn-radio="'values'">Values</label>
+		<label class="btn btn-primary" ng-model="chartSnapshotsConfig.type" btn-radio="'frequency'">Frequency</label>
+	</div>
+</div>
+
+<div style="float:right">
+	<button type="button" class="btn btn-primary" ng-model="onDashboard" btn-checkbox btn-checkbox-true="true" btn-checkbox-false="false">
+		<ng-switch on="onDashboard">
+			<span ng-switch-when="false">Add to</span>
+			<span ng-switch-when="true">Remove from</span>
+		</ng-switch>
+		Dashboard
+    </button>
+</div>
+
+<br style="clear:both"><br>
+
+<ng-switch on="chartSnapshotsConfig.isNumeric">
+	<div ng-switch-when="true">
+		<dashboard-chart report="{{ report }}" valueName="{{ valueName }}" chart-snapshots-config="chartSnapshotsConfig"></dashboard-chart>
+
+		<br><br>
+
+		<div class="container-fluid well">
+			<div class="row">
+				<div class="col-md-10">
+					<dashboard-slider report="{{ report }}" valueName="{{ valueName }}" chart-snapshots-config="chartSnapshotsConfig"></dashboard-slider>
+				</div>
+				<div class="col-md-2">
+					<button type="button" class="btn btn-primary" ng-model="chartSnapshotsConfig.hideNulls" btn-checkbox btn-checkbox-true="true" btn-checkbox-false="false" style="margin-top:10px">
+						<ng-switch on="chartSnapshotsConfig.hideNulls">
+							<span ng-switch-when="false">Hide</span>
+							<span ng-switch-when="true">Show</span>
+						</ng-switch>
+						Null Values
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div ng-switch-when="false">
+		<br>
+		<color-band chart-snapshots-config="chartSnapshotsConfig" report="{{ report }}" valueName="{{ valueName }}" height="100"></color-band>
+	</div>
+</ng-switch>
+
+<br><br><br>

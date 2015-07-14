@@ -13,9 +13,10 @@ angular.module "mindbenderApp.dashboard", [
 
             # prepare array of links for navbar
             $rootScope.navLinks = [
-                { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
-                { url: '#/snapshot-template/edit', name: 'Configure Templates', img: 'gear.png' }
-                { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
+                { url: '#/snapshot-run', name: 'Run Snapshot' }
+                { url: '#/snapshot-template/edit', name: 'Configure Templates' }
+                { url: '#/snapshot/', name: 'View Snapshots' }
+                { url: '#/trends', name: 'Trends' }
             ]
             do @updateNavLinkForSnapshots
             $rootScope.isNavLinkActive = (navLink) ->
@@ -57,6 +58,21 @@ angular.module "mindbenderApp.dashboard", [
         getSnapshotList: =>
             $http.get "/api/snapshot"
 
+        getReportValueList: (callback) =>
+            if @reportValues
+                callback @reportValues
+            else
+                $http.get "/api/report-value/"
+                    .success (data) =>
+                        @reportValues = data # caching
+                        callback @reportValues
+
+        isNumeric: (array) =>
+            for a in array
+                if isNaN(a)
+                    return false
+            return true
+
         # TODO move some common parts to the Dashboard class
 
     # the singleton instance registered as an Angular service
@@ -85,13 +101,46 @@ angular.module "mindbenderApp.dashboard", [
         controller: "EditTemplatesCtrl",
         reloadOnSearch: false
 
-.controller "IndexCtrl", ($scope, Dashboard) ->
-    $scope.hideNav = true
+    $routeProvider.when "/trends",
+        templateUrl: "dashboard/trends.html"
+        controller: "ReportValueListCtrl"
+
+    $routeProvider.when "/trend/:reportId*/:valueName",
+        templateUrl: "dashboard/trend.html"
+        controller: "ReportValueCtrl"
+
+.controller "IndexCtrl", ($scope, $http, Dashboard) ->
+    $scope.charts = []
+
+    renderDashboard = (reportValueSet) ->
+        $http.get "/api/dashboard/values/"
+            .success (data, status, headers, config) ->
+                $scope.chartSnapshotsConfig = {
+                    reportValues: reportValueSet.reportValues
+                    snapshots: reportValueSet.snapshots
+                    start: 0
+                    end: reportValueSet.snapshots.length - 1
+                    type: "values"
+                    hideNulls: false
+                    dashboardValues: data
+                    chartsPerRow: 3
+                    minimalDisplay: true
+                }
+
+                i = 0
+                for reportValue in data
+                    $scope.charts[i] = [] if !$scope.charts[i]
+                    $scope.charts[i].push({ report: reportValue.report, value: reportValue.value, isNumeric: Dashboard.isNumeric($scope.chartSnapshotsConfig.reportValues[reportValue.report][reportValue.value]) })
+
+                    i++ if $scope.charts[i].length == $scope.chartSnapshotsConfig.chartsPerRow
+
+    Dashboard.getReportValueList(renderDashboard)
+
 
 .controller "SnapshotRunCtrl", ($scope, $http, Dashboard) ->
     $scope.title = "Run Snapshot"
 
-    $scope.loadConfigs = (switchToConfig) ->
+    loadConfigs = (switchToConfig) ->
         $http.get "/api/snapshot-config/"
             .success (data, status, headers, config) -> 
                 $scope.configs = data
@@ -100,18 +149,18 @@ angular.module "mindbenderApp.dashboard", [
                 else
                     $scope.currentSnapshotConfig = data[0]
 
-    $scope.loadConfigs()
+    loadConfigs(localStorage.lastSnapshotConfig)
 
     $http.get "/api/snapshot-template/"
         .success (data, status, headers, config) -> 
             $scope.templates = data 
 
-    $scope.$watch "currentSnapshotConfig", (newValue, oldValue) ->
-        if newValue
-            $http.get "/api/snapshot-config/" + newValue
+    $scope.$watch "currentSnapshotConfig", (snapshotConfig) ->
+        if snapshotConfig
+            localStorage.lastSnapshotConfig = snapshotConfig
+            $http.get "/api/snapshot-config/" + snapshotConfig
                 .success (data, status, headers, config) -> 
                     $scope.configTemplates = data
-                    console.log($scope.configTemplates)
 
     $scope.addTemplate = () ->
         $scope.configTemplates.push({"reportTemplate":"", "params": {}})
@@ -370,6 +419,8 @@ angular.module "mindbenderApp.dashboard", [
     $scope.$watch (-> $location.search()['template']), (newValue) ->
         if newValue
             $scope.currentTemplateName = newValue
+            localStorage.lastTemplate = $scope.currentTemplateName
+
             $http.get "/api/snapshot-template/" + $scope.currentTemplateName
                 .success (data, status, headers, config) ->
                     $scope.template = $.extend({}, data)
@@ -388,6 +439,12 @@ angular.module "mindbenderApp.dashboard", [
                     else
                         $scope.template.hasChart = false
 
+    if $location.search()['template']
+        $scope.loadTemplates($location.search()['template'])
+    else
+        $scope.loadTemplates(localStorage.lastTemplate)
+
+
     removeInheritedTaskParams = () ->
         params = []
         for param in $scope.template.params
@@ -396,7 +453,9 @@ angular.module "mindbenderApp.dashboard", [
 
         $scope.template.params = params
 
-    $scope.$watch (-> $scope.template.type), (newValue) ->
+    $scope.$watch (-> $scope.template.type), (newValue, oldValue) ->
+        return if newValue == oldValue
+
         if newValue == 'report'
             removeInheritedTaskParams()
         else if $scope.template.scope
@@ -446,7 +505,7 @@ angular.module "mindbenderApp.dashboard", [
         )
 
     $scope.createTemplate = () ->
-        $http.put("/api/snapshot-template/" + $scope.newTemplateName, {params: {}, sqlTemplate: "" })
+        $http.put("/api/snapshot-template/" + $scope.newTemplateName, { params: {}, sqlTemplate: "" })
             .success (data, status, headers, config) ->
                 $scope.loadTemplates($scope.newTemplateName)
 
@@ -471,6 +530,109 @@ angular.module "mindbenderApp.dashboard", [
 
                     i++
 
+.controller "ReportValueListCtrl", ($scope, $http, $timeout, Dashboard) ->
+    $scope.title = "Trends"
+
+    $scope.isNumeric = Dashboard.isNumeric
+
+    renderValues = (reportValueSet) ->
+        $scope.chartSnapshotsConfig = {
+            reportValues: reportValueSet.reportValues
+            snapshots: reportValueSet.snapshots
+        }
+
+        $timeout ->
+            $(".sparkline").each(() ->
+                $(this).highcharts({
+                    chart: {
+                        margin: [0, 0, 3, -6]
+                        backgroundColor: null
+                    }
+                    title: {
+                        text: ''
+                    }
+                    credits: {
+                        enabled: false
+                    }
+                    legend: {
+                        enabled: false
+                    }
+                    tooltip: {
+                        formatter: () -> 
+                            return "<b>" + this.y + "</b><br>" + $scope.chartSnapshotsConfig.snapshots[this.x].time
+                        style: {
+                            padding: 4
+                        }
+                        hideDelay: 50
+                    }
+                    plotOptions: {
+                        series: {
+                            lineWidth: 1
+                            states: {
+                                hover: {
+                                    lineWidth: 1
+                                }
+                            }
+                            marker: {
+                               radius: 2
+                            }
+                        }
+                    }
+                    series: [{
+                        data: $scope.chartSnapshotsConfig.reportValues[$(this).data("report")][$(this).data("valueName")]
+                    }]
+                })
+            )
+
+    Dashboard.getReportValueList(renderValues)
+
+
+.controller "ReportValueCtrl", ($scope, $http, $routeParams, Dashboard) ->
+    $scope.report = $routeParams.reportId
+    $scope.valueName = $routeParams.valueName
+    $scope.title = "Trend: " + $scope.report + " - " + $scope.valueName
+
+    renderValues = (reportValueSet) ->
+        $http.get "/api/dashboard/values/"
+            .success (data, status, headers, config) ->
+                $scope.onDashboard = false
+                for reportValue in data
+                    if reportValue.report == $scope.report && reportValue.value == $scope.valueName
+                        $scope.onDashboard = true
+
+                 $scope.chartSnapshotsConfig = {
+                    reportValues: reportValueSet.reportValues
+                    snapshots: reportValueSet.snapshots
+                    start: 0
+                    end: reportValueSet.snapshots.length - 1
+                    type: "values"
+                    hideNulls: false
+                    isNumeric: Dashboard.isNumeric(reportValueSet.reportValues[$scope.report][$scope.valueName])
+                    dashboardValues: data
+                }
+
+                $scope.$watch (-> $scope.onDashboard), (onDashboard, oldValue) ->
+                    return if onDashboard == oldValue
+    
+                    reportValue = { report: $scope.report, value: $scope.valueName }
+
+                    if onDashboard
+                        $http.post "/api/dashboard/values/", reportValue
+                    else
+                        dashboardValues = []
+                        for dashboardValue in $scope.chartSnapshotsConfig.dashboardValues
+                            if !_.isEqual(reportValue, dashboardValue)
+                                dashboardValues.push(dashboardValue)
+
+                        $http.put "/api/dashboard/values/", dashboardValues
+
+    Dashboard.getReportValueList(renderValues)
+
+
+.filter 'capitalize', () ->
+    (input) ->
+        input[0].toUpperCase() + input.substring(1)
+
 
 .directive 'flash', ['$document', ($document) ->
     link: (scope, element, attr) ->
@@ -479,6 +641,241 @@ angular.module "mindbenderApp.dashboard", [
             setTimeout((-> $('.flash').css('background-color', '#FFF')), 1000)
         )
 ]
+
+.directive 'colorBand', ($compile, $timeout) ->
+    template: '<div class="color-band"></div>'
+    restrict: 'E'
+    scope: {
+        chartSnapshotsConfig: '='
+    }
+    link: (scope, element, attrs) ->
+        getColorMap = (values) ->
+            uniqueValues = _.uniq(values)
+
+            null_index = uniqueValues.indexOf(null)
+            if null_index != -1
+                uniqueValues.splice(null_index, 1);
+
+            increment = 360 / uniqueValues.length
+
+            colorMap = {}
+            for value, index in uniqueValues
+                colorMap[value] = 'hsl(' + (increment * index) + ', 100%, 50%)'
+
+            return colorMap
+
+        scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
+            return if !config
+
+            height = 40
+            if attrs.height
+                height = attrs.height
+
+            increment = 100 / config.snapshots.length
+            values = config.reportValues[attrs.report][attrs.valuename]
+            colorMap = getColorMap(values)
+
+            for value, index in values
+                if value == null
+                    element.find('.color-band').append("""
+                        <div style="float:left;width:#{increment}%;">&nbsp;</div>
+                    """)
+                else
+                    element.find('.color-band').append("""
+                        <a data-toggle="tooltip" title="#{value}" style="float:left;width:#{increment}%;" href="#/snapshot/#{config.snapshots[index].name}/?report=#{attrs.report}"><div style="border:0px solid transparent; border-right-width: 1px"><div style="background-color:#{colorMap[value]};height:#{height}px;"></div></div></a>
+                    """)
+
+            element.find('[data-toggle=tooltip]').tooltip()
+
+
+.directive 'dashboardChart', () ->
+    template: '<div class="dashboard-chart"></div>'
+    restrict: 'E'
+    scope: {
+        chartSnapshotsConfig: '='
+    }
+    link: (scope, element, attrs) ->
+        scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
+            return if !config
+
+            if config.type == "values"
+                renderLineChart(config)
+            else
+                renderFrequencyChart(config)
+
+        renderLineChart = (config) ->
+            values = []
+            categories = []
+
+            for snapshot, index in config.snapshots
+                if index >= config.start && index <= config.end
+                    value = config.reportValues[attrs.report][attrs.valuename][index]
+                    if !config.hideNulls || value != null
+                        values.push(value)
+                        categories.push(snapshot)
+
+            options = {
+                chart: {}
+                title: {
+                    text: ''
+                }
+                legend: {
+                    enabled: false
+                }
+                xAxis: {
+                    title: {
+                        text: 'Snapshot'
+                    }
+                    categories: categories.map((snapshot) -> snapshot.time)
+                    labels: {
+                        rotation: -45
+                    }
+                }
+                yAxis: {
+                    title: {
+                        text: 'Value'
+                    }
+                }
+                plotOptions: {
+                    series: {
+                        cursor: 'pointer',
+                        point: {
+                            events: {
+                                click: (e) ->
+                                    point_index = this.series.data.indexOf(e.point)
+                                    location.href = "#/snapshot/" + categories[point_index].name + "/?report=" + attrs.report
+                            }
+                        }
+                    }
+                },
+                tooltip: {
+                    formatter: () -> 
+                        return "<b>" + this.y + "</b><br>" + this.x
+                }
+                series: [{
+                    data: values
+                }]
+            }
+
+            if config.minimalDisplay
+                options.chart.height = 200
+                options.xAxis.labels.enabled = false
+                options.xAxis.title = { text: null }
+                options.yAxis.title = { text: null }
+
+            element.find(".dashboard-chart").highcharts(options)
+
+        renderFrequencyChart = (config) ->
+            categories = []
+            frequencies = []
+            valueMap = {}
+
+            for value, index in config.reportValues[attrs.report][attrs.valuename]
+                if index >= config.start && index <= config.end && (!config.hideNulls || value != null)
+                    if !valueMap[value]
+                        valueMap[value] = 0
+                    valueMap[value]++
+
+            if valueMap[null]
+                categories.push("null")
+                frequencies.push(valueMap[null])
+                delete valueMap[null]
+
+            for valueName, frequency of valueMap
+                categories.push(valueName)
+                frequencies.push(frequency)
+
+            options = {
+                chart: {
+                    type: "column"
+                }
+                title: {
+                    text: ''
+                }
+                legend: {
+                    enabled: false
+                }
+                xAxis: {
+                    title: {
+                        text: 'Value'
+                    }
+                    categories: categories
+                    labels: {
+                        rotation: -45
+                    }
+                }
+                yAxis: {
+                    title: {
+                        text: 'Frequency'
+                    }
+                }
+                tooltip: {
+                    formatter: () -> 
+                        return "<b>" + this.x + "</b><br>Frequency: " + this.y
+                }
+                series: [{
+                    data: frequencies
+                }]
+            }
+
+            if config.minimalDisplay
+                options.chart.height = 200
+                options.xAxis.title = { text: null }
+                options.yAxis.title = { text: null }
+
+            element.find(".dashboard-chart").highcharts(options)
+
+
+.directive 'dashboardSlider', ($timeout) ->
+    template: '<div class="dashboard-slider-info"></div><div class="dashboard-slider" style="margin-top: 5px"></div>'
+    restrict: 'E'
+    scope: {
+        chartSnapshotsConfig: '='
+    }
+    link: (scope, element, attrs) ->
+        updateSnapshots = (config) ->
+            filteredSnapshots = []
+            start = 0
+            end = config.snapshots.length - 1
+            if config.hideNulls && attrs.report && attrs.valuename
+                for snapshot, index in config.snapshots
+                    value = config.reportValues[attrs.report][attrs.valuename][index]
+                    if value != null
+                        end = index
+                        if filteredSnapshots.length == 0
+                            start = index
+                        filteredSnapshots.push(snapshot)
+            else
+                filteredSnapshots = config.snapshots
+
+            info = """
+                #{filteredSnapshots.length} values:
+                #{filteredSnapshots[0].time} - #{filteredSnapshots[filteredSnapshots.length - 1].time}
+            """
+            element.find(".dashboard-slider-info").html(info)
+
+            return { min: start, max: end }
+
+        scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
+            return if !config
+
+            range = updateSnapshots(config)
+
+            if element.find(".dashboard-slider").slider("instance")
+                element.find(".dashboard-slider").slider("option", range)
+            else
+                element.find(".dashboard-slider").slider({
+                    range: true
+                    min: 0
+                    max: range.max
+                    values: [0, range.max]
+                    slide: (event, ui) ->
+                        $timeout ->
+                            config.start = ui.values[0]
+                            config.end = ui.values[1]
+                            updateSnapshots(config)
+                })
+
 
 .directive 'chart', ($timeout, $compile, $parse, DashboardDataUtils) ->
     template: '<div class="chart"></div><div class="slider"></div>',

@@ -74,10 +74,10 @@ exports.init = (app) ->
     # Create a New Snapshot Configuration or Update an Existing One
     app.put "/api/snapshot-config/:configName", (req, res) ->
         configName = req.param "configName"
-        return res.sendStatus 400 unless configName?.length > 0
+        return res.status(400).send "no configName" unless configName?.length > 0
         isValidInstantiation = (inst) ->
-            inst.reportTemplate? and (not inst.params? or (_.size inst.params) > 0)
-        return res.sendStatus 400 unless _.every req.body, isValidInstantiation
+            inst.reportTemplate? and (not inst.params? or (typeof inst.params) is "object")
+        return res.status(400).send "invalid instantiation" unless _.every req.body, isValidInstantiation
         res
             .location "/api/snapshot-config/#{configName}"
             .status 201
@@ -179,5 +179,30 @@ exports.init = (app) ->
                 unless exitStatus == 0
                     res.status 500
                         .send "report-task exited with status #{exitStatus}"
+
+    ## Trends
+    # Enumerate All Report Values
+    app.get "/api/report-value/", (req, res) ->
+        # TODO cache aggregate values
+        # FIXME xargs will produce more than one JSON when there are too many snapshots
+        sendStdoutOf res, "sh", ["-c", "dashboard-ls-snapshots | xargs dashboard-aggregate-values"]
+
+    ## Dashboard Values
+    # Enumerate Dashboard Values
+    app.get "/api/dashboard/values/", (req, res) ->
+        sendStdoutOf res, "dashboard-trends-config", ["get.json"]
+
+    # Update Dashboard Values
+    app.put "/api/dashboard/values/", (req, res) ->
+        sendStdoutOf res, "dashboard-trends-config", ["put"]
+            # XXX it's silly to parse and stringify the body right away
+            .stdin.end JSON.stringify req.body
+
+    # Add a Dashboard Value
+    app.post "/api/dashboard/values/", (req, res) ->
+        reportId = req.body.report
+        valueName = req.body.value
+        sendStdoutOf res, "dashboard-trends-config", ["add", reportId, valueName]
+
 
 

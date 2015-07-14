@@ -34,10 +34,12 @@
 			<div class="well well-sm">{{report.description}}</div>
 		</div>
 
-		<!-- Button to show raw content in modal -->
-		<button type="button" class="btn btn-default pull-right" data-toggle="modal" data-target="#report-metadata-modal">Details</button>
-
-		<mb-task-control></mb-task-control>
+		<div class="pull-right" ng-show="report.report">
+			<!-- Button to show raw content in modal -->
+			<button type="button" class="btn btn-default" data-toggle="modal" data-target="#report-metadata-modal">Details</button>
+			<a href="#/snapshot-templates/edit?template={{ report.report }}" class="btn btn-default" style="margin-right: 4px">Template</a>
+			<mb-task-control></mb-task-control>
+		</div>
 
 		<div ng-show="!report.isFormatted">
 			<div compile-html="report.html"></div>

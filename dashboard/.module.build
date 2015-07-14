@@ -8,8 +8,14 @@ set -eu
 }
 
 # compile some CoffeeScripts
-{
-echo '#!/usr/bin/env node'
-coffee -p report-values.coffee
-} >report-values
-chmod +x report-values
+compile-exe() {
+    local coffee=$1; shift
+    local exe=${1:-${coffee%.coffee}}
+    {
+        echo '#!/usr/bin/env node'
+        coffee -p "$coffee"
+    } >"$exe"
+    chmod +x "$exe"
+}
+compile-exe report-values.coffee
+compile-exe dashboard-aggregate-values.coffee

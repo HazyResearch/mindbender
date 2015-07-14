@@ -282,6 +282,8 @@ case $Command in
         if [[ -e data.sql.in ]]; then
             # place the default report.sh when there's a data.sql.in
             cp -f "$MINDBENDER_HOME"/etc/report-sql-template.sh report.sh
+        else
+            rm -f report.sh
         fi
         ;;
 
