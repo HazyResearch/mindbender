@@ -13,10 +13,10 @@ angular.module "mindbenderApp.dashboard", [
 
             # prepare array of links for navbar
             $rootScope.navLinks = [
-                { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
-                { url: '#/snapshot-templates/edit', name: 'Configure Templates', img: 'gear.png' }
-                { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
-                { url: '#/trends', name: 'Trends', img: 'report.png' }
+                { url: '#/snapshot-run', name: 'Run Snapshot' }
+                { url: '#/snapshot-templates/edit', name: 'Configure Templates' }
+                { url: '#/snapshot/', name: 'View Snapshots' }
+                { url: '#/trends', name: 'Trends' }
             ]
             do @updateNavLinkForSnapshots
             $rootScope.isNavLinkActive = (navLink) ->
