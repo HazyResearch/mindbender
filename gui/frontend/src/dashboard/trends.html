@@ -8,7 +8,7 @@
 		</tr>
 		<tr ng-repeat="(valueName, values) in reportValues">
 			<td style="overflow:auto">
-				<a href="#/report-values/{{ report }}/{{ valueName }}">{{ valueName }}</a>
+				<a href="#/trend/{{ report }}/{{ valueName }}">{{ valueName }}</a>
 			</td>
 			<td ng-switch="isNumeric(values)">
 				<div ng-switch-when="true" class="sparkline" data-report="{{ report }}" data-value-name="{{ valueName }}" style="position:relative;left:{{ 100 / values.length / 2 }}%;width:{{ 100 - 100 / values.length + 1 }}%;height:50px;"></div>

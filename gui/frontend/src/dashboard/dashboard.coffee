@@ -16,7 +16,7 @@ angular.module "mindbenderApp.dashboard", [
                 { url: '#/snapshot-run', name: 'Run Snapshot', img: 'run.png' }
                 { url: '#/snapshot-templates/edit', name: 'Configure Templates', img: 'gear.png' }
                 { url: '#/snapshot/', name: 'View Snapshots', img: 'report.png' }
-                { url: '#/report-values', name: 'Report Values', img: 'report.png' }
+                { url: '#/trends', name: 'Trends', img: 'report.png' }
             ]
             do @updateNavLinkForSnapshots
             $rootScope.isNavLinkActive = (navLink) ->
@@ -67,6 +67,12 @@ angular.module "mindbenderApp.dashboard", [
                         @reportValues = data # caching
                         callback @reportValues
 
+        isNumeric: (array) =>
+            for a in array
+                if isNaN(a)
+                    return false
+            return true
+
         # TODO move some common parts to the Dashboard class
 
     # the singleton instance registered as an Angular service
@@ -95,23 +101,16 @@ angular.module "mindbenderApp.dashboard", [
         controller: "EditTemplatesCtrl",
         reloadOnSearch: false
 
-    $routeProvider.when "/report-values",
-        templateUrl: "dashboard/report-values.html"
+    $routeProvider.when "/trends",
+        templateUrl: "dashboard/trends.html"
         controller: "ReportValueListCtrl"
 
-    $routeProvider.when "/report-values/:reportId*/:valueName",
-        templateUrl: "dashboard/report-value.html"
+    $routeProvider.when "/trend/:reportId*/:valueName",
+        templateUrl: "dashboard/trend.html"
         controller: "ReportValueCtrl"
 
 .controller "IndexCtrl", ($scope, $http, Dashboard) ->
     $scope.charts = []
-
-    isNumeric = (array) ->
-        for a in array
-            if isNaN(a)
-                return false
-
-        return true
 
     renderDashboard = (reportValueSet) ->
         $http.get "/api/dashboard/values/"
@@ -131,7 +130,7 @@ angular.module "mindbenderApp.dashboard", [
                 i = 0
                 for reportValue in data
                     $scope.charts[i] = [] if !$scope.charts[i]
-                    $scope.charts[i].push({ report: reportValue.report, value: reportValue.value, isNumeric: isNumeric($scope.chartSnapshotsConfig.reportValues[reportValue.report][reportValue.value]) })
+                    $scope.charts[i].push({ report: reportValue.report, value: reportValue.value, isNumeric: Dashboard.isNumeric($scope.chartSnapshotsConfig.reportValues[reportValue.report][reportValue.value]) })
 
                     i++ if $scope.charts[i].length == $scope.chartSnapshotsConfig.chartsPerRow
 
@@ -441,7 +440,10 @@ angular.module "mindbenderApp.dashboard", [
                     else
                         $scope.template.hasChart = false
 
-    $scope.loadTemplates(localStorage.lastTemplate)
+    if $location.search()['template']
+        $scope.loadTemplates($location.search()['template'])
+    else
+        $scope.loadTemplates(localStorage.lastTemplate)
 
 
     removeInheritedTaskParams = () ->
@@ -508,7 +510,7 @@ angular.module "mindbenderApp.dashboard", [
         )
 
     $scope.createTemplate = () ->
-        $http.put("/api/report-template/" + $scope.newTemplateName, { type: "report", params: {}, sqlTemplate: "" })
+        $http.put("/api/report-template/" + $scope.newTemplateName, { params: {}, sqlTemplate: "" })
             .success (data, status, headers, config) ->
                 $scope.loadTemplates($scope.newTemplateName)
 
@@ -530,14 +532,9 @@ angular.module "mindbenderApp.dashboard", [
                     i++
 
 .controller "ReportValueListCtrl", ($scope, $http, $timeout, Dashboard) ->
-    $scope.title = "Snapshot Report Values"
+    $scope.title = "Trends"
 
-    $scope.isNumeric = (array) ->
-        for a in array
-            if isNaN(a)
-                return false
-
-        return true
+    $scope.isNumeric = Dashboard.isNumeric
 
     renderValues = (reportValueSet) ->
         $scope.chartSnapshotsConfig = {
@@ -594,14 +591,7 @@ angular.module "mindbenderApp.dashboard", [
 .controller "ReportValueCtrl", ($scope, $http, $routeParams, Dashboard) ->
     $scope.report = $routeParams.reportId
     $scope.valueName = $routeParams.valueName
-    $scope.title = $scope.report + " - " + $scope.valueName
-
-    isNumeric = (values) ->
-        for value in values
-            if isNaN(value)
-                return false
-
-        return true
+    $scope.title = "Trend: " + $scope.report + " - " + $scope.valueName
 
     renderValues = (reportValueSet) ->
         $http.get "/api/dashboard/values/"
@@ -618,7 +608,7 @@ angular.module "mindbenderApp.dashboard", [
                     end: reportValueSet.snapshots.length - 1
                     type: "values"
                     hideNulls: false
-                    isNumeric: isNumeric(reportValueSet.reportValues[$scope.report][$scope.valueName])
+                    isNumeric: Dashboard.isNumeric(reportValueSet.reportValues[$scope.report][$scope.valueName])
                     dashboardValues: data
                 }
 
@@ -653,7 +643,7 @@ angular.module "mindbenderApp.dashboard", [
         )
 ]
 
-.directive 'colorBand', () ->
+.directive 'colorBand', ($compile, $timeout) ->
     template: '<div class="color-band"></div>'
     restrict: 'E'
     scope: {
@@ -662,6 +652,11 @@ angular.module "mindbenderApp.dashboard", [
     link: (scope, element, attrs) ->
         getColorMap = (values) ->
             uniqueValues = _.uniq(values)
+
+            null_index = uniqueValues.indexOf(null)
+            if null_index != -1
+                uniqueValues.splice(null_index, 1);
+
             increment = 360 / uniqueValues.length
 
             colorMap = {}
@@ -681,8 +676,17 @@ angular.module "mindbenderApp.dashboard", [
             values = config.reportValues[attrs.report][attrs.valuename]
             colorMap = getColorMap(values)
 
-            for value in values
-                element.find('.color-band').append('<div title="' + value + '" style="cursor:help;float:left;width:' + increment + '%;"><div style="border:0px solid transparent; border-right-width: 1px"><div style="background-color:' + colorMap[value] + ';height:' + height + 'px;"></div></div></div>')
+            for value, index in values
+                if value == null
+                    element.find('.color-band').append("""
+                        <div style="float:left;width:#{increment}%;">&nbsp;</div>
+                    """)
+                else
+                    element.find('.color-band').append("""
+                        <a data-toggle="tooltip" title="#{value}" style="float:left;width:#{increment}%;" href="#/snapshot/#{config.snapshots[index].name}/?report=#{attrs.report}"><div style="border:0px solid transparent; border-right-width: 1px"><div style="background-color:#{colorMap[value]};height:#{height}px;"></div></div></a>
+                    """)
+
+            element.find('[data-toggle=tooltip]').tooltip()
 
 
 .directive 'dashboardChart', () ->
@@ -709,7 +713,7 @@ angular.module "mindbenderApp.dashboard", [
                     value = config.reportValues[attrs.report][attrs.valuename][index]
                     if !config.hideNulls || value != null
                         values.push(value)
-                        categories.push(snapshot.time)
+                        categories.push(snapshot)
 
             options = {
                 chart: {}
@@ -723,7 +727,7 @@ angular.module "mindbenderApp.dashboard", [
                     title: {
                         text: 'Snapshot'
                     }
-                    categories: categories
+                    categories: categories.map((snapshot) -> snapshot.time)
                     labels: {
                         rotation: -45
                     }
@@ -733,6 +737,18 @@ angular.module "mindbenderApp.dashboard", [
                         text: 'Value'
                     }
                 }
+                plotOptions: {
+                    series: {
+                        cursor: 'pointer',
+                        point: {
+                            events: {
+                                click: (e) ->
+                                    point_index = this.series.data.indexOf(e.point)
+                                    location.href = "#/snapshot/" + categories[point_index].name + "/?report=" + attrs.report
+                            }
+                        }
+                    }
+                },
                 tooltip: {
                     formatter: () -> 
                         return "<b>" + this.y + "</b><br>" + this.x
