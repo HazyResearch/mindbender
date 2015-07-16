@@ -11,3 +11,4 @@ FROM (
 ) ranked_features
 WHERE rank <= ${num_top_weighted_features}
 ORDER BY weight DESC
+LIMIT 10 * ${num_top_weighted_features}
