@@ -1364,11 +1364,11 @@ angular.module "mindbenderApp.dashboard", [
         scope.$watch (-> taskArea.matcher.event), (event) ->
             return unless event?
 
-            eOffset = angular.element(event.currentTarget).offset()
-            eParentOffset = angular.element("#taskMatcher").parent().offset()
+            taskMatcher = element.find("#taskMatcher")
 
-            element.find("#taskMatcher").css("left", eOffset.left - eParentOffset.left + 30)
-            element.find("#taskMatcher").css("top", eOffset.top - eParentOffset.top + 20)
+            offset = taskMatcher.parent().offsetParent().offset()
+            taskMatcher.css("left", event.pageX - offset.left)
+            taskMatcher.css("top", event.pageY - offset.top)
 
 .filter "urlEncode", () ->
     (input) -> encodeURIComponent input
