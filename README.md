@@ -39,13 +39,6 @@ mindbender dashboard
 ```
 
 
-#### Compile Mindbender syntax into DeepDive apps
-```
-# (Under development; Extremely experimental)
-mindbender compile  examples/genomics-application.mb  examples/genomics-application.deepdive
-mindbender compile  examples/spouse-example.mb        examples/spouse-example.deepdive
-```
-
 [DeepDive]: http://deepdive.stanford.edu/
 
 
