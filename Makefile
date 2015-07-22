@@ -11,7 +11,6 @@ PACKAGEEXECUTES = bin/mindbender
 PACKAGEVERSIONSUFFIX := -$(shell uname)-$(shell uname -m)
 
 # list of modules
-MODULES += compiler
 MODULES += dashboard
 MODULES += depends
 MODULES += depends/nodejs
