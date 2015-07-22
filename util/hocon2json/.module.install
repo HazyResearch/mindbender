@@ -1,0 +1,2 @@
+hocon2json.sh                                           bin/mindbender.d/hocon2json
+target/scala-2.10/hocon2json-assembly-0.1-SNAPSHOT.jar  bin/mindbender.d/hocon2json.jar
