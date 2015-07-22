@@ -1,4 +1,3 @@
-#!/usr/bin/env scala
 // A simple Scala script for parsing HOCON into fully resolved JSON
 // Usage: hocon2json HOCON_FILE [DEFAULT_FILE...]
 // 
@@ -11,6 +10,9 @@
 
 import java.io.File
 import com.typesafe.config._
+
+object HOCON2JSON {
+def main(args: Array[String]): Unit = {
 
 if (args.length < 1) {
     System.err.println("Usage: hocon2json HOCON_FILE [DEFAULT_FILE]")
@@ -46,4 +48,5 @@ try {
 }
 System.exit(2)
 
-// vim:ft=scala
+}
+}
