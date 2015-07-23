@@ -2,7 +2,7 @@
 
 ## use BuildKit (https://github.com/netj/buildkit)
 PROJECTNAME = Mindbender
-GITHUB_REPO = netj/mindbender
+GITHUB_REPO = HazyResearch/mindbender
 # preparing build dependencies under .depends/
 DEPENDSDIR = .depends
 # packaging as a executable binary
