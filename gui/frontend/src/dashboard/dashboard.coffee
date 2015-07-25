@@ -706,13 +706,16 @@ angular.module "mindbenderApp.dashboard", [
         renderLineChart = (config) ->
             values = []
             categories = []
-
+            snapshotValues = []
             for snapshot, index in config.snapshots
+                value = config.reportValues[attrs.report][attrs.valuename][index]
+                if !config.hideNulls || value != null
+                    snapshotValues.push({ value: value, snapshot: snapshot})
+
+            for snapshotValue, index in snapshotValues
                 if index >= config.start && index <= config.end
-                    value = config.reportValues[attrs.report][attrs.valuename][index]
-                    if !config.hideNulls || value != null
-                        values.push(value)
-                        categories.push(snapshot)
+                    values.push(snapshotValue.value)
+                    categories.push(snapshotValue.snapshot)
 
             options = {
                 chart: {}
@@ -768,10 +771,15 @@ angular.module "mindbenderApp.dashboard", [
         renderFrequencyChart = (config) ->
             categories = []
             frequencies = []
+            values = []
             valueMap = {}
 
             for value, index in config.reportValues[attrs.report][attrs.valuename]
-                if index >= config.start && index <= config.end && (!config.hideNulls || value != null)
+                if !config.hideNulls || value != null
+                    values.push(value)
+
+            for value, index in values
+                if index >= config.start && index <= config.end
                     if !valueMap[value]
                         valueMap[value] = 0
                     valueMap[value]++
@@ -835,18 +843,20 @@ angular.module "mindbenderApp.dashboard", [
     link: (scope, element, attrs) ->
         updateSnapshots = (config) ->
             filteredSnapshots = []
-            start = 0
-            end = config.snapshots.length - 1
+            sliderLength = 0
             if config.hideNulls && attrs.report && attrs.valuename
                 for snapshot, index in config.snapshots
                     value = config.reportValues[attrs.report][attrs.valuename][index]
                     if value != null
-                        end = index
-                        if filteredSnapshots.length == 0
-                            start = index
-                        filteredSnapshots.push(snapshot)
+                        if sliderLength >= config.start && sliderLength <= config.end
+                            filteredSnapshots.push(snapshot)
+
+                        sliderLength++           
             else
-                filteredSnapshots = config.snapshots
+                sliderLength = config.snapshots.length
+                for snapshot, index in config.snapshots
+                    if index >= config.start && index <= config.end
+                        filteredSnapshots.push(snapshot)
 
             info = """
                 #{filteredSnapshots.length} values:
@@ -854,7 +864,7 @@ angular.module "mindbenderApp.dashboard", [
             """
             element.find(".dashboard-slider-info").html(info)
 
-            return { min: start, max: end }
+            return { min: 0, max: sliderLength - 1 }
 
         scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
             return if !config
