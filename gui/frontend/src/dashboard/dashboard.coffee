@@ -851,7 +851,7 @@ angular.module "mindbenderApp.dashboard", [
                         if sliderLength >= config.start && sliderLength <= config.end
                             filteredSnapshots.push(snapshot)
 
-                        sliderLength++           
+                        sliderLength++
             else
                 sliderLength = config.snapshots.length
                 for snapshot, index in config.snapshots
@@ -866,12 +866,18 @@ angular.module "mindbenderApp.dashboard", [
 
             return { min: 0, max: sliderLength - 1 }
 
-        scope.$watchCollection (-> scope.chartSnapshotsConfig), (config) ->
+        scope.$watchCollection (-> scope.chartSnapshotsConfig), (config, oldConfig) ->
             return if !config
+
+            if config.hideNulls != oldConfig.hideNulls
+                config.start = 0
+                config.end = config.snapshots.length - 1
 
             range = updateSnapshots(config)
 
             if element.find(".dashboard-slider").slider("instance")
+                if config.hideNulls != oldConfig.hideNulls
+                    range.values = [0, range.max]
                 element.find(".dashboard-slider").slider("option", range)
             else
                 element.find(".dashboard-slider").slider({
