@@ -72,7 +72,7 @@ angular.module 'mindbenderApp.mindtagger.tags.parametric', [
         # watcher and setter for ngModel
         ngModel = $parse $attrs.ngModel
         $scope.$watch "MindtaggerParametricTags.paramValues", (newParamValues) =>
-            ngModel.assign $scope, @current.pack newParamValues
+            ngModel.assign? $scope, @current.pack newParamValues
         , yes
         $scope.$watch $attrs.ngModel, (newPackedValue) =>
             @paramValues = @current.unpack newPackedValue
@@ -105,7 +105,7 @@ class ParametricTag
     constructor: (@name, @paramNames, @hasParamNames) ->
         if @hasParamNames
             @pack = (paramValues) => _.object @paramNames, paramValues
-            @unpack = (value) => value[name] for name in @paramNames
+            @unpack = (value) => value?[name] for name in @paramNames
         else if @paramNames.length > 1
             @pack = (paramValues) -> paramValues
             @unpack = (value) -> value
