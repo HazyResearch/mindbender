@@ -247,7 +247,9 @@ record-report-params() {
                 echo >>.report.params.optional "$name"
             }
             ( source .report.params )
-            echo >>.report.params.sh export $(cat .report.params.{required,optional} 2>/dev/null)
+            params=$(cat .report.params.{required,optional} 2>/dev/null)
+            [[ -z "$params" ]] ||
+            echo >>.report.params.sh export $params
         fi
 
         # TODO warn extra params
