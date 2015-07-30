@@ -27,3 +27,5 @@ bower_components/angular-ui-ace/ui-ace.js
 
 bower_components/angular-ui-sortable/sortable.js
 bower_components/datatables/media/js/jquery.dataTables.min.js
+
+bower_components/marked/lib/marked.js

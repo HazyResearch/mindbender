@@ -235,7 +235,8 @@ angular.module "mindbenderApp.dashboard", [
                 $scope.currentReport = report_key
 
                 if result[report_key]
-                    result[report_key].html = $sce.trustAsHtml(result[report_key].html)
+                    if result[report_key].markdown?
+                        result[report_key].html = $sce.trustAsHtml marked result[report_key].markdown
                 else
                     return reportNotFound report_key
 

@@ -33,4 +33,3 @@ report-sql-template.sh                  etc/
 snapshot-files                          etc/
 
 mindbender-dashboard                    bin/mindbender.d/
-Markdown_1.0.1/Markdown.pl              bin/mindbender.d/

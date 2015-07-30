@@ -38,11 +38,10 @@ for reportId in reportIds
     try
     	report.description = String fs.readFileSync "#{report.path}/report.desc"
 
-    # HTML from Markdown
+    # Markdown
     try
         markdownPath = "#{report.path}/README.md"
         report.markdown = String fs.readFileSync markdownPath
-        report.html = try String execFileSync "Markdown.pl", [markdownPath]
 
     # data table
     for filename in fs.readdirSync report.path
