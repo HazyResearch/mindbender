@@ -1,0 +1,26 @@
+# Travis CI configuration for Mindbender
+
+sudo: false  # to use container-based infrastructure
+addons:
+    apt:
+        packages:
+cache:
+    directories:
+        - .depends/bats
+        - .depends/nodejs
+        - .depends/node_tools
+        - depends/.build/bundled.prep
+        - depends/nodejs/node_modules
+        - gui/backend/node_modules
+        - gui/frontend/node_modules
+        - gui/frontend/bower_components
+        - $HOME/.ivy2/cache
+
+install:
+    - make build
+script:
+    - make test
+
+after_success:
+    # deploy latest binary to GitHub releases
+    - $TRAVIS_PULL_REQUEST || test $TRAVIS_BRANCH != "master" || make release-LATEST
