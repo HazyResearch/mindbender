@@ -17,6 +17,7 @@ angular.module "mindbenderApp.dashboard", [
                 { url: '#/snapshot-template/edit', name: 'Configure Templates' }
                 { url: '#/snapshot/', name: 'View Snapshots' }
                 { url: '#/trends', name: 'Trends' }
+                { url: '#/interactive-snippet', name: 'Interactive Snippet' }
             ]
             do @updateNavLinkForSnapshots
             $rootScope.isNavLinkActive = (navLink) ->
@@ -108,6 +109,10 @@ angular.module "mindbenderApp.dashboard", [
     $routeProvider.when "/trend/:reportId*/:valueName",
         templateUrl: "dashboard/trend.html"
         controller: "ReportValueCtrl"
+
+    $routeProvider.when "/interactive-snippet",
+        templateUrl: "dashboard/interactive-snippet.html"
+        controller: "InteractiveSnippetCtrl"
 
 .controller "IndexCtrl", ($scope, $http, Dashboard) ->
     $scope.charts = []
@@ -628,10 +633,222 @@ angular.module "mindbenderApp.dashboard", [
 
     Dashboard.getReportValueList(renderValues)
 
+.controller "InteractiveSnippetCtrl", ($scope, $http) ->
+    $scope.title = "Interactive Snippets"
+
+    # TODO load from backend
+    localStorage.interactiveSnippets ?= JSON.stringify [
+          {
+            "mode": "HTML\/Javascript",
+            "code": "<script>\nD.letterFrequency = [\n    {letter: 'A', frequency: Math.round(5000 * Math.random())},\n    {letter: 'B', frequency: 2342},\n    {letter: 'C', frequency: 5454},\n    {letter: 'D', frequency: 24242}\n ];\n<\/script>",
+            "D": {
+              "a": 123,
+              "hi": "test",
+              "tester": "hi",
+              "testing": 0.090983460657299,
+              "move_on": false,
+              "r": 0.72559759882279,
+              "letterFrequency": [
+                {
+                  "letter": "A",
+                  "frequency": 2468
+                },
+                {
+                  "letter": "B",
+                  "frequency": 2342
+                },
+                {
+                  "letter": "C",
+                  "frequency": 5454
+                },
+                {
+                  "letter": "D",
+                  "frequency": 24242
+                }
+              ]
+            }
+          },
+          {
+            "mode": "HTML\/Javascript",
+            "code": "<style>\n\n.bar {\n  fill: steelblue;\n}\n\n.bar:hover {\n  fill: brown;\n}\n\n.axis {\n  font: 10px sans-serif;\n}\n\n.axis path,\n.axis line {\n  fill: none;\n  stroke: #000;\n  shape-rendering: crispEdges;\n}\n\n.x.axis path {\n  display: none;\n}\n\n<\/style>\n<body>\n<script src=\"https:\/\/cdnjs.cloudflare.com\/ajax\/libs\/d3\/3.5.5\/d3.min.js\"><\/script>\n<script>\n\n var data = D.letterFrequency;\n \nvar margin = {top: 20, right: 20, bottom: 30, left: 40},\n    width = 960 - margin.left - margin.right,\n    height = 500 - margin.top - margin.bottom;\n\nvar x = d3.scale.ordinal()\n    .rangeRoundBands([0, width], .1);\n\nvar y = d3.scale.linear()\n    .range([height, 0]);\n\nvar xAxis = d3.svg.axis()\n    .scale(x)\n    .orient(\"bottom\");\n\nvar yAxis = d3.svg.axis()\n    .scale(y)\n    .orient(\"left\")\n    .ticks(10, \"%\");\n\nvar svg = d3.select(\"body\").append(\"svg\")\n    .attr(\"width\", width + margin.left + margin.right)\n    .attr(\"height\", height + margin.top + margin.bottom)\n  .append(\"g\")\n    .attr(\"transform\", \"translate(\" + margin.left + \",\" + margin.top + \")\");\n\n  x.domain(data.map(function(d) { return d.letter; }));\n  y.domain([0, d3.max(data, function(d) { return d.frequency; })]);\n\n  svg.append(\"g\")\n      .attr(\"class\", \"x axis\")\n      .attr(\"transform\", \"translate(0,\" + height + \")\")\n      .call(xAxis);\n\n  svg.append(\"g\")\n      .attr(\"class\", \"y axis\")\n      .call(yAxis)\n    .append(\"text\")\n      .attr(\"transform\", \"rotate(-90)\")\n      .attr(\"y\", 6)\n      .attr(\"dy\", \".71em\")\n      .style(\"text-anchor\", \"end\")\n      .text(\"Frequency\");\n\n  svg.selectAll(\".bar\")\n      .data(data)\n    .enter().append(\"rect\")\n      .attr(\"class\", \"bar\")\n      .attr(\"x\", function(d) { return x(d.letter); })\n      .attr(\"width\", x.rangeBand())\n      .attr(\"y\", function(d) { return y(d.frequency); })\n      .attr(\"height\", function(d) { return height - y(d.frequency); });\n\nfunction type(d) {\n  d.frequency = +d.frequency;\n  return d;\n}\n\n<\/script>\n",
+            "D": {
+              "a": 123,
+              "hi": "test",
+              "tester": "hi",
+              "testing": 0.090983460657299,
+              "move_on": false,
+              "r": 0.72559759882279,
+              "letterFrequency": [
+                {
+                  "letter": "A",
+                  "frequency": 3705
+                },
+                {
+                  "letter": "B",
+                  "frequency": 2342
+                },
+                {
+                  "letter": "C",
+                  "frequency": 5454
+                },
+                {
+                  "letter": "D",
+                  "frequency": 24242
+                }
+              ]
+            }
+          },
+          {
+            "mode": "HTML\/Javascript",
+            "code": "<script>\nalert(\"all done with \" + D.letterFrequency[0].frequency)\n<\/script>",
+            "D": {
+              "a": 123,
+              "hi": "test",
+              "tester": "hi",
+              "testing": 0.090983460657299,
+              "move_on": false,
+              "r": 0.72559759882279,
+              "letterFrequency": [
+                {
+                  "letter": "A",
+                  "frequency": 3705
+                },
+                {
+                  "letter": "B",
+                  "frequency": 2342
+                },
+                {
+                  "letter": "C",
+                  "frequency": 5454
+                },
+                {
+                  "letter": "D",
+                  "frequency": 24242
+                }
+              ]
+            }
+          }
+        ]
+
+    $scope.snippets = (
+        try JSON.parse localStorage.interactiveSnippets
+        catch err
+            console.error err
+    ) ? []
+
+    # TODO
+    $scope.$watchCollection (-> JSON.stringify $scope.snippets), (newSnippetsJSON) ->
+        localStorage.interactiveSnippets = newSnippetsJSON
+        #console.log "saved snippets #{newSnippetsJSON}"
+
+    $scope.addSnippet = ->
+        $scope.snippets.push {}
 
 .filter 'capitalize', () ->
     (input) ->
         input[0].toUpperCase() + input.substring(1)
+
+
+.directive 'interactiveSnippet', ($timeout, $http) ->
+    template: """
+        <div class="container-fluid" style="border: 1px solid #ccc; margin-top: 20px; padding-bottom: 10px">
+            <select name="type" class="form-control" style="width: 200px" ng-model="mode">
+                <option ng-repeat="modeName in modeNames">{{modeName}}</option>
+            </select>
+            <div class="row">
+                <div class="col-md-10">
+                    <textarea class="snippet" ui-ace="{
+                        mode: snippet.aceMode,
+                        theme: 'tomorrow_night_bright',
+                        useWrapMode: true,
+                        rendererOptions: { minLines: 10, maxLines: 30, },
+                        require: ['ace/ext/language_tools'],
+                        advanced: {
+                            enableSnippets: true,
+                            enableBasicAutocompletion: true,
+                            enableLiveAutocompletion: true
+                        }
+                    }" ng-model="code"></textarea>
+                    <div class="results"></div>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-default run-snippet"><i class="fa fa-arrow-circle-left"></i></button>
+                    <button class="btn btn-primary run-all-snippets"><i class="fa fa-arrow-circle-down"></i></button>
+                </div>
+            </div>
+        </div>
+    """
+    restrict: 'E'
+    scope: {
+        mode: "="
+        code: "="
+        data: "="
+    }
+    link: (scope, element, attr) ->
+        loadResultWithD = (code, data, callback) ->
+            element.find(".results:first").html('<iframe style="width:100%; height: 100%;"></iframe>')
+            element.find(".results").resizable()
+            w = element.find("iframe")[0].contentWindow
+            w.D = data
+            w.GO = () ->
+                $http.put("/api/snippets/shared", w.D)
+                    .success -> callback?()
+
+            w.document.write(code)
+            w.document.close()
+            w.GO()
+
+        snippetModes =
+            "HTML/Javascript": {
+                aceMode: "sqlish"
+                run: (callback) ->
+                    code = scope.code
+                    $http.get("/api/snippets/shared")
+                        .success (data, status, headers, config) ->
+                            scope.data = data
+                            loadResultWithD code, data, callback
+                load: (callback) ->
+                    loadResultWithD scope.code, scope.data, callback
+                codeTemplate: """
+                    <div id="main"></div>
+                    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+                    <script>
+                    $("#main").html("hello world")
+                    </script>
+                """
+            }
+            "Python": {
+                aceMode: "python"
+                run: ->
+                    alert("Not implemented yet")
+                load: ->
+                    # TODO
+                codeTemplate: """
+                    import os
+                    println("hello, world")
+                """
+            }
+
+        scope.modeNames = _.keys snippetModes
+        scope.$watch "mode", (mode, oldMode) ->
+            scope.snippet = snippetModes[mode]
+            if mode == oldMode
+                # first time, load result if any
+                scope.snippet.load() if scope.data? # TODO if this had run already
+            else
+                scope.code = scope.snippet.codeTemplate
+        scope.mode ?= scope.modeNames[0]
+
+        element.find(".run-snippet").click(() ->
+            scope.snippet.run()
+        )
+
+        element.find(".run-all-snippets").click(() ->
+            scope.snippet.run(() ->
+                console.log "run-all"
+                element.next("interactive-snippet").find(".run-all-snippets").click()
+            )
+        )
 
 
 .directive 'flash', ['$document', ($document) ->

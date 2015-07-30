@@ -205,4 +205,15 @@ exports.init = (app) ->
         sendStdoutOf res, "dashboard-trends-config", ["add", reportId, valueName]
 
 
+    ## Interactive Snippets
+    # TODO everything
+    mockSharedObj = {}
+    app.put "/api/snippets/shared", (req, res) ->
+        mockSharedObj = req.body
+        res
+            .status 204 # no content
+            .end()
+
+    app.get "/api/snippets/shared", (req, res) ->
+        res.json mockSharedObj
 

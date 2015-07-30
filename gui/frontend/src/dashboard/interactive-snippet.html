@@ -1,0 +1,5 @@
+<div ng-include="'dashboard/header.html'"></div>
+
+<interactive-snippet  ng-repeat="s in snippets track by $index" mode="s.mode" code="s.code" data="s.D"></interactive-snippet>
+
+<button ng-click="addSnippet()">+</button>
