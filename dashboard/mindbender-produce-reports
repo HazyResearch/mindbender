@@ -348,21 +348,22 @@ produce-report() {
     )
 }
 produce-nested-reports() {
+    local templateBaseName=$1; shift
     local reportBaseName=$1; shift
     local instance=$1; shift
     # run all report.sh scripts found in the report instance
     list-all-reports "$instance" |
     while read report; do
         # determine name and path
-        reportName=$reportBaseName reportPath=$instance
-        case $report in .) ;; *) reportName+="/$report" reportPath+="/$report"; esac
+        templateName=$templateBaseName reportName=$reportBaseName reportPath=$instance
+        case $report in .) ;; *) templateName+="/$report" reportName+="/$report" reportPath+="/$report"; esac
         report-log "Producing $SnapshotDir/$reportPath"
         # first record parameter bindings for the instance
         record-report-params "$reportName" "$reportPath" "$@"
         # then produce the report
         if produce-report "$reportPath" "$reportName" "$@"; then
             # and register it when successful
-            register-report "$reportPath" "$reportName" "$@"
+            register-report "$templateName" "$reportName" "$reportPath" "$@"
         fi
     done
     report-log "Produced $SnapshotDir/$instance"
@@ -386,8 +387,9 @@ end-snapshot() {
     echo >>README.md "<!-- Production ends at $(date +%FT%T) -->"
 }
 register-report() {
-    local reportPath=$1; shift
+    local templateName=$1; shift
     local reportName=$1; shift
+    local reportPath=$1; shift
 
     # record id as used
     cat "$reportPath"/.report.id >>reports.ids
@@ -410,8 +412,9 @@ register-report() {
         report-values --alternating "$(cat "$reportPath"/.report.id)" "{$(
             cd "$reportPath"
             # first, the path, name of the report
-            echo -n ' "path":'  ; json-string "$reportPath"
-            echo -n ',"report":'; json-string "$reportName"
+            echo -n ' "template":'; json-string "$templateName"
+            echo -n ',"report":'  ; json-string "$reportName"
+            echo -n ',"path":'    ; json-string "$reportPath"
             # and record report.params.json
             echo -n ',"params":'; cat report.params.json || echo '{}'
             # then, report.json
@@ -433,10 +436,10 @@ section() {
     } >>README.md
 }
 report() {
-    local reportBaseName=$1; shift
-    local instance=$(create-report-instance "$reportBaseName" "reports/" "$@")  # keeping new instances under reports/
+    local templateName=$1; shift
+    local instance=$(create-report-instance "$templateName" "reports/" "$@")  # keeping new instances under reports/
     report-log "Instantiated report $SnapshotDir/$instance${*:+ ($*)}"
-    produce-nested-reports "$reportBaseName" "$instance" "$@"
+    produce-nested-reports "$templateName" "$templateName" "$instance" "$@"
 }
 
 ## additional commands snapshot.conf may contain for running tasks
@@ -454,7 +457,7 @@ report-task() {
     local instance=$(create-report-instance "$taskName" "$reportPath/" "$@")  # keeping new instances under given report
     report-log "Instantiated task $SnapshotDir/$instance${*:+ ($*)}"
     compile-task-params "$reportId" "$reportName" "$reportPath" "$taskName" "$instance"
-    produce-nested-reports "$reportName/$taskName" "$instance" "$@"
+    produce-nested-reports "$taskName" "$reportName/$taskName" "$instance" "$@"
 }
 
 
