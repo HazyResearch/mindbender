@@ -2,7 +2,6 @@
 table=${variable%%.*}
 column=${variable#$table.}
 
-if [[ -n "${candidate_id_column:-}" ]]; then
 sql_feature_label=
 case ${features_layout:-} in
 
@@ -20,7 +19,7 @@ array_column)
     ;;
 
 own_table)
-    if [[ -n "${features_table:-}" && -n "${features_column:-}" ]]; then
+    if [[ -n "${features_table:-}" && -n "${features_column:-}" && -n "${candidate_id_column:-}" ]]; then
         # when features are stored in a separate table (for incremental DeepDive)
         sql_feature_label="
                 SELECT f.${features_column} AS feature
@@ -33,6 +32,9 @@ own_table)
         report-warn "Parameters features_table= and/or features_column= undefined for features_layout=own_table"
     fi
     ;;
+
+*)
+    report-error "Parameter features_layout= undefined"
 
 esac
 
@@ -84,7 +86,6 @@ if [[ -n "$sql_feature_label" ]]; then
             }]
         }
     '
-fi
 fi
 $>
 
