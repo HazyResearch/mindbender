@@ -12,7 +12,7 @@ array_column)
         $>
             SELECT *
               FROM ${table}
-             WHERE \$token\$${feature}\$token\$ IN ${features_column}
+             WHERE \$token\$${feature}\$token\$ = ANY (${features_column})
              ORDER BY RANDOM()
              LIMIT ${num_samples}
         <$
