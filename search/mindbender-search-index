@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# mindbender-search-index -- Creates and maintains search index
+#
+# To update the search index with new searchable data produced by DeepDive, run:
+# $ mindbender search-index update
+# You can specify which searchable entities to update:
+# $ mindbender search-index update [ENTITY]...
+#
+# For any reason, to destroy the search index, run:
+# $ mindbender search-index destroy
+##
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-07-31
+set -eu
+
+# needs to work on a DeepDive app
+DEEPDIVE_APP=$(find-deepdive-app)
+cd "$DEEPDIVE_APP"
+
+# parse command-line args
+case ${1:-} in
+    update|status|destroy)
+        # make sure elasticsearch is running
+        ${ELASTICSEARCH_RUNNING:-false} ||
+            exec keep-elasticsearch-during -- "$0" "$@"
+        Action=$1; shift
+        ;;
+    *)
+        usage "$0" "No action given: update, status, or destroy"
+esac
+
+# simple wrapper for elasticsearch HTTP API
+esAPI() {
+    local verb=$1 path=$2; shift 2
+    curl -X$verb "$ELASTICSEARCH_BASEURL$path" "$@"
+    echo  # because ES does not put an EOL
+}
+
+# perform action on search index
+case $Action in
+    update)
+        [[ $# -gt 0 ]] ||
+            # default to all entities
+            # TODO discover searchable entities from DDlog
+            set -- sentences
+        # create ES indexes corresponding to each entity
+        for entity; do esAPI PUT "/$entity/"; done
+
+        # TODO unload data with deepdive sql
+        # TODO convert each record to JSON
+        # TODO esAPI PUT bulk
+        ;;
+
+    status)
+        esAPI GET '/_stats'
+        ;;
+
+    destroy)
+        # delete all ES entities
+        esAPI DELETE '/*/'
+        ;;
+
+    *)
+        error "$Action: unknown action"
+esac

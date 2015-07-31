@@ -1,22 +1,16 @@
 #!/usr/bin/env bash
 # keep-elasticsearch-during -- Keeps an elasticsearch instance running while the given command is running
 # $ keep-elasticsearch-during [ES_OPTS]... -- COMMAND [ARG]...
+# Sets environment ELASTICSEARCH_RUNNING=true when running COMMAND.
 #
 ##
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2015-07-31
 set -eu
 
-DEEPDIVE_APP=$(find-deepdive-app)
-cd "$DEEPDIVE_APP"
-
-# default location
-: ${SEARCH_HOME:=search}
-
-# make sure search repo is initialized
-mkdir -p "$SEARCH_HOME"/{config,data,logs}
-[[ -e "$SEARCH_HOME"/config/elasticsearch.yml ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/elasticsearch.yml "$SEARCH_HOME"/config/
-[[ -e "$SEARCH_HOME"/config/logging.yml       ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/logging.yml       "$SEARCH_HOME"/config/
+# default settings
+: ${ELASTICSEARCH_BASEURL:=http://localhost:9200} # TODO randomize port?
+: ${ELASTICSEARCH_HOME:="$PWD"/search}
 
 # parse all command-line args down to a -- as elasticsearch options
 [[ $# -gt 0 ]] ||
@@ -30,17 +24,69 @@ done
 [[ $# -gt 0 ]] ||
     usage "$0" "Missing COMMAND"
 
+# make sure elasticsearch instance is available
+elasticsearch-is-up() {
+    curl -fs -XGET "$ELASTICSEARCH_BASEURL/_status" >/dev/null
+}
+case $ELASTICSEARCH_BASEURL in
+    http://localhost:*)
+        port=${ELASTICSEARCH_BASEURL#http://localhost:}
+        port=${port%%/*}
+        # make sure search repo is initialized
+        mkdir -p "$ELASTICSEARCH_HOME"/{config,data,logs}
+        [[ -e "$ELASTICSEARCH_HOME"/config/elasticsearch.yml ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/elasticsearch.yml "$ELASTICSEARCH_HOME"/config/
+        [[ -e "$ELASTICSEARCH_HOME"/config/logging.yml       ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/logging.yml       "$ELASTICSEARCH_HOME"/config/
+        terminate-local-elasticsearch() {
+            kill -TERM $(cat "$ELASTICSEARCH_HOME"/elasticsearch.pid)
+        }
+        # terminate if something's running locally but perhaps on a different port
+        if [[ -e "$ELASTICSEARCH_HOME"/elasticsearch.pid ]]; then
+            elasticsearch-is-up || terminate-local-elasticsearch
+        fi
+        # if no instance is running here yet
+        if ! [[ -e "$ELASTICSEARCH_HOME"/elasticsearch.pid ]]; then
+            if elasticsearch-is-up; then
+                # port may be occupied
+                error "$port: port is already used, try another one, e.g.: export ELASTICSEARCH_BASEURL=http://localhost:92${RANDOM:0:2}"
+            else
+                # launch an isolated elasticsearch
+                esOpts+=(
+                    # in background with a PID file
+                    -d -p "$ELASTICSEARCH_HOME"/elasticsearch.pid
 
-if ! [[ -e "$SEARCH_HOME"/elasticsearch.pid ]]; then
-    # launch elasticsearch in background with a PID file if no instance is running yet
-    elasticsearch -d -p "$SEARCH_HOME"/elasticsearch.pid \
-        -D es.path.config="$SEARCH_HOME"/config \
-        -D es.path.data="$SEARCH_HOME"/data \
-        -D es.path.logs="$SEARCH_HOME"/logs \
-        "${esOpts[@]:-}"
-    # terminate the instance upon exit
-    trap 'kill -TERM $(cat "$SEARCH_HOME"/elasticsearch.pid)' EXIT
-fi
+                    # some paths outside path.home
+                    -D es.path.config="$ELASTICSEARCH_HOME"/config
+                    -D es.path.data="$ELASTICSEARCH_HOME"/data
+                    -D es.path.logs="$ELASTICSEARCH_HOME"/logs
+
+                    # override ports
+                    -D es.http.port=$port
+
+                    # to completely isolate instance, disable discovery, use local mode
+                    # (See: http://stackoverflow.com/a/16432759/390044)
+                    -D es.node.local=true
+
+                    # alternatively, to isolate local instances, use different cluster name (slower)
+                    #-D es.cluster.name=mindbender-$HOSTNAME-$port
+                    #-D es.transport.tcp.port=$(($port + 100))
+                    #-D discovery.zen.ping.multicast.enabled=false 
+                )
+                elasticsearch "${esOpts[@]:-}"
+                # and terminate the instance upon exit
+                trap terminate-local-elasticsearch EXIT
+            fi
+        fi
+        # wait until the instance boots up
+        until elasticsearch-is-up; do sleep 0.$RANDOM; done
+        ;;
+
+    *)
+        # skip setup since ELASTICSEARCH_BASEURL is not localhost
+        # make sure the elasticsearch instance is there
+        elasticsearch-is-up ||
+            error "$ELASTICSEARCH_BASEURL: Elasticsearch not responding"
+esac
 
 # run given command
+export ELASTICSEARCH_BASEURL ELASTICSEARCH_HOME ELASTICSEARCH_RUNNING=true
 "$@"
