@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# keep-elasticsearch-during -- Keeps an elasticsearch instance running while the given command is running
+# $ keep-elasticsearch-during [ES_OPTS]... -- COMMAND [ARG]...
+#
+##
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-07-31
+set -eu
+
+DEEPDIVE_APP=$(find-deepdive-app)
+cd "$DEEPDIVE_APP"
+
+# default location
+: ${SEARCH_HOME:=search}
+
+# make sure search repo is initialized
+mkdir -p "$SEARCH_HOME"/{config,data,logs}
+[[ -e "$SEARCH_HOME"/config/elasticsearch.yml ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/elasticsearch.yml "$SEARCH_HOME"/config/
+[[ -e "$SEARCH_HOME"/config/logging.yml       ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/logging.yml       "$SEARCH_HOME"/config/
+
+# parse all command-line args down to a -- as elasticsearch options
+[[ $# -gt 0 ]] ||
+    usage "$0" "Missing -- and COMMAND"
+esOpts=()
+while [[ $# -gt 0 ]]; do
+    o=$1; shift
+    [[ "$o" != -- ]] || break
+    esOpts+=("$o")
+done
+[[ $# -gt 0 ]] ||
+    usage "$0" "Missing COMMAND"
+
+
+if ! [[ -e "$SEARCH_HOME"/elasticsearch.pid ]]; then
+    # launch elasticsearch in background with a PID file if no instance is running yet
+    elasticsearch -d -p "$SEARCH_HOME"/elasticsearch.pid \
+        -D es.path.config="$SEARCH_HOME"/config \
+        -D es.path.data="$SEARCH_HOME"/data \
+        -D es.path.logs="$SEARCH_HOME"/logs \
+        "${esOpts[@]:-}"
+    # terminate the instance upon exit
+    trap 'kill -TERM $(cat "$SEARCH_HOME"/elasticsearch.pid)' EXIT
+fi
+
+# run given command
+"$@"
