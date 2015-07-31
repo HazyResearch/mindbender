@@ -17,7 +17,7 @@ cache:
         - $HOME/.ivy2/cache
 
 install:
-    - make build
+    - make stage
 script:
     - make test
 
