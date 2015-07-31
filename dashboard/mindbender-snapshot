@@ -32,7 +32,7 @@ fi
 
 # some sanity checks before proceeding
 dburi=$(find-deepdive-db-uri)
-run-sql "SELECT 1" >/dev/null ||
+deepdive sql "SELECT 1" >/dev/null ||
     error "Cannot run queries against the database at $dburi"
 
 if [[ -z "$SnapshotDir" ]]; then

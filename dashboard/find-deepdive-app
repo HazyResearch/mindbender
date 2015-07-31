@@ -4,20 +4,4 @@
 #
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2015-02-08
-set -eu
-
-if [[ -n "${DEEPDIVE_APP:-}" ]]; then
-    # short circuit if DEEPDIVE_APP environment is already defined
-    echo "$DEEPDIVE_APP"
-else
-    # TODO use deepdive command
-    at-a-deepdive-app() {
-        [[ -e deepdive.conf || -e application.conf ]]
-    }
-    until [[ $PWD = / ]] || at-a-deepdive-app; do
-        cd ..
-    done
-
-    at-a-deepdive-app || error "Not inside a DeepDive app"
-    pwd -P
-fi
+exec deepdive env find-deepdive-app
