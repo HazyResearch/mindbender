@@ -13,11 +13,11 @@ ln -sfn ../node_modules     build/
 ln -sfn ../bower_components build/
 
 # Install all dependencies if necessary
-if [[ node_modules -ot package.json ||
-        node_modules -ot bower.json ||
-        bower_components -ot bower.json ]]; then
+if [[ build/node_modules.built -ot package.json ||
+        build/node_modules.built -ot bower.json ||
+        build/bower_components.built -ot bower.json ]]; then
     npm install
-    touch node_modules bower_components
+    touch build/{node_modules,bower_components}.built
 fi
 export PATH="$PWD/node_modules/.bin:$PATH"
 export NODE_PATH="$PWD/node_modules${NODE_PATH:+:$NODE_PATH}"
