@@ -19,6 +19,7 @@ cd "$DEEPDIVE_APP"
 
 # use the DeepDive app's folder name for the ES index name
 : ${ELASTICSEARCH_INDEX_NAME:=$(basename "$PWD")}
+: ${ELASTICSEARCH_BULK_BATCHSIZE:=1000}
 
 # parse command-line args
 case ${1:-} in
@@ -60,7 +61,8 @@ case $Action in
         ## create ES indexes corresponding to each entity
         #for entity; do esAPIx PUT "/$entity/"; done
 
-        # parent-child mapping (See: https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child-mapping.html)
+        # set up parent-child mapping based on @references annotations
+        # (See: https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child-mapping.html)
         jqSchema '
             [ relations | {
                     key: .name,
@@ -70,39 +72,56 @@ case $Action in
             { mappings: from_entries }
         ' | esAPIx PUT "/"
 
-        eval "$(
-        jqSchema 'relations | select(keyColumns | length > 0) | {
+        # bulk load to ES from DeepDive database
+        update-relation() {
+            local relation=$1; shift
+            local sqlToUnload=$1; shift
+            local jqToFormat=$1; shift
+            echo >&2 "Indexing relation $relation"
+            # unload data from database in json lines
+            deepdive sql eval "$sqlToUnload" format=json |
+            # show progress
+            pv --line-mode --size="$(deepdive sql eval "SELECT COUNT(*) FROM ($sqlToUnload) r")" |
+            # split records into multiple batches
+            # TODO parallelize
+            split --lines=$ELASTICSEARCH_BULK_BATCHSIZE --filter="$(escape-args-for-shell sh -euc '
+                jqToFormat=$1 indexURL=$2
+                # produce elasticsearch bulk load action for each JSON record
+                jq -c "$jqToFormat" |
+                # send them to elasticsearch
+                curl -fs -XPUT "$indexURL/_bulk" --data-binary @- |
+                # discard all result but the error field
+                jq ".error"
+                ' -- "$jqToFormat" "$ELASTICSEARCH_BASEURL/$ELASTICSEARCH_INDEX_NAME/$relation")" |
+            # make sure there wasn't any error
+            jq -e -s "any | not" >/dev/null
+        }
+        eval "$(jqSchema '
+            relations | select(keyColumns | length > 0) | {
                 relation: .,
                 columnsForKey: keyColumns | map(.name),
                 columnsForParent: relationsReferenced | map(.byColumn | map(.name))[0]
             } |
-            # output shell commands that load data
-            "
-                echo \("Updating \(.relation.name)..." | @sh)
-                # unload data from database in json lines
-                deepdive sql eval \(.relation | sqlForRelation | @sh) format=json |
-                # TODO split records into parallelizable size
-                # use a jq program that produces elasticsearch bulk load action for each JSON record
-                jq -c \(
-                    # index action/metadat
-                    "{index:{
-                        _id: \(
-                            if .columnsForKey | length == 1 then
-                                # use primary key (single column)
-                                ".\(.columnsForKey[0])"
-                            else
-                                # or join with underscore if key is multiple columns
-                                "\"\(.columnsForKey | map("\\(.\(.))") | join("_"))\""
-                            end
-                        )
-                        # TODO _parent from .columnsForParent
-                    }},
-                    . # followed by the actual document to index
-                    " | @sh) |
-                # send them to elasticsearch
-                esAPIx PUT '\''/\(.relation.name)/_bulk'\'' --data-binary @-
-            "'
-        )"
+            # generate shell commands that load data
+            "update-relation \(
+                .relation.name | @sh) \(
+                .relation | sqlForRelation | @sh) \(
+                "# index action/metadata
+                {index:{
+                    _id: \(
+                        if .columnsForKey | length == 1 then
+                            # use primary key (single column)
+                            ".\(.columnsForKey[0])"
+                        else
+                            # or join with underscore if key is multiple columns
+                            "\"\(.columnsForKey | map("\\(.\(.))") | join("_"))\""
+                        end
+                    )
+                    # TODO _parent from .columnsForParent
+                }},
+                . # followed by the actual document to index
+                " | @sh)"
+        ')"
         ;;
 
     status)
