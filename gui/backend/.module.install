@@ -2,6 +2,7 @@ server.coffee                           gui/
 mindbender-utils.coffee                 gui/
 mindtagger/                             gui/
 dashboard/                              gui/
+search/                                 gui/
 
 node_modules                            gui/
 mindbender-gui                          bin/mindbender.d/

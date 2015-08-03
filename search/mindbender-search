@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# mindbender-search -- Launches a search GUI
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-08-03
+set -eu
+
+# needs to work on a DeepDive app
+DEEPDIVE_APP=$(find-deepdive-app)
+cd "$DEEPDIVE_APP"
+export DEEPDIVE_APP
+
+keep-elasticsearch-during -- \
+    mindbender-gui "$@"

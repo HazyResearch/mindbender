@@ -63,3 +63,7 @@ mindtaggerAPI.init app, mindtaggerConfFiles
 # initialize Dashboard APIs
 dashboardAPI = require "./dashboard/dashboard-api"
 dashboardAPI.init app
+
+# initialize Search APIs
+searchAPI = require "./search/search-api"
+searchAPI.init app

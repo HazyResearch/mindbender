@@ -1,3 +1,4 @@
+mindbender-search                       bin/mindbender.d/
 mindbender-search-index                 bin/mindbender.d/
 
 keep-elasticsearch-during               bin/mindbender.d/

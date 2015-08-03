@@ -18,7 +18,7 @@ DEEPDIVE_APP=$(find-deepdive-app)
 cd "$DEEPDIVE_APP"
 
 # use the DeepDive app's folder name for the ES index name
-: ${ELASTICSEARCH_INDEX_NAME:=$(basename "$PWD")}
+: ${ELASTICSEARCH_INDEX_NAME:=$(basename "$DEEPDIVE_APP")}
 : ${ELASTICSEARCH_BULK_BATCHSIZE:=1000}
 
 # parse command-line args
