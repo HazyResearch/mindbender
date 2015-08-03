@@ -2,7 +2,7 @@
   "name": "mindbender-frontend",
   "description": "Frontend for Mindbender",
   "version": "0.0.0",
-  "homepage": "https://github.com/netj/mindbender",
+  "homepage": "https://github.com/HazyResearch/mindbender",
   "license": "MIT",
   "private": true,
   "dependencies": {
@@ -24,6 +24,7 @@
     "datatables": "1.10.7",
     "fontawesome": "4.2.0",
     "marked": "0.3.4",
+    "elasticui": "*",
     "underscore": "1.7.0",
     "angular": "1.3.15"
   }

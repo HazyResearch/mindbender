@@ -3,6 +3,7 @@ angular.module 'mindbenderApp', [
     'ngRoute'
     'mindbenderApp.mindtagger'
     'mindbenderApp.dashboard'
+    'mindbenderApp.search'
 ]
 .config ($routeProvider) ->
     $routeProvider.when '/',
