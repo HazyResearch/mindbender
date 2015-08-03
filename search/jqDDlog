@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# jqDDlog -- Runs jq queries with helper functions for schema exported from DDlog programs
+# $ ddlog export-schema app.ddlog | jqDDlog QUERY [jq args]
+# For jq queries, see: http://stedolan.github.com/jq
+#
+##
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-08-02
+set -eu
+[[ $# -gt 0 ]] || usage "$0" "Missing QUERY"
+query=$1; shift
+exec jq -r "$(cat "$MINDBENDER_HOME"/etc/ddlog.jq)
+$query" "$@"
