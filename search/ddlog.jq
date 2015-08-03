@@ -48,11 +48,11 @@ def keyColumn:
 
 # columns that @references to other relations
 # It's a little complicated to support relations with multiple keys.
-# columns with @references to the same relation="R")
+# columns with @references to the same relation="R", but possibly with different group=1,2,3...
 def relationsReferenced:
     [columns | annotated(.name == "references") |
             (annotations(.name == "references") | .args) + { byColumn: . }] |
-    group_by(.relation) | map(
+    group_by("\(.relation) \(.group)") | map(
             sort_by(.column) |
             { relation: .[0].relation, column: map(.column), byColumn: map(.byColumn) }
         )
