@@ -14,7 +14,7 @@ for arg; do
             echo -n "${first:+ }$arg"
             ;;
         *)
-            echo -n "${first:+ }'"${arg//\'/\'\\\'\'}"'"
+            echo -n "${first:+ }'${arg//\'/\'\\\'\'}'"
             ;;
     esac
     first=no
