@@ -9,6 +9,18 @@ def relations:
     $DDlogSchema | .relations | to_entries | map(.value.name = .key | .value) | .[]
 ;
 
+# relations selected via $relations
+((env.DDLOG_RELATIONS_SELECTED // "[]") | fromjson |
+        if length > 0
+        then map({ key: . }) | from_entries
+        else null
+        end
+) as $RelationsSelected |
+#def in(obj): (. as $__in_key | obj | has($__in_key)); # XXX shim for jq-1.4
+def relationsSelected:
+    relations | select($RelationsSelected == null or (.name | in($RelationsSelected)))
+;
+
 # columns of a relation
 def columns:
     .columns | to_entries | map(.value.name = .key | .value) | .[]

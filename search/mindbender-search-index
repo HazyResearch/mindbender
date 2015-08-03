@@ -36,7 +36,7 @@ esac
 # simple wrapper for elasticsearch HTTP API
 esAPI() {
     local verb=$1 path=$2; shift 2
-    curl -X$verb "$ELASTICSEARCH_BASEURL$path" "$@"
+    curl -fs -X$verb "$ELASTICSEARCH_BASEURL$path" "$@"
     echo  # because ES does not put an EOL
 }
 # shorthand for APIs on the index
@@ -55,22 +55,28 @@ case $Action in
         # TODO keep this schema exporting under deepdive command?
         ddlog export-schema app.ddlog >"$schemaJSON"
 
+        # use relations specified over command-line to filter target relations
         [[ $# -gt 0 ]] ||
             # default to all searchable entities discovered from DDlog
             eval set -- $(jqSchema 'relations | hasColumnsAnnotated(.name == "key") | .name | @sh')
-        ## create ES indexes corresponding to each entity
-        #for entity; do esAPIx PUT "/$entity/"; done
+        export DDLOG_RELATIONS_SELECTED=$(printf '%s\n' "$@" | jq -R -s -c 'split("\n")')
+
+        # create ES indexes corresponding to each entity
+        for relation; do
+            echo >&2 "Will index relation $relation"
+        done
 
         # set up parent-child mapping based on @references annotations
         # (See: https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child-mapping.html)
         jqSchema '
-            [ relations | {
+            [ relationsSelected | {
                     key: .name,
                     value: relationsReferenced | map(.relation)[0] |
                         (if . then { _parent: { type: . } } else {} end)
             } ] |
             { mappings: from_entries }
-        ' | esAPIx PUT "/"
+        ' |
+        esAPIx PUT "/" --data-binary @- >/dev/null || true
 
         # bulk load to ES from DeepDive database
         update-relation() {
@@ -97,7 +103,7 @@ case $Action in
             jq -e -s "any | not" >/dev/null
         }
         eval "$(jqSchema '
-            relations | select(keyColumns | length > 0) | {
+            relationsSelected | select(keyColumns | length > 0) | {
                 relation: .,
                 columnsForKey: keyColumns | map(.name),
                 columnsForParent: relationsReferenced | map(.byColumn | map(.name))[0]
