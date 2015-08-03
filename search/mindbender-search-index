@@ -103,27 +103,32 @@ case $Action in
             jq -e -s "any | not" >/dev/null
         }
         eval "$(jqSchema '
+            # helper function for jq codegen
+            def jqExprForColumns:
+                if length == 1 then # use the column (single column)
+                    ".\(.[0])"
+                else # or join column values with at-sign if there are more than one
+                    "\"\(map("\\(.\(.))") | join("@"))\""
+                end
+            ;
+
+            # find necessary info for relations
             relationsSelected | select(keyColumns | length > 0) | {
                 relation: .,
                 columnsForKey: keyColumns | map(.name),
                 columnsForParent: relationsReferenced | map(.byColumn | map(.name))[0]
             } |
+
             # generate shell commands that load data
             "update-relation \(
                 .relation.name | @sh) \(
                 .relation | sqlForRelation | @sh) \(
                 "# index action/metadata
                 {index:{
-                    _id: \(
-                        if .columnsForKey | length == 1 then
-                            # use primary key (single column)
-                            ".\(.columnsForKey[0])"
-                        else
-                            # or join with underscore if key is multiple columns
-                            "\"\(.columnsForKey | map("\\(.\(.))") | join("_"))\""
-                        end
-                    )
-                    # TODO _parent from .columnsForParent
+                    _id: \(.columnsForKey | jqExprForColumns)
+                    \(if .columnsForParent == null then "" else
+                 ", parent: \(.columnsForParent | jqExprForColumns)"
+                    end)
                 }},
                 . # followed by the actual document to index
                 " | @sh)"
