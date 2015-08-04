@@ -1,40 +1,32 @@
+<!-- Search Page -->
 
-<div class="container-fluid" eui-index="ddlog"> <!-- XXX FIXME -->
+<nav class="navbar navbar-default navbar-fixed-top">
+  <div class="container">
+      <form class="navbar-form navbar-left" role="search">
+          <div class="form-group">
+              <input type="text" class="form-control" placeholder="Keywords, /regex/, ..."
+                  ng-model="query_string">
+          </div>
+          <button type="submit" class="btn btn-default" ng-click="search.doSearch(query_string)">Search</button>
+      </form>
+  </div>
+</nav>
+<style>body { padding-top: 70px; }</style>
 
+
+<div class="container-fluid">
     <div class="row">
         <div class="col-xs-3 sidebar">
-            <h3>Search</h3>
-            <eui-searchbox field="'words'"></eui-searchbox> <!-- ACTION: change to field to search on -->
-            <h3>Single select facet</h3>
-            <eui-singleselect field="'CHANGE_TO_FIELD'" size="5"></eui-singleselect> <!-- ACTION: change to field to use as facet -->
-            <h3>Multi select facet</h3>
-            <eui-checklist field="'CHANGE_TO_FIELD'" size="10"></eui-checklist> <!-- ACTION: change to field to use as facet -->
-            <h3>Results Per Page</h3>
-            <select ng-model="indexVM.pageSize">
-                <option ng-repeat="item in [10, 20, 50, 100]">{{item}}</option>
-            </select>
+            <!-- TODO faceted search (aggregations) -->
         </div>
         <div class="col-xs-9 col-xs-offset-3 main">
-            <div class="instructions panel panel-primary">
-                <!-- README -->
-                <div class="panel-heading">Getting started with the Demo</div>
-                <div class="panel-body">
-                    Instructions, modify this file according to the following:
-                    <ol>
-                        <li>Set the constant euiHost in &lt;head&gt; to point to your cluster</li>
-                        <li>Change eui-index on &lt;body&gt; tag to the name of your index</li>
-                        <li>Set the field attributes on the facets in the sidebar to meaningful fields of your data</li>
-                    </ol>
-                </div>
-            </div>
-
             <h1>Results</h1>
             <ul>
-                <li ng-repeat="doc in indexVM.results.hits.hits">
-                    {{doc._source | json | limitTo: 500}} <!-- OPTIONAL: display more meaningful data instead of json -->
+                <li ng-repeat="doc in search.results.hits.hits">
+                    {{doc._source | json | limitTo: 500}}
+                    <!-- TODO use presentation template for this entity -->
                 </li>
             </ul>
-            <eui-simple-paging></eui-simple-paging>
         </div>
     </div>
 </div>

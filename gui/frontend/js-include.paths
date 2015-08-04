@@ -31,5 +31,3 @@ bower_components/datatables/media/js/jquery.dataTables.min.js
 bower_components/marked/lib/marked.js
 
 bower_components/elasticsearch/elasticsearch.angular.js
-bower_components/elastic.js/dist/elastic.js
-bower_components/elasticui/dist/elasticui.js
