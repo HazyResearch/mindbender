@@ -2,29 +2,19 @@
 # Search
 ###
 
-httpProxy = require "http-proxy"
-url = require "url"
 util = require "util"
-path = require "path"
 _ = require "underscore"
 
-# Install Dashboard API handlers to the given ExpressJS app
-exports.init = (app) ->
-    # bodyParser middleware does not play well with http-proxy, requiring following
-    # piece of "restreamer" code to mitigate the hanging issue.  See:
-    # https://github.com/nodejitsu/node-http-proxy/issues/180#issuecomment-62022286
-    app.use (req, res, next) ->
-        req.removeAllListeners "data"
-        req.removeAllListeners "end"
-        do next
-        process.nextTick ->
-            req.emit "data", JSON.stringify req.body if req.body
-            req.emit "end"
-
-    # Get ready to set up reverse proxies mapping paths to internal servers
+# Install Search API handlers to the given ExpressJS app
+exports.configureApp = (app, args) ->
+    # A handy way to create API reverse proxy middlewares
+    # See: https://github.com/nodejitsu/node-http-proxy/issues/180#issuecomment-3677221
+    # See: http://stackoverflow.com/a/21663820/390044
+    url = require "url"
+    httpProxy = require 'http-proxy'
     proxy = httpProxy.createProxyServer {}
-    reverseProxy = (path, target, rewrites) ->
-        app.all path, (req, res) ->
+    apiProxyMiddlewareFor = (path, target, rewrites) -> (req, res, next) ->
+        if req.url.match path
             # rewrite pathname if any rules were specified
             if rewrites?
                 newUrl = url.parse req.url
@@ -36,10 +26,11 @@ exports.init = (app) ->
                     target: target
                 , (err) ->
                     util.log err
+        else
+            next()
 
     # Reverse proxy for Elasticsearch
-    appName = process.env.ELASTICSEARCH_INDEX_NAME ? path.basename process.env.DEEPDIVE_APP
-    reverseProxy /// ^/api/elasticsearch(|.*)$ ///, "#{process.env.ELASTICSEARCH_BASEURL}/#{appName}", [
+    app.use apiProxyMiddlewareFor /// ^/api/elasticsearch(|.*)$ ///, process.env.ELASTICSEARCH_BASEURL, [
         # pathname /api/elasticsearch must be stripped for Elasticsearch
         [/// ^/api/elasticsearch ///, "/"]
     ]

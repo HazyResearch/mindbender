@@ -40,7 +40,7 @@ sendStdoutLinesAsJSONArray = (res, command, args, errorStatus = 404) ->
     proc
 
 # Install Dashboard API handlers to the given ExpressJS app
-exports.init = (app) ->
+exports.configureRoutes = (app, args) ->
 
     ## Viewing Snapshots and Reports
     # List Snapshots

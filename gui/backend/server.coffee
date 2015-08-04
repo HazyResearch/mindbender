@@ -25,13 +25,8 @@ io = socketIO.listen server
 
 # pick up environment and command-line args
 app.set "port", (parseInt process.env.PORT ? 8000)
-
 app.set "views", "#{__dirname}/views"
 app.set "view engine", "jade"
-app.use bodyParser.json()
-app.use (bodyParser.urlencoded extended: true)
-#app.use express.methodOverride()
-app.use express.static "#{__dirname}/files"
 
 # set up logging
 app.use logger "dev"
@@ -50,20 +45,39 @@ process.on "uncaughtException", (err) ->
     else
         throw err
 
+# TODO use a more sophisticated command-line parser
+cmdlnArgs = process.argv[2..]
+
+## set up APIs for each components ############################################
+
+components = [
+    # Mindtagger
+    require "./mindtagger/mindtagger-api"
+    # Dashboard
+    require "./dashboard/dashboard-api"
+    # Search
+    require "./search/search-api"
+]
+
+# set up component-specific middlewares
+for component in components
+    component.configureApp? app, cmdlnArgs
+
+# set up some middlewares routes typically depend on, e.g., bodyParser
+# XXX (bodyParser should be installed after some middlewares, e.g., reverse
+# proxy middleware as it changes the request stream.)
+app.use bodyParser.json()
+app.use (bodyParser.urlencoded extended: true)
+
+# set up routes
+for component in components
+    component.configureRoutes? app, cmdlnArgs
+
+###############################################################################
+
+#app.use express.methodOverride()
+app.use express.static "#{__dirname}/files"
+
+# start listening
 server.listen (app.get "port"), ->
     util.log "Mindbender GUI started at http://#{os.hostname()}:#{app.get "port"}/"
-
-# TODO use a more sophisticated command-line parser
-mindtaggerConfFiles = process.argv[2..]
-
-# initialize Mindtagger APIs in the app
-mindtaggerAPI = require "./mindtagger/mindtagger-api"
-mindtaggerAPI.init app, mindtaggerConfFiles
-
-# initialize Dashboard APIs
-dashboardAPI = require "./dashboard/dashboard-api"
-dashboardAPI.init app
-
-# initialize Search APIs
-searchAPI = require "./search/search-api"
-searchAPI.init app

@@ -14,7 +14,10 @@ csv = require "csv"
 {MindbenderUtils} = require "../mindbender-utils"
 
 ## Configure Mindtagger API URLs to the given ExpressJS app
-exports.init = (app, mindtaggerConfFiles) ->
+exports.configureRoutes = (app, args) ->
+    # TODO use a more sophisticated command-line parser
+    mindtaggerConfFiles = args
+
     # prepare Mindtagger tasks based on given json files
     async.map mindtaggerConfFiles,
         (confFile, next) -> new MindtaggerTask confFile, null, next
