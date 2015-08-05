@@ -1,6 +1,7 @@
 angular.module "mindbenderApp.search", [
     'elasticsearch'
     'json-tree'
+    'ngSanitize'
 ]
 
 # elasticsearch client as an Angular service
@@ -31,7 +32,8 @@ angular.module "mindbenderApp.search", [
     $routeProvider.when "/search",
         redirectTo: "/search/"
 
-.controller "SearchCtrl", ($scope, $location, $routeParams, elasticsearch, $modal) ->
+.controller "SearchCtrl", ($scope, $location, $routeParams, elasticsearch, $http, $interpolate, $modal) ->
+    RENDER_SOURCE_JSON = $interpolate "{{_source | json | limitTo:500}}"
     class Navigator
         constructor: (@elasticsearchIndexName = "_all", @$scope) ->
             @query = @results = null
@@ -42,7 +44,13 @@ angular.module "mindbenderApp.search", [
                 p: 1    # page number (starts from 1)
             @params = _.extend {}, @paramsDefault
             do @importParams
-            @doSearch yes
+
+            $http.get "/api/search/schema.json"
+                .success (data) =>
+                    @schema = data
+                    @doSearch yes
+                .error (err) ->
+                    console.trace err
 
             # find out what types are in the index
             @types = null
@@ -60,6 +68,7 @@ angular.module "mindbenderApp.search", [
 
         doSearch: (isContinuing = no) =>
             @params.p = 1 unless isContinuing
+            fields = @getSearchableFields @params.t
             query =
                 index: @elasticsearchIndexName
                 type: @params.t
@@ -75,17 +84,30 @@ angular.module "mindbenderApp.search", [
                     # TODO support aggs
                     highlight:
                         tags_schema: "styled"
-                        fields:
-                            # TODO get correct fields based on @params.t
-                            text: {}
-                            sentence: {}
+                        fields: _.object ([f,{}] for f in fields)
             elasticsearch.search query
             .then (data) =>
                 @results = data
                 @query = query
+                @render = (hit) ->
+                    # try highlight
+                    for fld in fields when hit.highlight?[fld]?
+                        return hit.highlight[fld].join " ... "
+                    # then _source
+                    for fld in fields when hit._source?[fld]?
+                        return hit._source?[fld]
+                    # fallback
+                    RENDER_SOURCE_JSON hit
                 do @reflectParams
             , (err) =>
                 console.trace err.message
+
+        getSearchableFields: (type = @params.t) =>
+            # get all searchable fields based on @params.t
+            if type?
+                @schema?[type]?.columnsForSearch ? []
+            else
+                _.union (columnsForSearch for t,{columnsForSearch} of @schema)...
 
         importParams: =>
             search = $location.search()

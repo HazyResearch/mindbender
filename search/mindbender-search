@@ -51,21 +51,43 @@ esAPIx() {
     local verb=$1 path=$2; shift 2
     esAPI "$verb" "/$ELASTICSEARCH_INDEX_NAME$path" "$@"
 }
+need_tmpdir() {
+    if ! [[ -d "${tmpdir:-}" ]]; then
+        tmpdir=$(mktemp -d ${TMPDIR:-/tmp}/mindbender-search.XXXXXXX)
+        trap "rm -rf $tmpdir" EXIT
+    fi
+}
+jqSchema() {
+    if ! [[ -f "${DDLOG_SCHEMA_JSON:-}" ]]; then
+        need_tmpdir
+        DDLOG_SCHEMA_JSON="$tmpdir"/app.ddlog.json
+        # TODO keep this schema exporting under deepdive command?
+        ddlog export-schema app.ddlog >"$DDLOG_SCHEMA_JSON"
+    fi
+    export DDLOG_SCHEMA_JSON
+    jqDDlog <"$DDLOG_SCHEMA_JSON" "$@"
+}
+
 
 # perform action on search index
 case $Action in
     gui)
+        # derive a schema for search frontend from DDlog
+        need_tmpdir
+        DDLOG_SEARCH_SCHEMA="$tmpdir"/search-frontend-schema.json
+        jqSchema '
+            [ relations | hasColumnsAnnotated(.name == "key") |
+            { key: .name, value: {
+                columnsForSearch: [columns | annotated(.name == "searchable_text") | .name]
+            } } ] | from_entries
+        ' >"$DDLOG_SEARCH_SCHEMA"
+        export DDLOG_SEARCH_SCHEMA
+
+        # launch the GUI
         exec mindbender-gui "$@"
         ;;
 
     update)
-        schemaJSON=$(mktemp ${TMPDIR:-/tmp}/mindbender-search-schema.XXXXXXX)
-        trap "rm -f $schemaJSON" EXIT
-        jqSchema() { jqDDlog <"$schemaJSON" "$@"; }
-
-        # TODO keep this schema exporting under deepdive command?
-        ddlog export-schema app.ddlog >"$schemaJSON"
-
         # use relations specified over command-line to filter target relations
         [[ $# -gt 0 ]] ||
             # default to all searchable entities discovered from DDlog

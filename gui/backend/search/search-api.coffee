@@ -2,6 +2,7 @@
 # Search
 ###
 
+fs = require "fs"
 util = require "util"
 _ = require "underscore"
 
@@ -34,4 +35,9 @@ exports.configureApp = (app, args) ->
         # pathname /api/elasticsearch must be stripped for Elasticsearch
         [/// ^/api/elasticsearch ///, "/"]
     ]
+
+exports.configureRoutes = (app, args) ->
+    searchSchema = JSON.parse fs.readFileSync process.env.DDLOG_SEARCH_SCHEMA
+    app.get "/api/search/schema.json", (req, res) ->
+        res.json searchSchema
 

@@ -68,16 +68,25 @@
             </p>
 
             <!-- individual search results -->
-            <ul>
-                <li ng-repeat="result in search.results.hits.hits track by $index">
-                    {{result._source | json | limitTo: 500}}
-                    <!-- TODO use presentation template for this entity -->
-                    <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
-                    <div ng-if="showJsonTree">
-                        <json-tree json="result._source" edit-level="readonly" collapsed-level="1"></json-tree>
-                    </div>
+            <ol start="{{search.query.body.from + 1}}">
+                <li ng-repeat="hit in search.results.hits.hits track by $index" class="hit">
+                    <blockquote>
+                        <!-- TODO use more sophisticated per-type presentation templates -->
+                        <span ng-bind-html="search.render(hit)"></span>
+
+                        <footer>
+                            <!-- provenance hyperlink -->
+                            <a href="api/elasticsearch/{{hit._index}}/{{hit._type}}/{{hit._id}}"
+                                class="text-muted">[{{hit._index}}]/[{{hit._type}}]/[{{hit._id}}]</a>
+                            <!-- raw _source document data -->
+                            <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
+                            <div ng-if="showJsonTree">
+                                <json-tree json="hit" edit-level="readonly" collapsed-level="2"></json-tree>
+                            </div>
+                        </footer>
+                    </blockquote>
                 </li>
-            </ul>
+            </ol>
 
             <!-- debug info in a modal -->
             <script type="text/ng-template" id="search/search-debug-modal.html">
@@ -101,6 +110,15 @@
         </div>
     </div>
 </div>
+<style>
+.hit blockquote .hlt1 { background-color: #ffc; }
+.hit blockquote .hlt2 { background-color: #cff; }
+.hit blockquote .hlt3 { background-color: #fcf; }
+.hit blockquote .hlt4 { background-color: #ccf; }
+.hit blockquote .hlt5 { background-color: #cfc; }
+.hit blockquote .hlt6 { background-color: #fcc; }
+.hit blockquote footer { margin-top: 0.5em; }
+</style>
 
 
 <nav class="navbar navbar-default navbar-fixed-bottom">
