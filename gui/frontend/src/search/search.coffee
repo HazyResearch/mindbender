@@ -31,7 +31,7 @@ angular.module "mindbenderApp.search", [
     $routeProvider.when "/search",
         redirectTo: "/search/"
 
-.controller "SearchCtrl", ($scope, $location, $routeParams, elasticsearch) ->
+.controller "SearchCtrl", ($scope, $location, $routeParams, elasticsearch, $modal) ->
     class Navigator
         constructor: (@elasticsearchIndexName = "_all", @params = {}) ->
             @query = @results = null
@@ -77,3 +77,9 @@ angular.module "mindbenderApp.search", [
 
     # watch page number changes
     $scope.$watch "search.params.p", -> $scope.search.doSearch yes
+
+    $scope.openModal = (options) ->
+        $modal.open _.extend {
+            scope: $scope
+        }, options
+

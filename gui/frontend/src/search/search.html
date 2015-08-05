@@ -45,7 +45,9 @@
         </div>
         <div class="col-xs-10 col-xs-offset-2 main">
             <div class="pull-right">
-	        <button type="button" class="btn btn-default" data-toggle="modal" data-target="#search-debug-modal"><i class="fa fa-cogs"></i></button>
+	        <button type="button" class="btn btn-default"
+	            ng-click='openModal({templateUrl:"search/search-debug-modal.html", size:"lg"})'
+	            data-toggle="modal" data-target="#search-debug-modal"><i class="fa fa-cogs"></i></button>
 	    </div>
             <!-- search results summary -->
             <p class="lead">
@@ -78,28 +80,24 @@
             </ul>
 
             <!-- debug info in a modal -->
-            <div class="modal fade" id="search-debug-modal" tabindex="-1" role="dialog" aria-labelledby="searchDebugModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                            <h4 class="modal-title" id="searchDebugModalLabel">Search Debug Info</h4>
-                        </div>
-                        <div class="modal-body">
-
-                            <h3>query</h3>
-                            <pre><code>{{search.query   | json}}</code></pre>
-
-                            <h3>results</h3>
-                            <pre><code>{{search.results | json}}</code></pre>
-
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
-                        </div>
-                    </div>
+            <script type="text/ng-template" id="search/search-debug-modal.html">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="searchDebugModalLabel">Search Debug Info</h4>
                 </div>
-            </div>
+                <div class="modal-body">
+
+                    <h3>query</h3>
+                    <json-tree json="search.query" edit-level="readonly" collapsed-level="4"></json-tree>
+
+                    <h3>results</h3>
+                    <json-tree json="search.results" edit-level="readonly" collapsed-level="3"></json-tree>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" ng-click="$dismiss()">Close</button>
+                </div>
+            </script>
         </div>
     </div>
 </div>
