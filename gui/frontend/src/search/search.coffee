@@ -33,12 +33,16 @@ angular.module "mindbenderApp.search", [
 
 .controller "SearchCtrl", ($scope, $location, $routeParams, elasticsearch, $modal) ->
     class Navigator
-        constructor: (@elasticsearchIndexName = "_all", @params = {}) ->
+        constructor: (@elasticsearchIndexName = "_all", @$scope) ->
             @query = @results = null
-            @params.t ?= null # type to search
-            @params.n ?= 10   # number of items in a page
-            @params.p ?= 1    # page number (starts from 1)
-            @doSearch yes if @params.q?
+            @paramsDefault =
+                q: null # query string
+                t: null # type to search
+                n: 10   # number of items in a page
+                p: 1    # page number (starts from 1)
+            @params = _.extend {}, @paramsDefault
+            do @importParams
+            @doSearch yes
 
             # find out what types are in the index
             @types = null
@@ -48,6 +52,11 @@ angular.module "mindbenderApp.search", [
                 @types = _.union (_.keys mappings for idx,{mappings} of data)...
             , (err) =>
                 console.trace err.message
+
+            # watch page number changes
+            @$scope.$watch (=> @params.p), => @doSearch yes
+            @$scope.$on "$routeUpdate", =>
+                @doSearch yes if do @importParams
 
         doSearch: (isContinuing = no) =>
             @params.p = 1 unless isContinuing
@@ -64,19 +73,34 @@ angular.module "mindbenderApp.search", [
                             query: @params.q
                     # TODO support filters
                     # TODO support aggs
+                    highlight:
+                        tags_schema: "styled"
+                        fields:
+                            # TODO get correct fields based on @params.t
+                            text: {}
+                            sentence: {}
             elasticsearch.search query
             .then (data) =>
                 @results = data
                 @query = query
-                # reflect search parameters to the location on the URL
-                $location.search k, v for k, v of @params
+                do @reflectParams
             , (err) =>
                 console.trace err.message
 
-    $scope.search = new Navigator $routeParams.index, $location.search()
+        importParams: =>
+            search = $location.search()
+            changed = no
+            for k,v of @params when (search[k] ? @paramsDefault[k]) isnt v
+                @params[k] = search[k] ? @paramsDefault[k]
+                changed = yes
+            changed
 
-    # watch page number changes
-    $scope.$watch "search.params.p", -> $scope.search.doSearch yes
+        reflectParams: =>
+            # reflect search parameters to the location on the URL
+            search = $location.search()
+            $location.search k, v for k, v of @params when search.k isnt v
+
+    $scope.search = new Navigator $routeParams.index, $scope
 
     $scope.openModal = (options) ->
         $modal.open _.extend {
