@@ -1,0 +1,19 @@
+<!-- Brand and toggle get grouped for better mobile display -->
+<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mindtagger-navbar-collapse">
+    <span class="sr-only">Toggle navigation</span>
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+</button>
+
+<span class="navbar-brand dropdown" keyboard-nav>
+    <span class="dropdown-toggle" aria-haspopup="true" aria-expanded="false" style="cursor:pointer;">
+        <i class="fa" ng-class="'fa-' + brandIcon"></i> {{brand}}
+        <span class="caret"></span></span>
+
+    <ul class="dropdown-menu" role="menu">
+        <li><a href="#/search/"><i class="fa fa-search"></i> Search</a></li>
+        <li><a href="#/dashboard"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+        <li><a href="#/mindtagger"><i class="fa fa-tags"></i> Mindtagger</a></li>
+    </ul>
+</span>

@@ -13,6 +13,7 @@ angular.module "mindbenderApp.dashboard", [
 
             # prepare array of links for navbar
             $rootScope.navLinks = [
+                { url: '#/dashboard', name: 'Dashboard' }
                 { url: '#/snapshot-run', name: 'Run Snapshot' }
                 { url: '#/snapshot-template/edit', name: 'Configure Templates' }
                 { url: '#/snapshot/', name: 'View Snapshots' }
@@ -80,32 +81,46 @@ angular.module "mindbenderApp.dashboard", [
 
 .config ($routeProvider) ->
     $routeProvider.when "/dashboard",
+        brand: "DeepDive", brandIcon: "dashboard"
+        title: "Dashboard - DeepDive"
         templateUrl: "dashboard/index.html"
         controller: "IndexCtrl"
 
     $routeProvider.when "/snapshot-run",
+        brand: "DeepDive", brandIcon: "dashboard"
+        title: "Run Snapshot - Dashboard - DeepDive"
         templateUrl: "dashboard/snapshot-run.html"
         controller: "SnapshotRunCtrl"
 
     $routeProvider.when "/snapshot/",
+        brand: "DeepDive", brandIcon: "dashboard"
+        title: "All Snapshots - Dashboard - DeepDive"
         templateUrl: "dashboard/snapshot-list.html"
         controller: "SnapshotListCtrl"
 
     $routeProvider.when "/snapshot/:snapshotId/",
+        brand: "DeepDive", brandIcon: "dashboard"
+        title: "Snapshot {{snapshotId}} - Dashboard - DeepDive"
         templateUrl: "dashboard/snapshot-view-reports.html"
         controller: "SnapshotReportsCtrl",
         reloadOnSearch: false
 
     $routeProvider.when "/snapshot-template/edit",
+        brand: "DeepDive", brandIcon: "dashboard"
+        title: "Edit Template ({{template}}) - Dashboard - DeepDive"
         templateUrl: "dashboard/snapshot-template-editor.html"
         controller: "EditTemplatesCtrl",
         reloadOnSearch: false
 
     $routeProvider.when "/trends",
+        brand: "DeepDive", brandIcon: "dashboard"
+        title: "Trends - Dashboard - DeepDive"
         templateUrl: "dashboard/trends.html"
         controller: "ReportValueListCtrl"
 
     $routeProvider.when "/trend/:reportId*/:valueName",
+        brand: "DeepDive", brandIcon: "dashboard"
+        title: "Trend for {{reportId}}/{{valueName}} - Dashboard - DeepDive"
         templateUrl: "dashboard/trend.html"
         controller: "ReportValueCtrl"
 

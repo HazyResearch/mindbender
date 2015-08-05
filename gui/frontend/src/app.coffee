@@ -11,6 +11,19 @@ angular.module 'mindbenderApp', [
         controller: 'LandingPageCtrl'
     $routeProvider.otherwise redirectTo: '/'
 
+.run ($rootScope, $interpolate) ->
+    # update title and brand
+    tmplsDefault = {
+        title: "DeepDive"
+        brand: "DeepDive"
+        brandIcon: ""
+    }
+    updateRootScopeFromCurrentRoute = (event, current, previous) ->
+        for attr,tmplDefault of tmplsDefault
+            tmpl = $interpolate (current.$$route[attr] ? tmplsDefault)
+            $rootScope[attr] = tmpl current.params
+    $rootScope.$on "$routeChangeStart", updateRootScopeFromCurrentRoute
+    $rootScope.$on "$routeUpdate",      updateRootScopeFromCurrentRoute
 
 .controller 'LandingPageCtrl', ($rootScope, $http, $location) ->
     # redirect to mindtagger or dashboard at first visit

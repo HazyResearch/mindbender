@@ -2,16 +2,7 @@
 
 <nav class="navbar navbar-default navbar-fixed-top">
     <div class="container">
-        <!-- Brand and toggle get grouped for better mobile display -->
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mindtagger-navbar-collapse">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand">DeepDive</a>
-        </div>
+        <div class="navbar-header" ng-include="'app-navbar-header.html'"></div>
 
         <form class="navbar-form navbar-right" role="search" style="width:75%;">
             <div class="form-group input-group" style="width:100%;">
@@ -28,12 +19,13 @@
                     </ul>
                 </div>
                 <!-- search box -->
-                <input type="text" class="form-control"
+                <input type="search" class="form-control"
                     placeholder="Search keywords, field:/regex/, ..."
                     ng-model="search.params.q">
                 <!-- search button -->
                 <span class="input-group-btn" style="width:1%;">
-                    <button type="submit" class="btn btn-primary" ng-click="search.doSearch()">Search</button>
+                    <button type="submit" class="btn btn-primary" ng-click="search.doSearch()">
+                        <i class="fa fa-search"></i> Search</button>
                 </span>
             </div>
         </form>
@@ -76,7 +68,7 @@
 
             <!-- debug info in a modal -->
             <div class="modal fade" id="search-debug-modal" tabindex="-1" role="dialog" aria-labelledby="searchDebugModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>

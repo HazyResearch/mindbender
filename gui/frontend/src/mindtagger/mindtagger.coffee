@@ -8,9 +8,13 @@ angular.module 'mindbenderApp.mindtagger', [
 
 .config ($routeProvider) ->
     $routeProvider.when '/mindtagger',
+        brand: "Mindtagger", brandIcon: "tags"
+        title: "Mindtagger - DeepDive"
         templateUrl: 'mindtagger/tasklist.html'
         controller: 'MindtaggerTaskListCtrl'
     $routeProvider.when '/mindtagger/:task',
+        brand: "Mindtagger", brandIcon: "tags"
+        title: "Mindtagger {{task}} - DeepDive"
         template: ({task}) -> """<div mindtagger-task="#{task}" mindtagger-task-keeps-cursor-visible></div>"""
         # TODO reloadOnSearch: no
 

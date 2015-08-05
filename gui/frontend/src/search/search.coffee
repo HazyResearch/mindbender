@@ -18,6 +18,12 @@ angular.module "mindbenderApp.search", [
 
 .config ($routeProvider) ->
     $routeProvider.when "/search/:index*?",
+        brand: "DeepDive", brandIcon: "search"
+        title: 'Search {{
+                q ? "for [" + q + "] " : ""}}{{
+                t ? "in " + t + " " : ""}}{{
+                index ? "(" + index + ") " : ""
+            }}- DeepDive'
         templateUrl: "search/search.html"
         controller: "SearchCtrl"
         reloadOnSearch: no
