@@ -1,13 +1,160 @@
 #!/usr/bin/env bash
-# mindbender-search -- Launches a search GUI
+# mindbender-search -- Creates and maintains search index
+# 
+# To launch the search GUI:
+# $ mindbender search gui
+# 
+# To update the search index with new searchable data produced by DeepDive, run:
+# $ mindbender search update
+# You can specify which searchable entities to update:
+# $ mindbender search update [ENTITY]...
+# 
+# To check the search index status:
+# $ mindbender search status
+# 
+# For any reason, to destroy the search index, run:
+# $ mindbender search destroy
+#
+##
 # Author: Jaeho Shin <netj@cs.stanford.edu>
-# Created: 2015-08-03
+# Created: 2015-07-31
 set -eu
 
 # needs to work on a DeepDive app
 DEEPDIVE_APP=$(find-deepdive-app)
 cd "$DEEPDIVE_APP"
-export DEEPDIVE_APP
 
-keep-elasticsearch-during -- \
-    mindbender-gui "$@"
+# use the DeepDive app's folder name for the ES index name
+: ${ELASTICSEARCH_INDEX_NAME:=$(basename "$DEEPDIVE_APP")}
+: ${ELASTICSEARCH_BULK_BATCHSIZE:=1000}
+
+# parse command-line args
+case ${1:-} in
+    gui|update|status|destroy)
+        # make sure elasticsearch is running
+        ${ELASTICSEARCH_RUNNING:-false} ||
+            exec keep-elasticsearch-during -- "$0" "$@"
+        Action=$1; shift
+        ;;
+    *)
+        usage "$0" "No action given: gui, update, status, or destroy"
+esac
+
+# simple wrapper for elasticsearch HTTP API
+esAPI() {
+    local verb=$1 path=$2; shift 2
+    curl -fs -X$verb "$ELASTICSEARCH_BASEURL$path" "$@"
+    echo  # because ES does not put an EOL
+}
+# shorthand for APIs on the index
+esAPIx() {
+    local verb=$1 path=$2; shift 2
+    esAPI "$verb" "/$ELASTICSEARCH_INDEX_NAME$path" "$@"
+}
+
+# perform action on search index
+case $Action in
+    gui)
+        exec mindbender-gui "$@"
+        ;;
+
+    update)
+        schemaJSON=$(mktemp ${TMPDIR:-/tmp}/mindbender-search-schema.XXXXXXX)
+        trap "rm -f $schemaJSON" EXIT
+        jqSchema() { jqDDlog <"$schemaJSON" "$@"; }
+
+        # TODO keep this schema exporting under deepdive command?
+        ddlog export-schema app.ddlog >"$schemaJSON"
+
+        # use relations specified over command-line to filter target relations
+        [[ $# -gt 0 ]] ||
+            # default to all searchable entities discovered from DDlog
+            eval set -- $(jqSchema 'relations | hasColumnsAnnotated(.name == "key") | .name | @sh')
+        export DDLOG_RELATIONS_SELECTED=$(printf '%s\n' "$@" | jq -R -s -c 'split("\n")')
+
+        # create ES indexes corresponding to each entity
+        for relation; do
+            echo >&2 "Will index relation $relation"
+        done
+
+        # set up parent-child mapping based on @references annotations
+        # (See: https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child-mapping.html)
+        jqSchema '
+            [ relationsSelected | {
+                    key: .name,
+                    value: relationsReferenced | map(.relation)[0] |
+                        (if . then { _parent: { type: . } } else {} end)
+            } ] |
+            { mappings: from_entries }
+        ' |
+        esAPIx PUT "/" --data-binary @- >/dev/null || true
+
+        # bulk load to ES from DeepDive database
+        update-relation() {
+            local relation=$1; shift
+            local sqlToUnload=$1; shift
+            local jqToFormat=$1; shift
+            echo >&2 "Indexing relation $relation"
+            # unload data from database in json lines
+            deepdive sql eval "$sqlToUnload" format=json |
+            # show progress
+            pv --line-mode --size="$(deepdive sql eval "SELECT COUNT(*) FROM ($sqlToUnload) r")" |
+            # split records into multiple batches
+            # TODO parallelize
+            split --lines=$ELASTICSEARCH_BULK_BATCHSIZE --filter="$(escape-args-for-shell sh -euc '
+                jqToFormat=$1 indexURL=$2
+                # produce elasticsearch bulk load action for each JSON record
+                jq -c "$jqToFormat" |
+                # send them to elasticsearch
+                curl -fs -XPUT "$indexURL/_bulk" --data-binary @- |
+                # discard all result but the error field
+                jq ".error"
+                ' -- "$jqToFormat" "$ELASTICSEARCH_BASEURL/$ELASTICSEARCH_INDEX_NAME/$relation")" |
+            # make sure there wasn't any error
+            jq -e -s "any | not" >/dev/null
+        }
+        eval "$(jqSchema '
+            # helper function for jq codegen
+            def jqExprForColumns:
+                if length == 1 then # use the column (single column)
+                    ".\(.[0])"
+                else # or join column values with at-sign if there are more than one
+                    "\"\(map("\\(.\(.))") | join("@"))\""
+                end
+            ;
+
+            # find necessary info for relations
+            relationsSelected | select(keyColumns | length > 0) | {
+                relation: .,
+                columnsForKey: keyColumns | map(.name),
+                columnsForParent: relationsReferenced | map(.byColumn | map(.name))[0]
+            } |
+
+            # generate shell commands that load data
+            "update-relation \(
+                .relation.name | @sh) \(
+                .relation | sqlForRelation | @sh) \(
+                "# index action/metadata
+                {index:{
+                    _id: \(.columnsForKey | jqExprForColumns)
+                    \(if .columnsForParent == null then "" else
+                 ", parent: \(.columnsForParent | jqExprForColumns)"
+                    end)
+                }},
+                . # followed by the actual document to index
+                " | @sh)"
+        ')"
+        ;;
+
+    status)
+        esAPI GET '/_stats'
+        ;;
+
+    destroy)
+        # delete the ES index
+        esAPIx DELETE "/"
+        ;;
+
+    *)
+        error "$Action: unknown action"
+esac
