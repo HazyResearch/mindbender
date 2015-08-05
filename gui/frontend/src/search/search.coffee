@@ -1,5 +1,6 @@
 angular.module "mindbenderApp.search", [
     'elasticsearch'
+    'json-tree'
 ]
 
 # elasticsearch client as an Angular service
