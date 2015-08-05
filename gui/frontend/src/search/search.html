@@ -49,6 +49,9 @@
             <!-- TODO faceted search (aggregations) -->
         </div>
         <div class="col-xs-10 col-xs-offset-2 main">
+            <div class="pull-right">
+	        <button type="button" class="btn btn-default" data-toggle="modal" data-target="#search-debug-modal"><i class="fa fa-cogs"></i></button>
+	    </div>
             <!-- search results summary -->
             <p class="lead">
                 <span ng-if="! search.results.hits.total > 0">No results</span>
@@ -59,7 +62,7 @@
                         search.query.body.from + search.results.hits.hits.length | number
                     }} of {{search.results.hits.total | number}} results
                 </span>
-                for [<strong>{{search.query.q}}</strong>]
+                for [ <strong>{{search.query.q}}</strong> ]
                 <span ng-if="search.query.type"> in <em>{{search.query.type}}</em></span>
             </p>
 
@@ -71,11 +74,29 @@
                 </li>
             </ul>
 
-            <!-- debug info -->
-            <h3>query</h3>
-            <code><pre>{{search.query   | json}}</pre></code>
-            <h3>result</h3>
-            <code><pre>{{search.results | json}}</pre></code>
+            <!-- debug info in a modal -->
+            <div class="modal fade" id="search-debug-modal" tabindex="-1" role="dialog" aria-labelledby="searchDebugModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            <h4 class="modal-title" id="searchDebugModalLabel">Search Debug Info</h4>
+                        </div>
+                        <div class="modal-body">
+
+                            <h3>query</h3>
+                            <pre><code>{{search.query   | json}}</code></pre>
+
+                            <h3>results</h3>
+                            <pre><code>{{search.results | json}}</code></pre>
+
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
