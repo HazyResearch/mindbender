@@ -49,44 +49,66 @@
 	            ng-click='openModal({templateUrl:"search/search-debug-modal.html", size:"lg"})'
 	            data-toggle="modal" data-target="#search-debug-modal"><i class="fa fa-cogs"></i></button>
 	    </div>
-            <!-- search results summary -->
-            <p class="lead">
-                <span ng-if="! search.results.hits.total > 0">No results</span>
-                <span ng-if="search.results.hits.total > 0">
-                    {{
-                        search.query.body.from + 1                               | number
-                    }}-{{
-                        search.query.body.from + search.results.hits.hits.length | number
-                    }} of {{search.results.hits.total | number}} results
-                </span>
-                for
-                <span ng-if="search.query.body.query.query_string.query">
-                    [ <strong>{{search.query.body.query.query_string.query}}</strong> ]
-                </span>
-                <span ng-if="!search.query.body.query.query_string.query">everything</span>
-                <span ng-if="search.query.type"> in <em>{{search.query.type}}</em></span>
-            </p>
 
-            <!-- individual search results -->
-            <ol start="{{search.query.body.from + 1}}">
-                <li ng-repeat="hit in search.results.hits.hits track by $index" class="hit">
-                    <blockquote>
-                        <!-- TODO use more sophisticated per-type presentation templates -->
-                        <span ng-bind-html="search.render(hit)"></span>
+            <!-- error and progress boxes -->
+            <div class="alert alert-danger" ng-if="search.error">
+                <p class="lead">Error: {{search.error.message}}</p>
+                <p ng-bind-html="search.error.body"></p>
+            </div>
+            <div ng-if="search.queryRunning">
+                <p class="lead">Searching <span ng-init="query = search.queryRunning" ng-include="'search/search-query.html'"></span></p>
+                <p>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%;">
+                            <span class="sr-only">In Progress</span>
+                        </div>
+                    </div>
+                </p>
+            </div>
 
-                        <footer>
-                            <!-- provenance hyperlink -->
-                            <a href="api/elasticsearch/{{hit._index}}/{{hit._type}}/{{hit._id}}"
-                                class="text-muted">[{{hit._index}}]/[{{hit._type}}]/[{{hit._id}}]</a>
-                            <!-- raw _source document data -->
-                            <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
-                            <div ng-if="showJsonTree">
-                                <json-tree json="hit" edit-level="readonly" collapsed-level="2"></json-tree>
-                            </div>
-                        </footer>
-                    </blockquote>
-                </li>
-            </ol>
+            <div ng-if="!search.queryRunning">
+                <!-- search results summary -->
+                <p class="lead">
+                    <span ng-if="! search.results.hits.total > 0">No results</span>
+                    <span ng-if="search.results.hits.total > 0">
+                        {{
+                            search.query.body.from + 1                               | number
+                        }}-{{
+                            search.query.body.from + search.results.hits.hits.length | number
+                        }} of {{search.results.hits.total | number}} results
+                    </span>
+                    <span ng-init="query = search.query" ng-include="'search/search-query.html'"></span>
+                    <script type="text/ng-template" id="search/search-query.html">
+                        for
+                        <span ng-if="query.body.query.query_string.query">
+                            [ <strong>{{query.body.query.query_string.query}}</strong> ]
+                        </span>
+                        <span ng-if="!query.body.query.query_string.query">everything</span>
+                        <span ng-if="query.type"> in <em>{{query.type}}</em></span>
+                    </script>
+                </p>
+
+                <!-- individual search results -->
+                <ol start="{{search.query.body.from + 1}}">
+                    <li ng-repeat="hit in search.results.hits.hits track by $index" class="hit">
+                        <blockquote>
+                            <!-- TODO use more sophisticated per-type presentation templates -->
+                            <span ng-bind-html="search.render(hit)"></span>
+
+                            <footer>
+                                <!-- provenance hyperlink -->
+                                <a href="api/elasticsearch/{{hit._index}}/{{hit._type}}/{{hit._id}}"
+                                    class="text-muted">[{{hit._index}}]/[{{hit._type}}]/[{{hit._id}}]</a>
+                                <!-- raw _source document data -->
+                                <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
+                                <div ng-if="showJsonTree">
+                                    <json-tree json="hit" edit-level="readonly" collapsed-level="2"></json-tree>
+                                </div>
+                            </footer>
+                        </blockquote>
+                    </li>
+                </ol>
+            </div>
 
             <!-- debug info in a modal -->
             <script type="text/ng-template" id="search/search-debug-modal.html">

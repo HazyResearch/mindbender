@@ -14,7 +14,7 @@ angular.module "mindbenderApp.search", [
     elasticsearch.ping {
         requestTimeout: 30000
     }, (err) ->
-        console.error "elasticsearch cluster is down" if err
+        console.trace "elasticsearch cluster is down", err if err
     # return the instance
     elasticsearch
 
@@ -59,6 +59,7 @@ angular.module "mindbenderApp.search", [
             .then (data) =>
                 @types = _.union (_.keys mappings for idx,{mappings} of data)...
             , (err) =>
+                @error = err
                 console.trace err.message
 
             # watch page number changes
@@ -69,7 +70,8 @@ angular.module "mindbenderApp.search", [
         doSearch: (isContinuing = no) =>
             @params.p = 1 unless isContinuing
             fields = @getSearchableFields @params.t
-            query =
+            @error = null
+            @queryRunning =
                 index: @elasticsearchIndexName
                 type: @params.t
                 body:
@@ -85,10 +87,9 @@ angular.module "mindbenderApp.search", [
                     highlight:
                         tags_schema: "styled"
                         fields: _.object ([f,{}] for f in fields)
-            elasticsearch.search query
-            .then (data) =>
-                @results = data
-                @query = query
+            postProcessSearchResults = =>
+                @query = @queryRunning
+                @queryRunning = null
                 @render = (hit) ->
                     # try highlight
                     for fld in fields when hit.highlight?[fld]?
@@ -99,8 +100,16 @@ angular.module "mindbenderApp.search", [
                     # fallback
                     RENDER_SOURCE_JSON hit
                 do @reflectParams
+            elasticsearch.search @queryRunning
+            .then (data) =>
+                @error = null
+                @results = data
+                do postProcessSearchResults
             , (err) =>
+                @error = err
                 console.trace err.message
+                @results = null
+                do postProcessSearchResults
 
         getSearchableFields: (type = @params.t) =>
             # get all searchable fields based on @params.t

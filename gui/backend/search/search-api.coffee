@@ -25,19 +25,31 @@ exports.configureApp = (app, args) ->
             # proxy request to the target
             proxy.web req, res,
                     target: target
-                , (err) ->
-                    util.log err
+                , (err, req, res) ->
+                    res
+                        .status 503
+                        .send "Elasticsearch service unavailable\n(#{err})"
         else
             next()
 
     # Reverse proxy for Elasticsearch
-    app.use apiProxyMiddlewareFor /// ^/api/elasticsearch(|.*)$ ///, process.env.ELASTICSEARCH_BASEURL, [
-        # pathname /api/elasticsearch must be stripped for Elasticsearch
-        [/// ^/api/elasticsearch ///, "/"]
-    ]
+    elasticsearchApiPath = /// ^/api/elasticsearch(|/.*)$ ///
+    if process.env.ELASTICSEARCH_BASEURL?
+        app.use apiProxyMiddlewareFor elasticsearchApiPath, process.env.ELASTICSEARCH_BASEURL, [
+            # pathname /api/elasticsearch must be stripped for Elasticsearch
+            [/// ^/api/elasticsearch ///, "/"]
+        ]
+    else
+        app.all elasticsearchApiPath, (req, res) ->
+            res
+                .status 503
+                .send "Elasticsearch service not configured\n($ELASTICSEARCH_BASEURL environment not set)"
 
 exports.configureRoutes = (app, args) ->
-    searchSchema = JSON.parse fs.readFileSync process.env.DDLOG_SEARCH_SCHEMA
+    searchSchema =
+        if process.env.DDLOG_SEARCH_SCHEMA?
+            try JSON.parse fs.readFileSync process.env.DDLOG_SEARCH_SCHEMA
+            catch err then console.error "Error while loading DDLOG_SEARCH_SCHEMA (#{DDLOG_SEARCH_SCHEMA}): #{err}"
     app.get "/api/search/schema.json", (req, res) ->
         res.json searchSchema
 

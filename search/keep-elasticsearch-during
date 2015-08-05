@@ -37,7 +37,8 @@ case $ELASTICSEARCH_BASEURL in
         [[ -e "$ELASTICSEARCH_HOME"/config/elasticsearch.yml ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/elasticsearch.yml "$ELASTICSEARCH_HOME"/config/
         [[ -e "$ELASTICSEARCH_HOME"/config/logging.yml       ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/logging.yml       "$ELASTICSEARCH_HOME"/config/
         terminate-local-elasticsearch() {
-            kill -TERM $(cat "$ELASTICSEARCH_HOME"/elasticsearch.pid)
+            pid=$(cat "$ELASTICSEARCH_HOME"/elasticsearch.pid 2>/dev/null)
+            [[ -z "$pid" ]] || kill -TERM $pid
         }
         # terminate if something's running locally but perhaps on a different port
         if [[ -e "$ELASTICSEARCH_HOME"/elasticsearch.pid ]]; then
