@@ -7,9 +7,12 @@
         <form class="navbar-form navbar-right" role="search" style="width:75%;">
             <div class="form-group input-group" style="width:100%;">
                 <!-- type dropdown -->
-                <div class="input-group-btn" style="width:1%;" ng-if="search.types">
-                    <button type="button" class="btn btn-default dropdown-toggle"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <div class="input-group-btn dropdown" style="width:1%;" ng-if="search.types">
+                    <button type="button" class="btn dropdown-toggle"
+                        ng-class="{
+                            'btn-default': !search.params.t,
+                            'btn-info'   :  search.params.t
+                        }" aria-haspopup="true" aria-expanded="false">
                         {{search.params.t ? "In " + search.params.t : "All"}}
                         <span class="caret"></span></button>
                     <ul class="dropdown-menu">
@@ -25,7 +28,7 @@
                 <!-- search button -->
                 <span class="input-group-btn" style="width:1%;">
                     <button type="submit" class="btn btn-primary" ng-click="search.doSearch()">
-                        <i class="fa fa-search"></i> Search</button>
+                        <i class="fa fa-search"></i><span class="sr-only"> Search</span></button>
                 </span>
             </div>
         </form>
@@ -54,7 +57,11 @@
                         search.query.body.from + search.results.hits.hits.length | number
                     }} of {{search.results.hits.total | number}} results
                 </span>
-                for [ <strong>{{search.query.q}}</strong> ]
+                for
+                <span ng-if="search.query.body.query.query_string.query">
+                    [ <strong>{{search.query.body.query.query_string.query}}</strong> ]
+                </span>
+                <span ng-if="!search.query.body.query.query_string.query">everything</span>
                 <span ng-if="search.query.type"> in <em>{{search.query.type}}</em></span>
             </p>
 

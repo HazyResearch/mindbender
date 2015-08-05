@@ -20,7 +20,7 @@ angular.module "mindbenderApp.search", [
     $routeProvider.when "/search/:index*?",
         brand: "DeepDive", brandIcon: "search"
         title: 'Search {{
-                q ? "for [" + q + "] " : ""}}{{
+                q ? "for [" + q + "] " : "everything "}}{{
                 t ? "in " + t + " " : ""}}{{
                 index ? "(" + index + ") " : ""
             }}- DeepDive'
@@ -37,7 +37,7 @@ angular.module "mindbenderApp.search", [
             @params.t ?= null # type to search
             @params.n ?= 10   # number of items in a page
             @params.p ?= 1    # page number (starts from 1)
-            do @doSearch if @params.q?
+            @doSearch yes if @params.q?
 
             # find out what types are in the index
             @types = null
@@ -49,14 +49,18 @@ angular.module "mindbenderApp.search", [
                 console.trace err.message
 
         doSearch: (isContinuing = no) =>
+            @params.p = 1 unless isContinuing
             query =
-                q: @params.q or null
                 index: @elasticsearchIndexName
                 type: @params.t
                 body:
                     # elasticsearch Query DSL (See: https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/quick-start.html#_elasticsearch_query_dsl)
                     size: @params.n
-                    from: if isContinuing then (@params.p - 1) * @params.n else 0
+                    from: (@params.p - 1) * @params.n
+                    query: if @params.q
+                        query_string:
+                            default_operator: "AND"
+                            query: @params.q
                     # TODO support filters
                     # TODO support aggs
             elasticsearch.search query
