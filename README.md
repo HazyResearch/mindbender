@@ -13,6 +13,11 @@ Mindbender is a set of tools for iterative knowledge base construction with [Dee
 Alternatively, you can build and install from source by running `make install PREFIX=/usr/local`.
 
 
+#### Latest Example
+See [examples/spouse_example](https://github.com/HazyResearch/mindbender/tree/master/examples/spouse_example#readme) for more details about using the tools included in Mindbender.
+
+----
+
 #### Launch Mindtagger for labeling data
 ```bash
 mindbender tagger examples/labeling/**/mindtagger.conf

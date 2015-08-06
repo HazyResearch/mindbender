@@ -1,0 +1,10 @@
+# list important DeepDive files here to include in every snapshot
+app.ddlog
+deepdive.conf
+db.url
+udf
+
+# below are optional
+#run.sh
+#env.sh
+#code
