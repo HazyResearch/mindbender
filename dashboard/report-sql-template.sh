@@ -7,5 +7,5 @@ inputName=data
 outputName=data
 EXPAND_PARAMETERS=true \
 compile-xdocs "$inputName".sql.in
-run-sql "$(cat "$inputName".sql)" CSV HEADER >"$outputName".csv
+run-sql "$(cat "$inputName".sql)" format=csv header=1 >"$outputName".csv
 json-for "$outputName".csv | transpose-json >"$outputName".json

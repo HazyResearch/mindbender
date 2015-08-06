@@ -53,7 +53,7 @@ if [[ -n "$sql_feature_label" ]]; then
             GROUP BY feature
             ORDER BY supervised DESC
             LIMIT 200
-    " CSV HEADER >supervision_distribution.csv
+    " format=csv header=1 >supervision_distribution.csv
     json-for supervision_distribution.csv | transpose-json >supervision_distribution.json
 
 # TODO convert this to formatted report after allowing custom highcharts-options in data.chart

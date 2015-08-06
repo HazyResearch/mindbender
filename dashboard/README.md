@@ -229,7 +229,7 @@ run-sql "
     GROUP BY words
     ORDER BY count DESC
     LIMIT 10
-" CSV HEADER >top_candidates.csv
+" format=csv header=1 >top_candidates.csv
 
 html-table-for top_candidates.csv
 $>

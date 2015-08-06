@@ -40,7 +40,7 @@ WITH bucketed AS (
           GROUP BY bucket
         ) negative ON universe.bucket = negative.bucket
   ORDER BY universe.bucket
-" CSV HEADER >calibration.csv
+" format=csv header=1 >calibration.csv
 
 json-for calibration.csv | transpose-json >calibration.json
 $>
