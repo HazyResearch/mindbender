@@ -7,13 +7,6 @@ cd "$(dirname "$0")"
 type deepdive
 type mindbender
 
-# download some udf code
-mkdir -p udf
-download() { curl -fsSRLo udf/$1 https://github.com/HazyResearch/deepdive/raw/master/examples/spouse_example/postgres/ddlog/udf/$1; }
-download ext_has_spouse.py
-download ext_has_spouse_features.py
-download ext_people.py
-
 # run DeepDive
 deepdive initdb
 deepdive run
