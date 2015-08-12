@@ -37,8 +37,12 @@ case $ELASTICSEARCH_BASEURL in
         [[ -e "$ELASTICSEARCH_HOME"/config/elasticsearch.yml ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/elasticsearch.yml "$ELASTICSEARCH_HOME"/config/
         [[ -e "$ELASTICSEARCH_HOME"/config/logging.yml       ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/elasticsearch/prefix/*/config/logging.yml       "$ELASTICSEARCH_HOME"/config/
         terminate-local-elasticsearch() {
-            pid=$(cat "$ELASTICSEARCH_HOME"/elasticsearch.pid 2>/dev/null)
-            [[ -z "$pid" ]] || kill -TERM $pid
+            local pidfile="$ELASTICSEARCH_HOME"/elasticsearch.pid
+            local pid=$(cat "$pidfile" 2>/dev/null)
+            # kill the elasticsearch process
+            [[ -z "$pid" ]] || kill -TERM $pid ||
+                # or just clean up the stale PID file if can't kill
+                rm -f "$ELASTICSEARCH_HOME"/elasticsearch.pid
         }
         # terminate if something's running locally but perhaps on a different port
         if [[ -e "$ELASTICSEARCH_HOME"/elasticsearch.pid ]]; then
