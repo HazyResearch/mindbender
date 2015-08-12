@@ -97,7 +97,7 @@
 
                             <footer>
                                 <!-- provenance hyperlink -->
-                                <a href="api/elasticsearch/{{hit._index}}/{{hit._type}}/{{hit._id}}"
+                                <a href="api/elasticsearch/{{hit._index | urlEncode}}/{{hit._type | urlEncode}}/{{hit._id | urlEncode}}"
                                     class="text-muted">[{{hit._index}}]/[{{hit._type}}]/[{{hit._id}}]</a>
                                 <!-- raw _source document data -->
                                 <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
