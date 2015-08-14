@@ -1,13 +1,14 @@
 articles(
   @key
   article_id text,
-  @searchable_text
+  @searchable
   text       text).
 
+@source
 sentences(
-  @references(relation="articles", column="article_id")
+  @XXXreferences(relation="articles", column="article_id")
   document_id     text,
-  @searchable_text
+  @searchable
   sentence        text,
   words           text[],
   lemma           text[],
@@ -19,36 +20,43 @@ sentences(
   @key
   sentence_id     text).
 
+@extraction
 people_mentions(
   @references(relation="sentences", column="sentence_id")
   sentence_id    text,
+  @highlight_start()
   start_position int,
+  @highlight_length()
   length         int,
-  @searchable_text
+  @searchable
   text           text,
   @key
   mention_id     text).
 
+@extraction
 has_spouse_candidates(
-  @references(relation="people_mentions", column="mention_id", group=1)
+  @references(relation="people_mentions", column="mention_id", alias="p1")
   person1_id  text,
-  @references(relation="people_mentions", column="mention_id", group=2)
+  @references(relation="people_mentions", column="mention_id", alias="p2")
   person2_id  text,
   @references(relation="sentences", column="sentence_id")
   sentence_id text,
-  @searchable_text
+  @searchable
   description text,
   @key
   relation_id text,
+  @navigable
   is_true boolean).
 
 has_spouse_features(
   @references(relation="has_spouse_candidates", column="relation_id")
   relation_id text,
+  @searchable
   feature     text).
 
 has_spouse?(
-  @key relation_id text
+  @references(relation="has_spouse_candidates", column="relation_id")
+  relation_id text
   ).
 
 people_mentions :-

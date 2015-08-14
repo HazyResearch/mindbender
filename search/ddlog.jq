@@ -35,12 +35,15 @@ def columns:
 def annotations(pred):
     if .annotations then .annotations[] | select(pred) else empty end
 ;
+def isAnnotated(withAnnotation):
+    [annotations(withAnnotation)] | length > 0
+;
 # e.g.: relations | annotated(.name == "textspan") | columns | annotated(.name == "key")
 def annotated(withAnnotation):
-    select([annotations(withAnnotation)] | length > 0)
+    select(isAnnotated(withAnnotation))
 ;
 def notAnnotated(withAnnotation):
-    select([annotations(withAnnotation)] | length == 0)
+    select(isAnnotated(withAnnotation) | not)
 ;
 def hasColumnsAnnotated(withAnnotation):
     select([columns | annotated(withAnnotation)] | length > 0)
@@ -61,13 +64,14 @@ def relationsReferencedByThisRelation:
     .name as $relationsReferencedByThisRelationName |
     [columns | annotated(.name == "references") |
             (annotations(.name == "references") | .args) + { byColumn: . }] |
-    group_by("\(.relation) \(.alias)") | map(
-            sort_by(.column) |
-            { relation: .[0].relation
-            , column: map(.column)
-            , byColumn: map(.byColumn)
-            , byRelation: $relationsReferencedByThisRelationName }
-        )
+    group_by("\(.relation) \(.alias)") |
+    map(sort_by(.column) |
+        { relation: .[0].relation
+        , column: map(.column)
+        , byColumn: map(.byColumn)
+        , alias: (.[0].alias // .[0].byColumn.name)
+        , byRelation: $relationsReferencedByThisRelationName }
+    )
 ;
 def relationsReferenced: relationsReferencedByThisRelation ; # XXX legacy
 def relationsReferencingThisRelation:
@@ -77,6 +81,127 @@ def relationsReferencingThisRelation:
         relationsReferencedByThisRelation[] |
         select(.relation == $relationsReferencingThisRelationName)
     ]
+;
+
+# SQL query for unloading a relation from PostgreSQL database with associated relations nested
+def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
+    # TODO detect cycles
+    # TODO limit nestingLevel
+    . as $this |
+    "\n\(indent)" as $indent |
+
+    # collect some info about this relation
+    { this: .
+    , references: [
+            relationsReferencedByThisRelation[] |
+            # don't nest @source relations
+            select(.relation | relationByName | isAnnotated(.name == "source") | not) |
+            select(.relation != parentRelation)
+        ]
+    , referencedBy: [
+            relationsReferencingThisRelation[] |
+            # don't nest other @extraction relations that references this
+            select(.byRelation | relationByName | isAnnotated(.name == "extraction") | not) |
+            select(.relation != parentRelation)
+        ]
+    } |
+
+    # decide which columns to export
+    .columns = [
+        .this | columns |
+        # TODO should we limit to @searchable/@navigable columns only?
+        .name
+    ]
+        # columns for referencing other relations should be dropped
+        - [.references[] | .byColumn[] | .name] |
+
+    # derive join conditions
+    (
+    .joinConditions = [(
+        .references[] |
+        . as $ref | range(.column | length) | . as $i | $ref |
+        # this relation
+        {  left: { alias: .byRelation, column: .byColumn[$i] | .name }
+        # relation referenced by this
+        , right: { alias:      .alias, column: .column[$i] }
+        }
+    ), (
+        .referencedBy[] |
+        . as $ref | range(.column | length) | . as $i | $ref |
+        # this relation
+        {  left: { alias:                  .relation, column: .column[$i] }
+        # relation referencing this
+        , right: { alias: "\(.byRelation)_\(.alias)", column: .byColumn[$i] | .name }
+        }
+    )]
+    )|
+
+    # produce SQL query
+    "SELECT \(
+        # columns on this relation
+        [ (.columns[] | "\($this.name).\(.)")
+        # nested rows of relations referenced by this relation
+        , (.references[] | .alias)
+        # nested arrays of rows of relations referencing this relation
+        , (.referencedBy[] | "\(.byRelation)_\(.alias).arr AS \(.byRelation)_\(.alias)")
+        ] |
+        join(
+    "\($indent)     , ")
+
+    )\($indent)  FROM \(
+        # this relation
+        [ { alias: ""
+          , expr: .this.name
+          }
+
+        # relations referenced by this relation
+        , (.references[] |
+          { alias: .alias
+          , expr: "(\(
+            .relation | relationByName |
+            sqlForRelationNestingAssociated(
+              "        " + indent; nestingLevel + 1; .byRelation)
+    )\($indent)       )"
+          })
+
+        # relations referencing this relation
+        , (.referencedBy[] |
+          { alias: "\(.byRelation)_\(.alias)"
+          , expr: "(SELECT \(
+            # TODO use the only column to create a flat array when R is a single column excluding all @references columns
+            [ "ARRAY_AGG(R) arr"
+            , (.byColumn[] | .name)
+            ] |
+            join(
+    "\($indent)             , ")
+    )\($indent)          FROM (\(
+            .byRelation | relationByName |
+            sqlForRelationNestingAssociated(
+                "                " + indent; nestingLevel + 1; .relation))) \("R"
+    )\($indent)         GROUP BY \(
+            [ .byColumn[] | .name
+            ] |
+            join(
+    "\($indent)                , ")
+    )\($indent)       )"
+          })
+        ] |
+        map("\(.expr) \(.alias)") |
+        join(
+    "\($indent)     , ")
+    
+    )\(
+        if .joinConditions | length == 0 then "" else "\(""
+    )\($indent) WHERE \(
+        .joinConditions |
+        map("\(.left.alias).\(.left.column) = \(.right.alias).\(.right.column)") |
+        join(
+    "\($indent)   AND ")
+        )" end
+    )"
+;
+def sqlForRelationNestingAssociated:
+    sqlForRelationNestingAssociated(""; 0; null)
 ;
 
 ## shorthand for SQL generation
