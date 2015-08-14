@@ -75,10 +75,11 @@ case $Action in
         # derive a schema for search frontend from DDlog
         need_tmpdir
         DDLOG_SEARCH_SCHEMA="$tmpdir"/search-frontend-schema.json
+        # TODO keep this in _meta for the index mappings during `mindbender-search update`
         jqSchema '
             [ relations | hasColumnsAnnotated(.name == "key") |
             { key: .name, value: {
-                columnsForSearch: [columns | annotated(.name == "searchable_text") | .name]
+                columnsForSearch: [columns | annotated(.name == "searchable") | .name]
             } } ] | from_entries
         ' >"$DDLOG_SEARCH_SCHEMA"
         export DDLOG_SEARCH_SCHEMA
@@ -91,7 +92,7 @@ case $Action in
         # use relations specified over command-line to filter target relations
         [[ $# -gt 0 ]] ||
             # default to all searchable entities discovered from DDlog
-            eval set -- $(jqSchema 'relations | hasColumnsAnnotated(.name == "key") | .name | @sh')
+            eval set -- $(jqSchema 'relations | annotated([.name] | inside(["source", "extraction"])) | .name | @sh')
         export DDLOG_RELATIONS_SELECTED=$(printf '%s\n' "$@" | jq -R -s -c 'split("\n")')
 
         # create ES indexes corresponding to each entity
@@ -101,11 +102,18 @@ case $Action in
 
         # set up parent-child mapping based on @references annotations
         # (See: https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child-mapping.html)
+        # TODO generate a full mapping with all properties
+        # TODO populate _meta with important info for the frontend
         jqSchema '
             [ relationsSelected | {
-                    key: .name,
-                    value: relationsReferenced | map(.relation)[0] |
-                        (if . then { _parent: { type: . } } else {} end)
+                key: .name,
+                value: (
+                    [
+                        relationsReferenced[] |
+                        select(.relation | relationByName | isAnnotated(.name == "source"))
+                    ][0].relation |
+                    if . then { _parent: { type: . } } else {} end
+                )
             } ] |
             { mappings: from_entries }
         ' |
@@ -146,16 +154,22 @@ case $Action in
             ;
 
             # find necessary info for relations
-            relationsSelected | select(keyColumns | length > 0) | {
+            relationsSelected |
+            # TODO move this out to a sanitization step for DDLOG_RELATIONS_SELECTED
+            annotated([.name] | inside(["source", "extraction"])) | {
                 relation: .,
                 columnsForKey: keyColumns | map(.name),
-                columnsForParent: relationsReferenced | map(.byColumn | map(.name))[0]
+                columnsForParent: [
+                        relationsReferenced[] |
+                        select(.relation | relationByName | isAnnotated(.name == "source"))
+                        .byColumn | map(.name)
+                    ][0]
             } |
 
             # generate shell commands that load data
             "update-relation \(
                 .relation.name | @sh) \(
-                .relation | sqlForRelation | @sh) \(
+                .relation | sqlForRelationNestingAssociated | @sh) \(
                 "# index action/metadata
                 {index:{
                     _id: \(.columnsForKey | jqExprForColumns)
