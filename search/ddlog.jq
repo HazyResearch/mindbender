@@ -21,6 +21,11 @@ def relationsSelected:
     relations | select($RelationsSelected == null or (.name | in($RelationsSelected)))
 ;
 
+def relationByName:
+    . as $relationName |
+    relations | select(.name == $relationName)
+;
+
 # columns of a relation
 def columns:
     .columns | to_entries | map(.value.name = .key | .value) | .[]
@@ -33,6 +38,9 @@ def annotations(pred):
 # e.g.: relations | annotated(.name == "textspan") | columns | annotated(.name == "key")
 def annotated(withAnnotation):
     select([annotations(withAnnotation)] | length > 0)
+;
+def notAnnotated(withAnnotation):
+    select([annotations(withAnnotation)] | length == 0)
 ;
 def hasColumnsAnnotated(withAnnotation):
     select([columns | annotated(withAnnotation)] | length > 0)
@@ -48,14 +56,27 @@ def keyColumn:
 
 # columns that @references to other relations
 # It's a little complicated to support relations with multiple keys.
-# columns with @references to the same relation="R", but possibly with different group=1,2,3...
-def relationsReferenced:
+# columns with @references to the same relation="R", but possibly with different alias=1,2,3...
+def relationsReferencedByThisRelation:
+    .name as $relationsReferencedByThisRelationName |
     [columns | annotated(.name == "references") |
             (annotations(.name == "references") | .args) + { byColumn: . }] |
-    group_by("\(.relation) \(.group)") | map(
+    group_by("\(.relation) \(.alias)") | map(
             sort_by(.column) |
-            { relation: .[0].relation, column: map(.column), byColumn: map(.byColumn) }
+            { relation: .[0].relation
+            , column: map(.column)
+            , byColumn: map(.byColumn)
+            , byRelation: $relationsReferencedByThisRelationName }
         )
+;
+def relationsReferenced: relationsReferencedByThisRelation ; # XXX legacy
+def relationsReferencingThisRelation:
+    .name as $relationsReferencingThisRelationName |
+    [
+        relations |
+        relationsReferencedByThisRelation[] |
+        select(.relation == $relationsReferencingThisRelationName)
+    ]
 ;
 
 ## shorthand for SQL generation
