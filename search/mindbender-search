@@ -89,16 +89,36 @@ case $Action in
         ;;
 
     update)
+        need_tmpdir
         # use relations specified over command-line to filter target relations
-        [[ $# -gt 0 ]] ||
+        export DDLOG_RELATIONS_SELECTED
+        if [[ $# -eq 0 ]]; then
             # default to all searchable entities discovered from DDlog
-            eval set -- $(jqSchema 'relations | annotated([.name] | inside(["source", "extraction"])) | .name | @sh')
-        export DDLOG_RELATIONS_SELECTED=$(printf '%s\n' "$@" | jq -R -s -c 'split("\n")')
-
-        # create ES indexes corresponding to each entity
-        for relation; do
-            echo >&2 "Will index relation $relation"
-        done
+            eval set -- $(jqSchema 'relations | .name | @sh')
+        else
+            # check errors in given names of relations
+            DDLOG_RELATIONS_SELECTED=$(
+                printf '%s\n' "$@" | jq -R -s -c 'rtrimstr("\n") | split("\n")')
+            badNames=$(jqSchema '
+                env.DDLOG_RELATIONS_SELECTED | fromjson[] |
+                select(
+                    ([relationByName] | length == 0) or
+                    (relationByName | isAnnotated([.name] | inside(["source", "extraction"])) | not)
+                )
+            ' -r)
+            [[ -z "$badNames" ]] ||
+                error "$badNames: must be a @source or @extraction relation"
+        fi
+        # filter down to only @source and @extraction relations
+        DDLOG_RELATIONS_SELECTED=$(jqSchema '[
+            relationsSelected |
+            annotated([.name] | inside(["source", "extraction"])) |
+            .name
+        ]' -c)
+        [[ "$DDLOG_RELATIONS_SELECTED" != "[]" ]] ||
+            error "No @source or @extraction relations found"
+        # show which ones will be indexed first
+        jqSchema 'relationsSelected | "Will index relation \(.name)"' >&2
 
         # set up parent-child mapping based on @references annotations
         # (See: https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child-mapping.html)
@@ -154,9 +174,7 @@ case $Action in
             ;
 
             # find necessary info for relations
-            relationsSelected |
-            # TODO move this out to a sanitization step for DDLOG_RELATIONS_SELECTED
-            annotated([.name] | inside(["source", "extraction"])) | {
+            relationsSelected | {
                 relation: .,
                 columnsForKey: keyColumns | map(.name),
                 columnsForParent: [
