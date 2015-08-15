@@ -257,9 +257,17 @@ def elasticsearchMappingsForRelations:
 def mindbenderSearchFrontendSchemaForRelations:
     [ relations | annotated([.name] | inside(["source", "extraction"])) |
     { key: .name, value: {
+              kind: (if isAnnotated(.name == "source") then "source" else "extraction" end),
         # TODO add paths for nested fields
         searchable: [columns | annotated(.name == "searchable") | .name],
-         navigable: [columns | annotated(.name ==  "navigable") | .name]
+         navigable: [columns | annotated(.name ==  "navigable") | .name],
         # TODO presentation fields
+            source: [
+                relationsReferenced[] |
+                select(.relation | relationByName | isAnnotated(.name == "source")) |
+                { type: .relation
+                , fields: (.byColumn | map(.name))
+                , alias: .alias
+                }][0]
     } } ] | from_entries
 ;

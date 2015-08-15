@@ -18,7 +18,7 @@
                     <ul class="dropdown-menu">
                         <li><a ng-click="search.params.t = null; search.doSearch()">All</a></li>
                         <li role="separator" class="divider"></li>
-                        <li ng-repeat="ty in search.types"><a ng-click="search.params.t = ty; search.doSearch()">{{ty}}</a></li>
+                        <li ng-repeat="(ty, s) in search.types"><a ng-click="search.params.t = ty; search.doSearch()">{{ty}}</a></li>
                     </ul>
                 </div>
                 <!-- search box -->
@@ -114,26 +114,21 @@
 
                         <!-- highlights, visualization -->
                         <blockquote>
+                            <!-- highlight to hint why this is a result -->
                             <dl ng-if=" hit.highlight">
-                                <dt ng-repeat-start="(field, highlight) in hit.highlight">{{field}}</dt>
+                                <dt ng-repeat-start="(field, highlight) in hit.highlight"
+                                    ><span class="text-muted">{{field}}</span></dt>
                                 <dd ng-repeat-end>
                                     <span ng-repeat="h in highlight" ng-bind-html="h"></span>
                                 </dd>
                             </dl>
-                            <span ng-if="!hit.highlight">
-                                <dl ng-if=" search.fieldsSearchable">
-                                    <dt ng-repeat-start="field in search.fieldsSearchable" ng-if="hit._source[field] != null">{{field}}</dt>
-                                    <dd ng-repeat-end ng-if="hit._source[field] != null">
-                                        <!-- TODO field may be paths with dots -->
-                                        <span>{{hit._source[field]}}</span>
-                                    </dd>
-                                </dl>
-                                <span ng-if="!search.fieldsSearchable">{{hit._source | json | limitTo:500}}</span>
-                            </span>
 
-                            <!-- TODO use more sophisticated per-type presentation templates -->
+                            <!-- use more sophisticated per-type presentation templates -->
+                            <p visualized-search-result="hit"
+                                  result="hit._source"        result-type="hit._type"
+                                  source="hit.parent._source" source-type="hit.parent._type"></p>
 
-                            <!-- raw _source document data -->
+                            <!-- raw data -->
                             <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
                             <div ng-if="showJsonTree">
                                 <json-tree json="hit" edit-level="readonly" collapsed-level="2"></json-tree>

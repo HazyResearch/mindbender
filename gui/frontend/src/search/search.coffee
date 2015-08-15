@@ -33,7 +33,7 @@ angular.module "mindbenderApp.search", [
         redirectTo: "/search/"
 
 .controller "SearchCtrl", ($scope, $location, $routeParams, elasticsearch, $http, $interpolate, $modal) ->
-    RENDER_SOURCE_JSON = $interpolate "{{_source | json | limitTo:500}}"
+    MULTIKEY_SEPARATOR = "@"
     class Navigator
         constructor: (@elasticsearchIndexName = "_all", @$scope) ->
             @query = @results = null
@@ -45,22 +45,22 @@ angular.module "mindbenderApp.search", [
             @params = _.extend {}, @paramsDefault
             do @importParams
 
+            # load the search schema
+            @types = null
             $http.get "/api/search/schema.json"
                 .success (data) =>
-                    @schema = data
+                    @types = data
                     # TODO initial @doSearch should wait for both elasticsearch.indices.get and this
                     @doSearch yes
-                .error (err) ->
+                .error (err) =>
                     console.trace err
 
             # find out what types are in the index
-            @types = null
             @indices = null
             elasticsearch.indices.get
                 index: @elasticsearchIndexName
             .then (data) =>
                 @indices = data
-                @types = _.union (_.keys mappings for idx,{mappings} of @indices)...
                 # refresh results since we now have more info
                 @doSearch yes
             , (err) =>
@@ -118,6 +118,7 @@ angular.module "mindbenderApp.search", [
                 @queryRunning = null
                 @fieldsSearchable = fieldsSearchable
                 do @reflectParams
+                do @doFetchResultSources
             elasticsearch.search @queryRunning
             .then (data) =>
                 @error = null
@@ -128,6 +129,27 @@ angular.module "mindbenderApp.search", [
                 console.trace err.message
                 @results = null
                 do postProcessSearchResults
+
+        doFetchResultSources: =>
+            # TODO cache sources and invalidate upon ever non-continuing search?
+            # find out what source docs we need fetch for current search results
+            docs = []; hitsByDocsOrder = []
+            for hit in @results.hits.hits when @types?[hit._type]?.source
+                parentRef = @types[hit._type].source
+                hitsByDocsOrder.push hit
+                docs.push
+                    _index: hit._index
+                    _type: parentRef.type
+                    _id: (hit._source[f] for f in parentRef.fields).join MULTIKEY_SEPARATOR
+            return unless docs.length > 0
+            # fetch sources
+            elasticsearch.mget { body: { docs } }
+            .then (data) =>
+                # update the source (parent) for every hits
+                for doc,i in data.docs
+                    hitsByDocsOrder[i].parent = doc
+            , (err) =>
+                console.trace err.message
 
         doNavigate: (field, value) =>
             qExtra =
@@ -151,9 +173,9 @@ angular.module "mindbenderApp.search", [
             else
                 # get all fields for something for the type or all types
                 if type?
-                    @schema?[type]?[what] ? []
+                    @types?[type]?[what] ? []
                 else
-                    _.union (s[what] for t,s of @schema)...
+                    _.union (s[what] for t,s of @types)...
 
         getFieldType: (path) =>
             for idxName,{mappings} of @indices ? {}
@@ -204,3 +226,24 @@ angular.module "mindbenderApp.search", [
             scope: $scope
         }, options
 
+.service "mbSearch", ->
+    # TODO migrate Navigator instance into a service so other directives can use it
+    null
+
+.directive "visualizedSearchResult", (mbSearch) ->
+    scope:
+        visualizedSearchResult: "="
+        result: "="
+        resultType: "="
+        source: "="
+        sourceType: "="
+    template: """
+        <!-- TODO include per-type template -->
+        <span ng-if="source">
+            {{sourceType}}
+            {{source | json | limitTo:500}}
+        </span>
+        <span ng-if="!source">
+            {{result | json | limitTo:500}}
+        </span>
+        """
