@@ -41,13 +41,17 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-xs-2 affix sidebar">
-            <!-- TODO faceted search (aggregations) -->
+            <!-- faceted search with aggregations -->
             <div ng-repeat="(field, agg) in search.results.aggregations">
                 <h4>{{field}}</h4>
                 <table>
                     <tr ng-repeat="bucket in agg.buckets track by $index">
-                        <td class="text-right"><span class="badge badge-default">{{bucket.doc_count}}</span></td>
                         <td><button class="btn btn-default btn-xs" ng-click="search.doNavigate(field, bucket.key)">{{bucket.key}}</button></td>
+                        <td class="text-right"><span class="badge badge-default">{{bucket.doc_count}}</span></td>
+                    </tr>
+                    <tr ng-if="agg.sum_other_doc_count">
+                        <td>...</td>
+                        <td class="text-right"><span class="badge badge-default">{{agg.sum_other_doc_count}}</span></td>
                     </tr>
                 </table>
             </div>
