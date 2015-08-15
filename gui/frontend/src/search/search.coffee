@@ -69,7 +69,16 @@ angular.module "mindbenderApp.search", [
 
         doSearch: (isContinuing = no) =>
             @params.p = 1 unless isContinuing
-            fields = @getSearchableFields @params.t
+            fieldsSearchable = @getSearchableFields @params.t
+            aggs = {}
+            for navigable in fieldsSearchable # TODO fieldsNavigable for type,{navigable} of @schema
+                aggs[navigable] =
+                    # TODO when text
+                    #significant_terms: navigable
+                    # TODO when numeric
+                    # TODO when other type
+                    significant_terms:
+                        field: navigable
             @error = null
             @queryRunning =
                 index: @elasticsearchIndexName
@@ -84,12 +93,14 @@ angular.module "mindbenderApp.search", [
                             query: @params.q
                     # TODO support filters
                     # TODO support aggs
+                    aggs: aggs
                     highlight:
                         tags_schema: "styled"
-                        fields: _.object ([f,{}] for f in fields)
+                        fields: _.object ([f,{}] for f in fieldsSearchable)
             postProcessSearchResults = =>
                 @query = @queryRunning
                 @queryRunning = null
+                @fieldsSearchable = fieldsSearchable
                 do @reflectParams
             elasticsearch.search @queryRunning
             .then (data) =>
@@ -101,6 +112,16 @@ angular.module "mindbenderApp.search", [
                 console.trace err.message
                 @results = null
                 do postProcessSearchResults
+
+        doNavigate: (field, value) =>
+            qExtra =
+                if false # TODO if field is non-text type
+                    "#{field}:#{value}"
+                else
+                    value
+            # TODO check if qExtra is already there
+            @params.q += " #{qExtra}"
+            @doSearch no
 
         getSearchableFields: (type = @params.t) =>
             # get all searchable fields based on @params.t

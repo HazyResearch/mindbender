@@ -40,8 +40,18 @@
 <!-- Search results -->
 <div class="container-fluid">
     <div class="row">
-        <div class="col-xs-2 sidebar">
+        <div class="col-xs-2 affix sidebar">
             <!-- TODO faceted search (aggregations) -->
+            <div ng-repeat="(field, agg) in search.results.aggregations">
+                <h4>{{field}}</h4>
+                <table>
+                    <tr ng-repeat="bucket in agg.buckets track by $index">
+                        <td class="text-right"><span class="badge badge-default">{{bucket.doc_count}}</span></td>
+                        <td><button class="btn btn-default btn-xs" ng-click="search.doNavigate(field, bucket.key)">{{bucket.key}}</button></td>
+                    </tr>
+                </table>
+            </div>
+
         </div>
         <div class="col-xs-10 col-xs-offset-2 main">
             <div class="pull-right">
@@ -95,18 +105,27 @@
                         <p>
                             <!-- TODO routing param -->
                             <a href="api/elasticsearch/{{hit._index | urlEncode}}/{{hit._type | urlEncode}}/{{hit._id | urlEncode}}"
-                                class="text-muted">[{{hit._index}}]/[{{hit._type}}]/[{{hit._id}}]</a>
+                               class="text-muted">{{hit._type}}( {{hit._id}} ) in {{hit._index}}</a>
                         </p>
 
                         <!-- highlights, visualization -->
                         <blockquote>
-                            <dl ng-if="hit.highlight">
+                            <dl ng-if=" hit.highlight">
                                 <dt ng-repeat-start="(field, highlight) in hit.highlight">{{field}}</dt>
                                 <dd ng-repeat-end>
                                     <span ng-repeat="h in highlight" ng-bind-html="h"></span>
                                 </dd>
                             </dl>
-                            <span ng-if="!hit.highlight">{{hit._source | json | limitTo:500}}</span>
+                            <span ng-if="!hit.highlight">
+                                <dl ng-if=" search.fieldsSearchable">
+                                    <dt ng-repeat-start="field in search.fieldsSearchable" ng-if="hit._source[field] != null">{{field}}</dt>
+                                    <dd ng-repeat-end ng-if="hit._source[field] != null">
+                                        <!-- TODO field may be paths with dots -->
+                                        <span>{{hit._source[field]}}</span>
+                                    </dd>
+                                </dl>
+                                <span ng-if="!search.fieldsSearchable">{{hit._source | json | limitTo:500}}</span>
+                            </span>
 
                             <!-- TODO use more sophisticated per-type presentation templates -->
 
@@ -143,6 +162,12 @@
     </div>
 </div>
 <style>
+.sidebar {
+    top: 70px;
+    bottom: 90px;
+    overflow-y: auto; 
+}
+
 .hit blockquote .hlt1 { background-color: #ffc; }
 .hit blockquote .hlt2 { background-color: #cff; }
 .hit blockquote .hlt3 { background-color: #fcf; }
