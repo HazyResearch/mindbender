@@ -75,13 +75,7 @@ case $Action in
         # derive a schema for search frontend from DDlog
         need_tmpdir
         DDLOG_SEARCH_SCHEMA="$tmpdir"/search-frontend-schema.json
-        # TODO keep this in _meta for the index mappings during `mindbender-search update`
-        jqSchema '
-            [ relations | hasColumnsAnnotated(.name == "key") |
-            { key: .name, value: {
-                columnsForSearch: [columns | annotated(.name == "searchable") | .name]
-            } } ] | from_entries
-        ' >"$DDLOG_SEARCH_SCHEMA"
+        jqSchema '[relations] | mindbenderSearchFrontendSchemaForRelations' >"$DDLOG_SEARCH_SCHEMA"
         export DDLOG_SEARCH_SCHEMA
 
         # launch the GUI
@@ -122,21 +116,7 @@ case $Action in
 
         # set up parent-child mapping based on @references annotations
         # (See: https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child-mapping.html)
-        # TODO generate a full mapping with all properties
-        # TODO populate _meta with important info for the frontend
-        jqSchema '
-            [ relationsSelected | {
-                key: .name,
-                value: (
-                    [
-                        relationsReferenced[] |
-                        select(.relation | relationByName | isAnnotated(.name == "source"))
-                    ][0].relation |
-                    if . then { _parent: { type: . } } else {} end
-                )
-            } ] |
-            { mappings: from_entries }
-        ' |
+        jqSchema '([ relationsSelected ] | elasticsearchMappingsForRelations)' |
         esAPIx PUT "/" --data-binary @- >/dev/null || true
 
         # bulk load to ES from DeepDive database

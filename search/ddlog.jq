@@ -234,5 +234,31 @@ def jqForBulkLoadingRelationIntoElasticsearch:
         )" end)
     }},
     . # followed by the actual document to index
+    # TODO remove redundant @references columns
     "
+;
+
+## Search frontend and Elasticsearch helpers
+def elasticsearchMappingsForRelations:
+    map({
+        key: .name,
+        value: (
+            # TODO generate a full mapping with all properties
+            [
+                relationsReferenced[] |
+                select(.relation | relationByName | isAnnotated(.name == "source"))
+            ][0].relation |
+            if . then { _parent: { type: . } } else {} end
+        )
+    }) |
+    { mappings: from_entries }
+;
+
+def mindbenderSearchFrontendSchemaForRelations:
+    [ relations | hasColumnsAnnotated(.name == "key") |
+    { key: .name, value: {
+        columnsForSearch: [columns | annotated(.name == "searchable") | .name]
+        # TODO navigable fields
+        # TODO highlight field
+    } } ] | from_entries
 ;
