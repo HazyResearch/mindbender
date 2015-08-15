@@ -90,15 +90,6 @@ angular.module "mindbenderApp.search", [
             postProcessSearchResults = =>
                 @query = @queryRunning
                 @queryRunning = null
-                @render = (hit) ->
-                    # try highlight
-                    for fld in fields when hit.highlight?[fld]?
-                        return hit.highlight[fld].join " ... "
-                    # then _source
-                    for fld in fields when hit._source?[fld]?
-                        return hit._source?[fld]
-                    # fallback
-                    RENDER_SOURCE_JSON hit
                 do @reflectParams
             elasticsearch.search @queryRunning
             .then (data) =>

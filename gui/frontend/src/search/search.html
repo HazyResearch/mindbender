@@ -91,20 +91,30 @@
                 <!-- individual search results -->
                 <ol start="{{search.query.body.from + 1}}">
                     <li ng-repeat="hit in search.results.hits.hits track by $index" class="hit">
-                        <blockquote>
-                            <!-- TODO use more sophisticated per-type presentation templates -->
-                            <span ng-bind-html="search.render(hit)"></span>
+                        <!-- provenance hyperlink -->
+                        <p>
+                            <!-- TODO routing param -->
+                            <a href="api/elasticsearch/{{hit._index | urlEncode}}/{{hit._type | urlEncode}}/{{hit._id | urlEncode}}"
+                                class="text-muted">[{{hit._index}}]/[{{hit._type}}]/[{{hit._id}}]</a>
+                        </p>
 
-                            <footer>
-                                <!-- provenance hyperlink -->
-                                <a href="api/elasticsearch/{{hit._index | urlEncode}}/{{hit._type | urlEncode}}/{{hit._id | urlEncode}}"
-                                    class="text-muted">[{{hit._index}}]/[{{hit._type}}]/[{{hit._id}}]</a>
-                                <!-- raw _source document data -->
-                                <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
-                                <div ng-if="showJsonTree">
-                                    <json-tree json="hit" edit-level="readonly" collapsed-level="2"></json-tree>
-                                </div>
-                            </footer>
+                        <!-- highlights, visualization -->
+                        <blockquote>
+                            <dl ng-if="hit.highlight">
+                                <dt ng-repeat-start="(field, highlight) in hit.highlight">{{field}}</dt>
+                                <dd ng-repeat-end>
+                                    <span ng-repeat="h in highlight" ng-bind-html="h"></span>
+                                </dd>
+                            </dl>
+                            <span ng-if="!hit.highlight">{{hit._source | json | limitTo:500}}</span>
+
+                            <!-- TODO use more sophisticated per-type presentation templates -->
+
+                            <!-- raw _source document data -->
+                            <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
+                            <div ng-if="showJsonTree">
+                                <json-tree json="hit" edit-level="readonly" collapsed-level="2"></json-tree>
+                            </div>
                         </blockquote>
                     </li>
                 </ol>
@@ -139,7 +149,11 @@
 .hit blockquote .hlt4 { background-color: #ccf; }
 .hit blockquote .hlt5 { background-color: #cfc; }
 .hit blockquote .hlt6 { background-color: #fcc; }
-.hit blockquote footer { margin-top: 0.5em; }
+
+[ng-hide=showJsonTree] {
+    font-size: 13px;
+    font-family: monospace;
+}
 </style>
 
 
