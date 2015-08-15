@@ -208,3 +208,31 @@ def sqlForRelationNestingAssociated:
 def sqlForRelation:
     "SELECT \(.columns | keys | join(", ")) FROM \(.name)"
 ;
+
+## jq query generation
+# helper function for jq codegen
+def jqExprForColumns:
+    if length == 1 then # use the column (single column)
+        ".\(.[0])"
+    else # or join column values with at-sign if there are more than one
+        "\"\(map("\\(.\(.))") | join("@"))\""
+    end
+;
+# jq code for turning json lines unloaded from database into Elasticsearch's _bulk API payload
+def jqForBulkLoadingRelationIntoElasticsearch:
+    "# index action/metadata
+    {index:{
+        _id: \(keyColumns | map(.name) | jqExprForColumns)
+        \(if .columnsForParent == null then "" else
+     ", parent: \(
+            # taking the first group of columns referencing a @source relation
+            [ relationsReferenced[] |
+              select(.relation | relationByName | isAnnotated(.name == "source"))
+              .byColumn | map(.name)
+            ][0] |
+            jqExprForColumns
+        )" end)
+    }},
+    . # followed by the actual document to index
+    "
+;
