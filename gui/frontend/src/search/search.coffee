@@ -48,17 +48,23 @@ angular.module "mindbenderApp.search", [
             $http.get "/api/search/schema.json"
                 .success (data) =>
                     @schema = data
+                    # TODO initial @doSearch should wait for both elasticsearch.indices.get and this
                     @doSearch yes
                 .error (err) ->
                     console.trace err
 
             # find out what types are in the index
             @types = null
+            @indices = null
             elasticsearch.indices.get
                 index: @elasticsearchIndexName
             .then (data) =>
-                @types = _.union (_.keys mappings for idx,{mappings} of data)...
+                @indices = data
+                @types = _.union (_.keys mappings for idx,{mappings} of @indices)...
+                # refresh results since we now have more info
+                @doSearch yes
             , (err) =>
+                @indices = null
                 @error = err
                 console.trace err.message
 
@@ -69,16 +75,27 @@ angular.module "mindbenderApp.search", [
 
         doSearch: (isContinuing = no) =>
             @params.p = 1 unless isContinuing
-            fieldsSearchable = @getSearchableFields @params.t
+            fieldsSearchable = @getFieldsFor "searchable", @params.t
+            # forumate aggregations
             aggs = {}
-            for navigable in fieldsSearchable # TODO fieldsNavigable for type,{navigable} of @schema
-                aggs[navigable] =
-                    # TODO when text
-                    #significant_terms: navigable
-                    # TODO when numeric
-                    # TODO when other type
-                    significant_terms:
-                        field: navigable
+            if @indices?
+                for navigable in @getFieldsFor ["navigable", "searchable"], @params.t
+                    aggs[navigable] =
+                        switch @getFieldType navigable
+                            when "boolean"
+                                terms:
+                                    field: navigable
+                            when "string"
+                                significant_terms:
+                                    field: navigable
+                            when "long"
+                                # TODO range? with automatic rnages
+                                # TODO extended_stats?
+                                stats:
+                                    field: navigable
+                            else # TODO any better default for unknown types?
+                                terms:
+                                    field: navigable
             @error = null
             @queryRunning =
                 index: @elasticsearchIndexName
@@ -92,7 +109,6 @@ angular.module "mindbenderApp.search", [
                             default_operator: "AND"
                             query: @params.q
                     # TODO support filters
-                    # TODO support aggs
                     aggs: aggs
                     highlight:
                         tags_schema: "styled"
@@ -115,20 +131,58 @@ angular.module "mindbenderApp.search", [
 
         doNavigate: (field, value) =>
             qExtra =
-                if false # TODO if field is non-text type
-                    "#{field}:#{value}"
-                else
-                    value
+                switch @getFieldType field
+                    when "string"
+                        # just add extra keyword to the search
+                        value
+                    else # use field-specific search for non-text types
+                        if value?
+                            "#{field}:#{value}"
+                        else # filtering down null has a special query_string syntax
+                            "_missing_:#{field}"
             # TODO check if qExtra is already there
             @params.q += " #{qExtra}"
             @doSearch no
 
-        getSearchableFields: (type = @params.t) =>
-            # get all searchable fields based on @params.t
-            if type?
-                @schema?[type]?.columnsForSearch ? []
+        getFieldsFor: (what, type = @params.t) =>
+            if what instanceof Array
+                # union if multiple purposes
+                _.union (@getFieldsFor w, type for w in what)...
             else
-                _.union (columnsForSearch for t,{columnsForSearch} of @schema)...
+                # get all fields for something for the type or all types
+                if type?
+                    @schema?[type]?[what] ? []
+                else
+                    _.union (s[what] for t,s of @schema)...
+
+        getFieldType: (path) =>
+            for idxName,{mappings} of @indices ? {}
+                for typeName,mapping of mappings
+                    # traverse down the path
+                    pathSoFar = ""
+                    for field in path.split "."
+                        if pathSoFar?
+                            pathSoFar += ".#{field}"
+                        else
+                            pathSoFar = field
+                        if mapping.properties?[field]?
+                            mapping = mapping.properties[field]
+                        else
+                            #console.debug "#{pathSoFar} not defined in mappings for [#{idxName}]/[#{typeName}]"
+                            mapping = null
+                            break
+                    continue unless mapping?.type?
+                    return mapping.type
+            console.error "#{path} not defined in any mappings"
+            null
+
+        countTotalDocCountOfBuckets: (aggs) ->
+            return aggs._total_doc_count if aggs?._total_doc_count? # try to hit cache
+            total = 0
+            if aggs?.buckets?
+                total += bucket.doc_count for bucket in aggs.buckets
+                aggs._total_doc_count = total # cache sum
+            total
 
         importParams: =>
             search = $location.search()

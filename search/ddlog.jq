@@ -255,10 +255,11 @@ def elasticsearchMappingsForRelations:
 ;
 
 def mindbenderSearchFrontendSchemaForRelations:
-    [ relations | hasColumnsAnnotated(.name == "key") |
+    [ relations | annotated([.name] | inside(["source", "extraction"])) |
     { key: .name, value: {
-        columnsForSearch: [columns | annotated(.name == "searchable") | .name]
-        # TODO navigable fields
-        # TODO highlight field
+        # TODO add paths for nested fields
+        searchable: [columns | annotated(.name == "searchable") | .name],
+         navigable: [columns | annotated(.name ==  "navigable") | .name]
+        # TODO presentation fields
     } } ] | from_entries
 ;

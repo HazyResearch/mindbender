@@ -44,14 +44,14 @@
             <!-- faceted search with aggregations -->
             <div ng-repeat="(field, agg) in search.results.aggregations">
                 <h4>{{field}}</h4>
-                <table>
+                <table ng-init="fieldType = search.getFieldType(field)">
                     <tr ng-repeat="bucket in agg.buckets track by $index">
                         <td><button class="btn btn-default btn-xs" ng-click="search.doNavigate(field, bucket.key)">{{bucket.key}}</button></td>
                         <td class="text-right"><span class="badge badge-default">{{bucket.doc_count}}</span></td>
                     </tr>
-                    <tr ng-if="agg.sum_other_doc_count">
-                        <td>...</td>
-                        <td class="text-right"><span class="badge badge-default">{{agg.sum_other_doc_count}}</span></td>
+                    <tr ng-if="fieldType != 'string' && search.results.hits.total > search.countTotalDocCountOfBuckets(agg)">
+                        <td><button class="btn btn-default btn-xs" ng-click="search.doNavigate(field, null)"><em>null</em></button></td>
+                        <td class="text-right"><span class="badge badge-default">{{search.results.hits.total - search.countTotalDocCountOfBuckets(agg)}}</span></td>
                     </tr>
                 </table>
             </div>
