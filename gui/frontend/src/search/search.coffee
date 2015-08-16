@@ -38,7 +38,7 @@ angular.module "mindbenderApp.search", [
     $scope.$on "$routeUpdate", =>
         deepdiveSearch.doSearch yes if deepdiveSearch.importParams $location.search()
 
-    $scope.$watch (-> JSON.stringify deepdiveSearch.params), ->
+    $scope.$watch (-> deepdiveSearch.query), ->
         # reflect search parameters to the location on the URL
         search = $location.search()
         $location.search k, v for k, v of deepdiveSearch.params when search.k isnt v
@@ -245,13 +245,4 @@ angular.module "mindbenderApp.search", [
         resultType: "="
         source: "="
         sourceType: "="
-    template: """
-        <!-- TODO include per-type template -->
-        <span ng-if="source">
-            {{sourceType}}
-            {{source | json | limitTo:500}}
-        </span>
-        <span ng-if="!source">
-            {{result | json | limitTo:500}}
-        </span>
-        """
+    template: """<span ng-include="'search/template/' + resultType + '.html'"></span>"""

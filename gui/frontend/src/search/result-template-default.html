@@ -1,0 +1,7 @@
+<span ng-if="source">
+    {{sourceType}}
+    {{source | json | limitTo:500}}
+</span>
+<span ng-if="!source">
+    {{result | json | limitTo:500}}
+</span>

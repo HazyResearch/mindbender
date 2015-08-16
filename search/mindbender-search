@@ -22,6 +22,7 @@ set -eu
 
 # needs to work on a DeepDive app
 DEEPDIVE_APP=$(find-deepdive-app)
+export DEEPDIVE_APP
 cd "$DEEPDIVE_APP"
 
 # use the DeepDive app's folder name for the ES index name

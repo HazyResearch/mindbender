@@ -5,6 +5,7 @@
 fs = require "fs"
 util = require "util"
 _ = require "underscore"
+express = require "express"
 
 # Install Search API handlers to the given ExpressJS app
 exports.configureApp = (app, args) ->
@@ -52,4 +53,10 @@ exports.configureRoutes = (app, args) ->
             catch err then console.error "Error while loading DDLOG_SEARCH_SCHEMA (#{DDLOG_SEARCH_SCHEMA}): #{err}"
     app.get "/api/search/schema.json", (req, res) ->
         res.json searchSchema
+
+    # expose custom search result templates to frontend
+    app.use "/search/template", express.static "#{process.env.DEEPDIVE_APP}/search/template"
+    # fallback to default template
+    app.get "/search/template/*.html", (req, res) ->
+        res.redirect "/search/result-template-default.html"
 
