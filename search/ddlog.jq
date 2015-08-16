@@ -220,22 +220,22 @@ def jqExprForColumns:
 ;
 # jq code for turning json lines unloaded from database into Elasticsearch's _bulk API payload
 def jqForBulkLoadingRelationIntoElasticsearch:
-    "# index action/metadata
-    {index:{
-        _id: \(keyColumns | map(.name) | jqExprForColumns)
-        \(if .columnsForParent == null then "" else
-     ", parent: \(
-            # taking the first group of columns referencing a @source relation
-            [ relationsReferenced[] |
-              select(.relation | relationByName | isAnnotated(.name == "source"))
-              .byColumn | map(.name)
-            ][0] |
-            jqExprForColumns
-        )" end)
-    }},
-    . # followed by the actual document to index
-    # TODO remove redundant @references columns
+    (
+        # taking the first group of columns referencing a @source relation
+        [ relationsReferenced[] |
+          select(.relation | relationByName | isAnnotated(.name == "source"))
+          .byColumn | map(.name)
+        ][0]
+    ) as $columnsForParent |
     "
+    # index action/metadata
+    {index:{ _id: \(keyColumns | map(.name) | jqExprForColumns)\(
+          if $columnsForParent == null then "" else
+      ", _parent: \($columnsForParent | jqExprForColumns
+       )" end) }},
+    # followed by the actual document to index
+    .
+    " # TODO remove redundant @references columns
 ;
 
 ## Search frontend and Elasticsearch helpers

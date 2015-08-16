@@ -19,6 +19,7 @@
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2015-07-31
 set -eu
+set -o pipefail
 
 # needs to work on a DeepDive app
 DEEPDIVE_APP=$(find-deepdive-app)
@@ -139,10 +140,11 @@ case $Action in
                 # send them to elasticsearch
                 curl -fs -XPUT "$indexURL/_bulk" --data-binary @- |
                 # discard all result but the error field
-                jq ".error"
+                jq ".errors"
                 ' -- "$jqToFormat" "$ELASTICSEARCH_BASEURL/$ELASTICSEARCH_INDEX_NAME/$relation")" |
             # make sure there wasn't any error
-            jq -e -s "any | not" >/dev/null
+            jq -e -s "any | not" >/dev/null ||
+                error "Error loading relation $relation"
         }
         eval "$(jqSchema '
             # generate shell commands that index every selected relations
