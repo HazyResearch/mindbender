@@ -121,9 +121,9 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
         .references[] |
         . as $ref | range(.column | length) | . as $i | $ref |
         # this relation
-        {  left: { alias: .byRelation, column: .byColumn[$i] | .name }
+        {  left: { alias:   .byRelation, column: .byColumn[$i] | .name }
         # relation referenced by this
-        , right: { alias:      .alias, column: .column[$i] }
+        , right: { alias: "__\(.alias)", column: .column[$i] }
         }
     ), (
         .referencedBy[] |
@@ -143,7 +143,7 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
         # variable relations have an extra expectation column
         , (if .this.variable_type then "\($this.name).expectation" else empty end)
         # nested rows of relations referenced by this relation
-        , (.references[] | .alias)
+        , (.references[] | "__\(.alias) AS \(.alias)")
         # nested arrays of rows of relations referencing this relation
         , (.referencedBy[] | "\(.byRelation)_\(.alias).arr AS \(.byRelation)_\(.alias)")
         ] |
@@ -183,7 +183,7 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
 
         # relations referenced by this relation
         , (.references[] |
-          { alias: .alias
+          { alias: "__\(.alias)"
           , expr: "(\(
             .relation | relationByName |
             sqlForRelationNestingAssociated(
