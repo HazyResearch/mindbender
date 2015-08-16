@@ -264,15 +264,16 @@ angular.module "mindbenderApp.search", [
 
         doNavigate: (field, value) =>
             qExtra =
-                switch @getFieldType field
-                    when "string"
+                if value?
+                    if field in @getFieldsFor "navigable"
+                        # use field-specific search for navigable fields
+                        "#{field}:#{value}"
+                    else if field in @getFieldsFor "searchable"
                         # just add extra keyword to the search
                         value
-                    else # use field-specific search for non-text types
-                        if value?
-                            "#{field}:#{value}"
-                        else # filtering down null has a special query_string syntax
-                            "_missing_:#{field}"
+                else
+                    # filtering down null has a special query_string syntax
+                    "_missing_:#{field}"
             # TODO check if qExtra is already there in @params.q
             @params.q =
                 if @params.q?
