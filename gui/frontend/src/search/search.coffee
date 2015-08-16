@@ -15,7 +15,7 @@ angular.module "mindbenderApp.search", [
         templateUrl: "search/search.html"
         controller: "SearchResultCtrl"
         reloadOnSearch: no
-    $routeProvider.when "/view/:index/:type/:routing?/:id*",
+    $routeProvider.when "/view/:index/:type",
         brand: "DeepDive", brandIcon: "search"
         title: """{{type}}( {{id}} ) in {{index}} - DeepDive"""
         templateUrl: "search/view.html"
@@ -50,13 +50,16 @@ angular.module "mindbenderApp.search", [
             # switch to /search/
             $scope.$watch (-> DeepDiveSearch.queryRunning), (newQuery, oldQuery) ->
                 return unless oldQuery?  # don't mess $location upon load
-                $location.search k, v for k, v of DeepDiveSearch.params
+                $location.search DeepDiveSearch.params
                 $location.path "/search/"
 
 ## for viewing individual extraction/source data
-.controller "SearchViewCtrl", ($scope, $routeParams, DeepDiveSearch) ->
+.controller "SearchViewCtrl", ($scope, $routeParams, $location, DeepDiveSearch) ->
     $scope.search = DeepDiveSearch.init $routeParams.index
     _.extend $scope, $routeParams
+    searchParams = $location.search()
+    $scope.id = searchParams.id
+    $scope.routing = searchParams.parent
     $scope.data =
         _index: $scope.index
         _type:  $scope.type

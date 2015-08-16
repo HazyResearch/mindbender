@@ -80,10 +80,11 @@
                         <!-- provenance hyperlink -->
                         <p>
                             <!-- TODO routing param -->
-                            <a href="#/view/{{hit._index | urlEncode}}/{{
-                                    hit._type | urlEncode}}/{{
-                                    hit.parent ? (hit.parent._id | urlEncode) + '/' : ''}}{{
-                                    hit._id | urlEncode}}"
+                            <a href="#/view/{{hit._index | urlEncode
+                                    }}/{{hit._type | urlEncode
+                                    }}?{{hit.parent ? 'parent=' + (hit.parent._id | urlEncode) + '&' : ''
+                                    }}id={{hit._id | urlEncode
+                                    }}"
                                class="text-muted">{{hit._type}}( {{hit._id}} ) in {{hit._index}}</a>
                         </p>
 
