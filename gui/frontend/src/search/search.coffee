@@ -181,8 +181,12 @@ angular.module "mindbenderApp.search", [
                             "#{field}:#{value}"
                         else # filtering down null has a special query_string syntax
                             "_missing_:#{field}"
-            # TODO check if qExtra is already there
-            @params.q += " #{qExtra}"
+            # TODO check if qExtra is already there in @params.q
+            @params.q =
+                if @params.q?
+                    "#{@params.q} #{qExtra}"
+                else
+                    qExtra
             @doSearch no
 
         getFieldsFor: (what, type = @params.t) =>
