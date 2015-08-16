@@ -140,6 +140,8 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
     "SELECT \(
         # columns on this relation
         [ (.columns[] | "\($this.name).\(.)")
+        # variable relations have an extra expectation column
+        , (if .this.variable_type then "\($this.name).expectation" else empty end)
         # nested rows of relations referenced by this relation
         , (.references[] | .alias)
         # nested arrays of rows of relations referencing this relation
@@ -150,9 +152,34 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
 
     )\($indent)  FROM \(
         # this relation
-        [ { alias: ""
-          , expr: .this.name
-          }
+        [(if .this.variable_type then
+            # variable relations should join DeepDive's inference result
+            { alias: .this.name
+            , expr:  "(SELECT \(
+                [ "v.*"
+                , "i.expectation"
+                ] |
+                join(
+    "\($indent)             , ")
+    )\($indent)          FROM \(
+                [ "\(.this.name) v"
+                , "\(.this.name)_label_inference i"
+                ] |
+                join(
+    "\($indent)             , ")
+    )\($indent)         WHERE \(
+                [ "v.id = i.id"
+                ] |
+                join(
+    "\($indent)           AND ")
+    )\($indent)       )"
+            }
+          else
+            # normal relation
+            { alias: ""
+            , expr: .this.name
+            }
+          end)
 
         # relations referenced by this relation
         , (.references[] |
@@ -167,7 +194,7 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
         # relations referencing this relation
         , (.referencedBy[] |
           { alias: "\(.byRelation)_\(.alias)"
-          , expr: "(SELECT \(
+          , expr:    "(SELECT \(
             # TODO use the only column to create a flat array when R is a single column excluding all @references columns
             [ "ARRAY_AGG(R) arr"
             , (.byColumn[] | .name)
