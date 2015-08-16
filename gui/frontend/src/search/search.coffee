@@ -117,7 +117,7 @@ angular.module "mindbenderApp.search", [
                                 terms:
                                     field: navigable
             @error = null
-            @queryRunning =
+            query =
                 index: @elasticsearchIndexName
                 type: @params.t
                 body:
@@ -134,10 +134,11 @@ angular.module "mindbenderApp.search", [
                         tags_schema: "styled"
                         fields: _.object ([f,{}] for f in fieldsSearchable)
             postProcessSearchResults = =>
-                @query = @queryRunning
+                @query = query
                 @queryRunning = null
                 do @doFetchResultSources
-            elasticsearch.search @queryRunning
+            @queryRunning = query
+            elasticsearch.search query
             .then (data) =>
                 @error = null
                 @results = data
