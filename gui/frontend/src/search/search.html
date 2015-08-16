@@ -115,13 +115,13 @@
                         <!-- highlights, visualization -->
                         <blockquote>
                             <!-- highlight to hint why this is a result -->
-                            <dl ng-if=" hit.highlight">
-                                <dt ng-repeat-start="(field, highlight) in hit.highlight"
-                                    ><span class="text-muted">{{field}}</span></dt>
-                                <dd ng-repeat-end>
-                                    <span ng-repeat="h in highlight" ng-bind-html="h"></span>
-                                </dd>
-                            </dl>
+                            <div ng-repeat="(field, highlight) in hit.highlight">
+                                <strong class="text-muted">{{field}}:</strong>
+                                <div ng-repeat="h in highlight track by $index">
+                                    <div ng-if="$index > 0">...</div>
+                                    <p ng-bind-html="h"></p>
+                                </div>
+                            </div>
 
                             <!-- use custom per-type presentation templates -->
                             <p visualized-search-result
