@@ -20,10 +20,7 @@
             <p deepdive-visualized-data="data" routing="routing"></p>
 
             <!-- raw data -->
-            <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
-            <div ng-if="showJsonTree">
-                <json-tree json="data" edit-level="readonly" collapsed-level="2"></json-tree>
-            </div>
+            <p show-raw-data="data"></p>
 
         </blockquote>
     </div>

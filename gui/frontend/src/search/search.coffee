@@ -113,6 +113,20 @@ angular.module "mindbenderApp.search", [
                 initScope data
             , showError
 
+.directive "showRawData", ->
+    restrict: "A"
+    scope:
+        data: "=showRawData"
+        level: "@"
+    template: ($element, $attrs) ->
+        if +$attrs.level > 0
+            """<json-tree edit-level="readonly" json="data" collapsed-level="{{level}}">"""
+        else
+            """
+            <span ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></span>
+            <json-tree ng-if="showJsonTree" edit-level="readonly" json="data" collapsed-level="2"></json-tree>
+            """
+
 
 # elasticsearch client as an Angular service
 .service "elasticsearch", (esFactory) ->

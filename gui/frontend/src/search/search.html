@@ -103,10 +103,7 @@
                             <p deepdive-visualized-data="hit" search-result="hit"></p>
 
                             <!-- raw data -->
-                            <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
-                            <div ng-if="showJsonTree">
-                                <json-tree json="hit" edit-level="readonly" collapsed-level="2"></json-tree>
-                            </div>
+                            <p show-raw-data="hit"></p>
                         </blockquote>
                     </li>
                 </ol>
@@ -121,10 +118,10 @@
                 <div class="modal-body">
 
                     <h3>query</h3>
-                    <json-tree json="search.query" edit-level="readonly" collapsed-level="4"></json-tree>
+                    <div show-raw-data="search.query" level="4"></div>
 
                     <h3>results</h3>
-                    <json-tree json="search.results" edit-level="readonly" collapsed-level="3"></json-tree>
+                    <div show-raw-data="search.results" level="3"></div>
 
                 </div>
                 <div class="modal-footer">
