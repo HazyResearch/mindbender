@@ -32,21 +32,44 @@ angular.module "mindbenderApp.search", [
     $routeProvider.when "/search",
         redirectTo: "/search/"
 
-.controller "SearchCtrl", ($scope, $location, $routeParams, elasticsearch, $http, $interpolate, $modal) ->
+.controller "SearchCtrl", ($scope, $location, $routeParams, deepdiveSearch, $modal) ->
+    $scope.search = deepdiveSearch.init $scope, $routeParams.index, $location.search()
+
+    $scope.$on "$routeUpdate", =>
+        deepdiveSearch.doSearch yes if deepdiveSearch.importParams $location.search()
+
+    $scope.$watch (-> JSON.stringify deepdiveSearch.params), ->
+        # reflect search parameters to the location on the URL
+        search = $location.search()
+        $location.search k, v for k, v of deepdiveSearch.params when search.k isnt v
+
+    $scope.openModal = (options) ->
+        $modal.open _.extend {
+            scope: $scope
+        }, options
+
+.service "deepdiveSearch", (elasticsearch, $http, $rootScope) ->
     MULTIKEY_SEPARATOR = "@"
-    class Navigator
-        constructor: (@elasticsearchIndexName = "_all", @$scope) ->
-            @query = @results = null
+    class DeepDiveSearch
+        constructor: (args...) ->
+            @query = @results = @error = null
             @paramsDefault =
                 q: null # query string
                 t: null # type to search
                 n: 10   # number of items in a page
                 p: 1    # page number (starts from 1)
             @params = _.extend {}, @paramsDefault
-            do @importParams
+            @types = null
+            @indexes = null
+            @init args... if args.length > 0
+
+        init: (@$scope = $rootScope, @elasticsearchIndexName = "_all", params) =>
+            @importParams params
+
+            # watch page number changes
+            @$scope.$watch (=> @params.p), => @doSearch yes
 
             # load the search schema
-            @types = null
             $http.get "/api/search/schema.json"
                 .success (data) =>
                     @types = data
@@ -56,29 +79,26 @@ angular.module "mindbenderApp.search", [
                     console.trace err
 
             # find out what types are in the index
-            @indices = null
             elasticsearch.indices.get
                 index: @elasticsearchIndexName
             .then (data) =>
-                @indices = data
+                @indexes = data
                 # refresh results since we now have more info
                 @doSearch yes
             , (err) =>
-                @indices = null
+                @indexes = null
                 @error = err
                 console.trace err.message
 
-            # watch page number changes
-            @$scope.$watch (=> @params.p), => @doSearch yes
-            @$scope.$on "$routeUpdate", =>
-                @doSearch yes if do @importParams
+            # return itself
+            @
 
         doSearch: (isContinuing = no) =>
             @params.p = 1 unless isContinuing
             fieldsSearchable = @getFieldsFor "searchable", @params.t
             # forumate aggregations
             aggs = {}
-            if @indices?
+            if @indexes?
                 for navigable in @getFieldsFor ["navigable", "searchable"], @params.t
                     aggs[navigable] =
                         switch @getFieldType navigable
@@ -116,8 +136,6 @@ angular.module "mindbenderApp.search", [
             postProcessSearchResults = =>
                 @query = @queryRunning
                 @queryRunning = null
-                @fieldsSearchable = fieldsSearchable
-                do @reflectParams
                 do @doFetchResultSources
             elasticsearch.search @queryRunning
             .then (data) =>
@@ -178,7 +196,7 @@ angular.module "mindbenderApp.search", [
                     _.union (s[what] for t,s of @types)...
 
         getFieldType: (path) =>
-            for idxName,{mappings} of @indices ? {}
+            for idxName,{mappings} of @indexes ? {}
                 for typeName,mapping of mappings
                     # traverse down the path
                     pathSoFar = ""
@@ -206,31 +224,16 @@ angular.module "mindbenderApp.search", [
                 aggs._total_doc_count = total # cache sum
             total
 
-        importParams: =>
-            search = $location.search()
+        importParams: (params) =>
             changed = no
-            for k,v of @params when (search[k] ? @paramsDefault[k]) isnt v
-                @params[k] = search[k] ? @paramsDefault[k]
+            for k,v of @params when (params[k] ? @paramsDefault[k]) isnt v
+                @params[k] = params[k] ? @paramsDefault[k]
                 changed = yes
             changed
 
-        reflectParams: =>
-            # reflect search parameters to the location on the URL
-            search = $location.search()
-            $location.search k, v for k, v of @params when search.k isnt v
+    new DeepDiveSearch
 
-    $scope.search = new Navigator $routeParams.index, $scope
-
-    $scope.openModal = (options) ->
-        $modal.open _.extend {
-            scope: $scope
-        }, options
-
-.service "mbSearch", ->
-    # TODO migrate Navigator instance into a service so other directives can use it
-    null
-
-.directive "visualizedSearchResult", (mbSearch) ->
+.directive "visualizedSearchResult", (deepdiveSearch) ->
     scope:
         visualizedSearchResult: "="
         result: "="

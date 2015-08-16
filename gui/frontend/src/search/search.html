@@ -185,7 +185,9 @@
     <div class="container">
         <div class="text-center">
             <pagination class="pagination-sm fa"
-            total-items="search.results.hits.total" items-per-page="search.params.n"
+            total-items="search.results ? search.results.hits.total
+                                        : search.params.p * search.params.n"
+                                            items-per-page="search.params.n"
             ng-model="search.params.p"
             ng-model-options="{ debounce: 200 }"
             previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
