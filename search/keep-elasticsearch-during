@@ -55,6 +55,7 @@ case $ELASTICSEARCH_BASEURL in
                 error "$port: port is already used, try another one, e.g.: export ELASTICSEARCH_BASEURL=http://localhost:92${RANDOM:0:2}"
             else
                 # launch an isolated elasticsearch
+                msg "Launching Elasticsearch for $ELASTICSEARCH_BASEURL from $ELASTICSEARCH_HOME"
                 esOpts+=(
                     # in background with a PID file
                     -d -p "$ELASTICSEARCH_HOME"/elasticsearch.pid
