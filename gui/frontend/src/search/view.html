@@ -1,0 +1,37 @@
+<!-- View data -->
+
+<nav class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header" ng-include="'app-navbar-header.html'"></div>
+        <div deepdive-search-bar for="search"></div>
+    </div>
+</nav>
+<style>body { padding-top: 70px; }</style>
+
+<div class="page-header">
+    <h2>{{type}}( {{id}} ) <small>in {{index}}</small></h2>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <blockquote>
+
+            <!-- use custom template for data -->
+            <p deepdive-visualized-data="data" routing="routing"></p>
+
+            <!-- raw data -->
+            <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
+            <div ng-if="showJsonTree">
+                <json-tree json="data" edit-level="readonly" collapsed-level="2"></json-tree>
+            </div>
+
+        </blockquote>
+    </div>
+</div>
+
+<style>
+[ng-hide=showJsonTree] {
+    font-size: 13px;
+    font-family: monospace;
+}
+</style>

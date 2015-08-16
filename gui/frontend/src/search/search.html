@@ -3,35 +3,7 @@
 <nav class="navbar navbar-default navbar-fixed-top">
     <div class="container">
         <div class="navbar-header" ng-include="'app-navbar-header.html'"></div>
-
-        <form class="navbar-form navbar-right" role="search" style="width:75%;">
-            <div class="form-group input-group" style="width:100%;">
-                <!-- type dropdown -->
-                <div class="input-group-btn dropdown" style="width:1%;" ng-if="search.types">
-                    <button type="button" class="btn dropdown-toggle"
-                        ng-class="{
-                            'btn-default': !search.params.t,
-                            'btn-info'   :  search.params.t
-                        }" aria-haspopup="true" aria-expanded="false">
-                        {{search.params.t ? "In " + search.params.t : "All"}}
-                        <span class="caret"></span></button>
-                    <ul class="dropdown-menu">
-                        <li><a ng-click="search.params.t = null; search.doSearch()">All</a></li>
-                        <li role="separator" class="divider"></li>
-                        <li ng-repeat="(ty, s) in search.types"><a ng-click="search.params.t = ty; search.doSearch()">{{ty}}</a></li>
-                    </ul>
-                </div>
-                <!-- search box -->
-                <input type="search" class="form-control"
-                    placeholder="Search keywords, field:/regex/, ..."
-                    ng-model="search.params.q">
-                <!-- search button -->
-                <span class="input-group-btn" style="width:1%;">
-                    <button type="submit" class="btn btn-primary" ng-click="search.doSearch()">
-                        <i class="fa fa-search"></i><span class="sr-only"> Search</span></button>
-                </span>
-            </div>
-        </form>
+        <div deepdive-search-bar for="search"></div>
     </div>
 </nav>
 <style>body { padding-top: 70px; }</style>
@@ -108,7 +80,10 @@
                         <!-- provenance hyperlink -->
                         <p>
                             <!-- TODO routing param -->
-                            <a href="api/elasticsearch/{{hit._index | urlEncode}}/{{hit._type | urlEncode}}/{{hit._id | urlEncode}}"
+                            <a href="#/view/{{hit._index | urlEncode}}/{{
+                                    hit._type | urlEncode}}/{{
+                                    hit.parent ? (hit.parent._id | urlEncode) + '/' : ''}}{{
+                                    hit._id | urlEncode}}"
                                class="text-muted">{{hit._type}}( {{hit._id}} ) in {{hit._index}}</a>
                         </p>
 
@@ -124,14 +99,7 @@
                             </div>
 
                             <!-- use custom per-type presentation templates -->
-                            <p visualized-search-result
-                                         hit="hit"
-                                        type="hit._type"
-                                  extraction="     hit.parent ? hit._source        : null"
-                                  extraction-type="hit.parent ? hit._type          : null"
-                                      source="     hit.parent ? hit.parent._source : hit._source"
-                                      source-type="hit.parent ? hit.parent._type   : hit._type"
-                                  ></p>
+                            <p deepdive-visualized-data="hit" search-result="hit"></p>
 
                             <!-- raw data -->
                             <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
@@ -195,6 +163,7 @@
                                             items-per-page="search.params.n"
             ng-model="search.params.p"
             ng-model-options="{ debounce: 200 }"
+            ng-change="search.doSearch(true)"
             previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
             max-size="9" boundary-links="true"></pagination>
         </div>

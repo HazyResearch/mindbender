@@ -4,6 +4,113 @@ angular.module "mindbenderApp.search", [
     'ngSanitize'
 ]
 
+.config ($routeProvider) ->
+    $routeProvider.when "/search/:index*?",
+        brand: "DeepDive", brandIcon: "search"
+        title: 'Search {{
+                q ? "for [" + q + "] " : "everything "}}{{
+                t ? "in " + t + " " : ""}}{{
+                index ? "(" + index + ") " : ""
+            }}- DeepDive'
+        templateUrl: "search/search.html"
+        controller: "SearchResultCtrl"
+        reloadOnSearch: no
+    $routeProvider.when "/view/:index/:type/:routing?/:id*",
+        brand: "DeepDive", brandIcon: "search"
+        title: """{{type}}( {{id}} ) in {{index}} - DeepDive"""
+        templateUrl: "search/view.html"
+        controller: "SearchViewCtrl"
+    $routeProvider.when "/search",
+        redirectTo: "/search/"
+
+## for searching extraction/source data
+.controller "SearchResultCtrl", ($scope, $routeParams, DeepDiveSearch, $modal) ->
+    $scope.search = DeepDiveSearch.init $routeParams.index
+    $scope.openModal = (options) ->
+        $modal.open _.extend {
+            scope: $scope
+        }, options
+
+.directive "deepdiveSearchBar", ->
+    scope:
+        search: "=for"
+    templateUrl: "search/searchbar.html"
+    controller: ($scope, $routeParams, $location, DeepDiveSearch) ->
+        $scope.search ?= DeepDiveSearch.init $routeParams.index
+        if $location.path() is "/search/"
+            # detect changes to URL
+            do doSearchIfNeeded = ->
+                DeepDiveSearch.doSearch yes if DeepDiveSearch.importParams $location.search()
+            $scope.$on "$routeUpdate", doSearchIfNeeded
+            # reflect search parameters to the location on the URL
+            $scope.$watch (-> DeepDiveSearch.query), ->
+                search = $location.search()
+                $location.search k, v for k, v of DeepDiveSearch.params when search.k isnt v
+        else
+            # switch to /search/
+            $scope.$watch (-> DeepDiveSearch.queryRunning), (newQuery, oldQuery) ->
+                return unless oldQuery?  # don't mess $location upon load
+                $location.search k, v for k, v of DeepDiveSearch.params
+                $location.path "/search/"
+
+## for viewing individual extraction/source data
+.controller "SearchViewCtrl", ($scope, $routeParams, DeepDiveSearch) ->
+    $scope.search = DeepDiveSearch.init $routeParams.index
+    _.extend $scope, $routeParams
+    $scope.data =
+        _index: $scope.index
+        _type:  $scope.type
+        _id:    $scope.id
+
+.directive "deepdiveVisualizedData", (DeepDiveSearch) ->
+    scope:
+        data: "=deepdiveVisualizedData"
+        searchResult: "="
+        routing: "="
+    template: """
+        <span ng-include="'search/template/' + data._type + '.html'"></span>
+        <span class="alert alert-danger" ng-if="error">{{error}}</span>
+        """
+    link: ($scope) ->
+        showError = (err) ->
+            msg = err?.message ? err
+            console.error msg
+            # TODO display this in template
+            $scope.error = msg
+        unless $scope.data._type? and ($scope.data._source? or $scope.data._id?)
+            return showError "_type with _id or _type with _source must be given to deepdive-visualized-data"
+        initScope = (data) ->
+            DeepDiveSearch.fetchSourcesAsParents [data]
+            .then ([data]) ->
+                if data.parent?  # extraction
+                    $scope.extractionDoc = data
+                    $scope.extraction    = data._source
+                    DeepDiveSearch.fetchSourcesAsParents $scope.data
+                    .then ->
+                        $scope.sourceDoc = data.parent
+                        $scope.source    = data.parent._source
+                    , showError
+                else  # source
+                    $scope.extractionDoc = null
+                    $scope.extraction    = null
+                    $scope.sourceDoc = data
+                    $scope.source    = data._source
+            , showError
+        if $scope.data?._source?
+            initScope $scope.data
+        else
+            DeepDiveSearch.fetchWithSource {
+                    index: $scope.data._index
+                    type: $scope.data._type
+                    id: $scope.data._id
+                    routing: $scope.routing
+                }
+            .then (data) ->
+                _.extend $scope.data, data
+                initScope data
+            , showError
+
+
 # elasticsearch client as an Angular service
 .service "elasticsearch", (esFactory) ->
     BASEURL = location.href.substring(0, location.href.length - location.hash.length)
@@ -14,44 +121,14 @@ angular.module "mindbenderApp.search", [
     elasticsearch.ping {
         requestTimeout: 30000
     }, (err) ->
-        console.trace "elasticsearch cluster is down", err if err
+        console.error "elasticsearch cluster is down", err if err
     # return the instance
     elasticsearch
 
-.config ($routeProvider) ->
-    $routeProvider.when "/search/:index*?",
-        brand: "DeepDive", brandIcon: "search"
-        title: 'Search {{
-                q ? "for [" + q + "] " : "everything "}}{{
-                t ? "in " + t + " " : ""}}{{
-                index ? "(" + index + ") " : ""
-            }}- DeepDive'
-        templateUrl: "search/search.html"
-        controller: "SearchCtrl"
-        reloadOnSearch: no
-    $routeProvider.when "/search",
-        redirectTo: "/search/"
-
-.controller "SearchCtrl", ($scope, $location, $routeParams, deepdiveSearch, $modal) ->
-    $scope.search = deepdiveSearch.init $scope, $routeParams.index, $location.search()
-
-    $scope.$on "$routeUpdate", =>
-        deepdiveSearch.doSearch yes if deepdiveSearch.importParams $location.search()
-
-    $scope.$watch (-> deepdiveSearch.query), ->
-        # reflect search parameters to the location on the URL
-        search = $location.search()
-        $location.search k, v for k, v of deepdiveSearch.params when search.k isnt v
-
-    $scope.openModal = (options) ->
-        $modal.open _.extend {
-            scope: $scope
-        }, options
-
-.service "deepdiveSearch", (elasticsearch, $http, $rootScope) ->
+.service "DeepDiveSearch", (elasticsearch, $http, $q) ->
     MULTIKEY_SEPARATOR = "@"
     class DeepDiveSearch
-        constructor: (args...) ->
+        constructor: (@elasticsearchIndexName = "_all") ->
             @query = @results = @error = null
             @paramsDefault =
                 q: null # query string
@@ -61,39 +138,30 @@ angular.module "mindbenderApp.search", [
             @params = _.extend {}, @paramsDefault
             @types = null
             @indexes = null
-            @init args... if args.length > 0
 
-        init: (@$scope = $rootScope, @elasticsearchIndexName = "_all", params) =>
-            @importParams params
+            @initialized = $q.all [
+                # load the search schema
+                $http.get "/api/search/schema.json"
+                    .success (data) =>
+                        @types = data
+                    .error (err) =>
+                        console.error err.message
+            ,
+                # find out what types are in the index
+                elasticsearch.indices.get
+                    index: @elasticsearchIndexName
+                .then (data) =>
+                    @indexes = data
+                , (err) =>
+                    @indexes = null
+                    @error = err
+                    console.error err.message
+            ]
 
-            # watch page number changes
-            @$scope.$watch (=> @params.p), => @doSearch yes
-
-            # load the search schema
-            $http.get "/api/search/schema.json"
-                .success (data) =>
-                    @types = data
-                    # TODO initial @doSearch should wait for both elasticsearch.indices.get and this
-                    @doSearch yes
-                .error (err) =>
-                    console.trace err
-
-            # find out what types are in the index
-            elasticsearch.indices.get
-                index: @elasticsearchIndexName
-            .then (data) =>
-                @indexes = data
-                # refresh results since we now have more info
-                @doSearch yes
-            , (err) =>
-                @indexes = null
-                @error = err
-                console.trace err.message
-
-            # return itself
+        init: (@elasticsearchIndexName = "_all") =>
             @
 
-        doSearch: (isContinuing = no) =>
+        doSearch: (isContinuing = no) => @initialized.then =>
             @params.p = 1 unless isContinuing
             fieldsSearchable = @getFieldsFor "searchable", @params.t
             # forumate aggregations
@@ -133,42 +201,49 @@ angular.module "mindbenderApp.search", [
                     highlight:
                         tags_schema: "styled"
                         fields: _.object ([f,{}] for f in fieldsSearchable)
-            postProcessSearchResults = =>
-                @query = query
-                @queryRunning = null
-                do @doFetchResultSources
             @queryRunning = query
             elasticsearch.search query
             .then (data) =>
                 @error = null
+                @queryRunning = null
+                @query = query
                 @results = data
-                do postProcessSearchResults
+                @fetchSourcesAsParents @results.hits.hits
             , (err) =>
                 @error = err
-                console.trace err.message
-                @results = null
-                do postProcessSearchResults
+                console.error err.message
+                @queryRunning = null
 
-        doFetchResultSources: =>
+        fetchSourcesAsParents: (docs) => $q (resolve, reject) =>
             # TODO cache sources and invalidate upon ever non-continuing search?
             # find out what source docs we need fetch for current search results
-            docs = []; hitsByDocsOrder = []
-            for hit in @results.hits.hits when @types?[hit._type]?.source
-                parentRef = @types[hit._type].source
-                hitsByDocsOrder.push hit
-                docs.push
-                    _index: hit._index
+            docRefs = []; docsByMgetOrder = []
+            for doc in docs when @types?[doc._type]?.source and not doc.parent?
+                parentRef = @types[doc._type].source
+                docsByMgetOrder.push doc
+                docRefs.push
+                    _index: doc._index
                     _type: parentRef.type
-                    _id: (hit._source[f] for f in parentRef.fields).join MULTIKEY_SEPARATOR
-            return unless docs.length > 0
+                    _id: (doc._source[f] for f in parentRef.fields).join MULTIKEY_SEPARATOR
+            return resolve docs unless docRefs.length > 0
             # fetch sources
-            elasticsearch.mget { body: { docs } }
+            elasticsearch.mget { body: { docs: docRefs } }
             .then (data) =>
-                # update the source (parent) for every hits
-                for doc,i in data.docs
-                    hitsByDocsOrder[i].parent = doc
-            , (err) =>
-                console.trace err.message
+                # update the source (parent) for every extractions
+                for sourceDoc,i in data.docs
+                    docsByMgetOrder[i].parent = sourceDoc
+                resolve docs
+            , reject
+
+        fetchWithSource: (docRef) => $q (resolve, reject) =>
+            docRef.index ?= @elasticsearchIndexName
+            # TODO lifted version of this with mget
+            elasticsearch.get docRef
+            .then (data) =>
+                @fetchSourcesAsParents [data]
+                .then => resolve data
+                , reject
+            , reject
 
         doNavigate: (field, value) =>
             qExtra =
@@ -237,13 +312,3 @@ angular.module "mindbenderApp.search", [
             changed
 
     new DeepDiveSearch
-
-.directive "visualizedSearchResult", (deepdiveSearch) ->
-    scope:
-        type: "="
-        hit: "="
-        extraction: "="
-        extractionType: "="
-        source: "="
-        sourceType: "="
-    template: """<span ng-include="'search/template/' + type + '.html'"></span>"""
