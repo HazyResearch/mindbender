@@ -240,9 +240,10 @@ angular.module "mindbenderApp.search", [
 
 .directive "visualizedSearchResult", (deepdiveSearch) ->
     scope:
-        visualizedSearchResult: "="
-        result: "="
-        resultType: "="
+        type: "="
+        hit: "="
+        extraction: "="
+        extractionType: "="
         source: "="
         sourceType: "="
-    template: """<span ng-include="'search/template/' + resultType + '.html'"></span>"""
+    template: """<span ng-include="'search/template/' + type + '.html'"></span>"""

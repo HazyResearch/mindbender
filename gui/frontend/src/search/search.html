@@ -123,10 +123,15 @@
                                 </dd>
                             </dl>
 
-                            <!-- use more sophisticated per-type presentation templates -->
-                            <p visualized-search-result="hit"
-                                  result="hit._source"        result-type="hit._type"
-                                  source="hit.parent._source" source-type="hit.parent._type"></p>
+                            <!-- use custom per-type presentation templates -->
+                            <p visualized-search-result
+                                         hit="hit"
+                                        type="hit._type"
+                                  extraction="     hit.parent ? hit._source        : null"
+                                  extraction-type="hit.parent ? hit._type          : null"
+                                      source="     hit.parent ? hit.parent._source : hit._source"
+                                      source-type="hit.parent ? hit.parent._type   : hit._type"
+                                  ></p>
 
                             <!-- raw data -->
                             <div ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></div>
