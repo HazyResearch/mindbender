@@ -11,7 +11,7 @@ angular.module 'mindbender.mindtagger.wordArray', [
     template: """
         <span class="mindtagger-words">
             <span class="mindtagger-word-container"
-                ng-repeat="word in mindtaggerWordArray | parsedArray:arrayFormat track by $index">
+                ng-repeat="word in wordArray track by $index">
                 <span class="mindtagger-word">{{word}}</span>
             </span>
             <span ng-transclude></span>
@@ -29,6 +29,7 @@ angular.module 'mindbender.mindtagger.wordArray', [
                 newArray
                 newFormat
             ]) =>
+                $scope.wordArray =
                 @wordArray =
                     if newFormat
                         ($filter "parsedArray") newArray, newFormat
