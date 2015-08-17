@@ -29,7 +29,11 @@ angular.module 'mindbender.mindtagger.wordArray', [
                 newArray
                 newFormat
             ]) =>
-                @wordArray = ($filter "parsedArray") newArray, newFormat
+                @wordArray =
+                    if newFormat?
+                        ($filter "parsedArray") newArray, newFormat
+                    else
+                        newArray
 
 .service 'mindtaggerCreateStylesheet', ->
     stylesheetSeq = 0
