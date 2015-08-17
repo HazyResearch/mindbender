@@ -47,12 +47,8 @@ exports.configureApp = (app, args) ->
                 .send "Elasticsearch service not configured\n($ELASTICSEARCH_BASEURL environment not set)"
 
 exports.configureRoutes = (app, args) ->
-    searchSchema =
-        if process.env.DDLOG_SEARCH_SCHEMA?
-            try JSON.parse fs.readFileSync process.env.DDLOG_SEARCH_SCHEMA
-            catch err then console.error "Error while loading DDLOG_SEARCH_SCHEMA (#{DDLOG_SEARCH_SCHEMA}): #{err}"
-    app.get "/api/search/schema.json", (req, res) ->
-        res.json searchSchema
+    app.use "/api/search/schema.json", express.static process.env.DDLOG_SEARCH_SCHEMA
+    app.get "/api/search/schema.json", (req, res) -> res.json {}
 
     # expose custom search result templates to frontend
     app.use "/search/template", express.static "#{process.env.DEEPDIVE_APP}/mindbender/search-template"
