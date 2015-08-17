@@ -1,6 +1,6 @@
 {
-  "name": "mindbender-frontend",
-  "description": "Frontend for Mindbender",
+  "name": "mindbender-gui-frontend",
+  "description": "Mindbender GUI Frontend",
   "version": "0.0.0",
   "homepage": "https://github.com/HazyResearch/mindbender",
   "license": "MIT",

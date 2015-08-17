@@ -1,5 +1,5 @@
-describe "mindbenderApp.mindtagger.arrayParsers module", ->
-    beforeEach module "mindbenderApp.mindtagger.arrayParsers"
+describe "mindbender.mindtagger.arrayParsers module", ->
+    beforeEach module "mindbender.mindtagger.arrayParsers"
 
     describe "parsedPostgresArray filter", ->
         parsedPostgresArrayFilter = null

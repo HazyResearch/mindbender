@@ -1,9 +1,9 @@
-angular.module 'mindbenderApp.mindtagger', [
+angular.module 'mindbender.mindtagger', [
     'ui.bootstrap'
     'cfp.hotkeys'
-    'mindbenderApp.mindtagger.wordArray'
-    'mindbenderApp.mindtagger.arrayParsers'
-    'mindbenderApp.mindtagger.tags.parametric'
+    'mindbender.mindtagger.wordArray'
+    'mindbender.mindtagger.arrayParsers'
+    'mindbender.mindtagger.tags.parametric'
 ]
 
 .config ($routeProvider) ->

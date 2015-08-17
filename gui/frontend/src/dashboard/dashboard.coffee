@@ -1,4 +1,4 @@
-angular.module "mindbenderApp.dashboard", [
+angular.module "mindbender.dashboard", [
     "ui.ace"
     'ui.bootstrap'
     'ui.sortable'

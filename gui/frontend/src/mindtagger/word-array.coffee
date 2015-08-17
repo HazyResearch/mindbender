@@ -1,5 +1,5 @@
-angular.module 'mindbenderApp.mindtagger.wordArray', [
-    'mindbenderApp.mindtagger.arrayParsers'
+angular.module 'mindbender.mindtagger.wordArray', [
+    'mindbender.mindtagger.arrayParsers'
 ]
 
 .directive 'mindtaggerWordArray', ->

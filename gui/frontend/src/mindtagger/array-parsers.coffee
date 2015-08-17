@@ -1,4 +1,4 @@
-angular.module 'mindbenderApp.mindtagger.arrayParsers', [
+angular.module 'mindbender.mindtagger.arrayParsers', [
 ]
 
 # a handy filter for parsing Postgres ARRAYs serialized in CSV outputs

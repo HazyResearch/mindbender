@@ -1,4 +1,4 @@
-angular.module "mindbenderApp.search", [
+angular.module "mindbender.search", [
     'elasticsearch'
     'json-tree'
     'ngSanitize'

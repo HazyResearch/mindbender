@@ -1,9 +1,9 @@
 # Declare app level module which depends on views, and components
-angular.module 'mindbenderApp', [
+angular.module 'mindbender', [
     'ngRoute'
-    'mindbenderApp.mindtagger'
-    'mindbenderApp.dashboard'
-    'mindbenderApp.search'
+    'mindbender.mindtagger'
+    'mindbender.dashboard'
+    'mindbender.search'
     'mindbender.extensions'
 ]
 .config ($routeProvider) ->

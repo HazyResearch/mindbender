@@ -1,4 +1,4 @@
-angular.module 'mindbenderApp.mindtagger.tags.parametric', [
+angular.module 'mindbender.mindtagger.tags.parametric', [
 ]
 
 .directive 'mindtaggerParametricTags', ($parse, $interpolate, MindtaggerTaskHotkeysDemuxCtrl, localStorageState) ->

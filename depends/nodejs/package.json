@@ -1,9 +1,9 @@
 {
-  "name": "mindbender-compiler",
+  "name": "mindbender",
   "private": true,
   "version": "0.0.0",
-  "description": "MindBender Compiler",
-  "repository": "https://github.com/netj/mindbender.git",
+  "description": "Mindbender",
+  "repository": "https://github.com/HazyResearch/mindbender.git",
   "license": "MIT",
   "dependencies": {
     "csv": "0.4.0",
