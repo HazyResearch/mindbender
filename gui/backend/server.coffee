@@ -7,8 +7,10 @@
 util = require "util"
 fs = require "fs-extra"
 os = require "os"
+{execFile} = require "child_process"
 
 _ = require "underscore"
+async = require "async"
 
 http = require "http"
 express = require "express"
@@ -74,6 +76,36 @@ for component in components
     component.configureRoutes? app, cmdlnArgs
 
 ###############################################################################
+
+# user defined extensions can be put under $PWD/mindbender/extensions.{js,coffee}
+extensionsDirPath = "#{process.cwd()}/mindbender"
+app.get "/mindbender/extensions.js", (req, res, next) ->
+    compileCoffeeIfNeeded = (cs, next) ->
+        js = cs.replace /\.coffee$/, ".js"
+        fs.exists cs, (exists) ->
+            return next yes unless exists
+            async.map [cs, js], fs.stat, (err, [csStat, jsStat]) ->
+                if jsStat? and (jsStat.mode & 0o222)
+                    # we keep compiled .js write-protected, so skip if writable
+                    util.log "Not compiling #{cs} because of existing .js"
+                else
+                    # check if .js is stale
+                    if not jsStat? or csStat.mtime > jsStat.mtime
+                        # compile .coffee and refresh .js
+                        util.log "Compiling #{cs}"
+                        return execFile "sh", ["-euc", """
+                                rm -f "$2"
+                                coffee -c -m "$1"
+                                chmod a-w "$2"
+                            """, "--", cs, js
+                        ], (err, stdout, stderr) ->
+                            console.error "Cannot compile #{cs}\n#{stderr}\n#{stdout}" if err
+                            do next
+                # nothing to do
+                do next
+    compileCoffeeIfNeeded "#{extensionsDirPath}/extensions.coffee", (err) ->
+        do next
+app.use "/mindbender/", express.static "#{extensionsDirPath}/"
 
 #app.use express.methodOverride()
 app.use express.static "#{__dirname}/files"

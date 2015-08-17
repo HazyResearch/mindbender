@@ -25,6 +25,15 @@
   <div class="container" ng-view>
   </div>
 
+  <!-- the whole Mindbender app runtime -->
   <script src="mindbender.js"></script>
+
+  <!-- optional user defined extensions for angular.module("mindbender.extensions") -->
+  <script src="mindbender/extensions.js"></script>
+  <!-- fallback for defining empty angular.module("mindbender.extensions") -->
+  <script>
+      try       { angular.module("mindbender.extensions"    ); }
+      catch (e) { angular.module("mindbender.extensions", []); }
+  </script>
 </body>
 </html>

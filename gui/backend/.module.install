@@ -4,6 +4,9 @@ mindtagger/                             gui/
 dashboard/                              gui/
 search/                                 gui/
 
+extensions.js                           gui/files/mindbender/
+extensions.coffee                       gui/files/mindbender/
+
 node_modules                            gui/
 mindbender-gui                          bin/mindbender.d/
 mindbender-tagger                       bin/mindbender.d/

@@ -2,6 +2,7 @@ node_modules/source-map-support/browser-source-map-support.js
 
 bower_components/modernizr/modernizr.js
 bower_components/underscore/underscore.js
+bower_components/coffee-script/extras/coffee-script.js
 
 bower_components/jquery/dist/jquery.js
 bower_components/jquery-ui/jquery-ui.js

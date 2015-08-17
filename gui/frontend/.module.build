@@ -22,6 +22,18 @@ fi
 export PATH="$PWD/node_modules/.bin:$PATH"
 export NODE_PATH="$PWD/node_modules${NODE_PATH:+:$NODE_PATH}"
 
+# patch some scripts that have problem with source map
+s=bower_components/coffee-script/extras/coffee-script.js
+if grep -q '//# sourceMappingURL=' $s; then
+    echo >&2 "Patching sourceMappingURL string in $s"
+    {
+        echo H
+        # amend some bad lines
+        echo 'g@//# sourceMappingURL=@ s@//# sourceMappingURL=@//# source"+"MappingURL=@'
+        echo wq
+    } | ed $s >/dev/null
+fi
+
 # Compile all CoffeeScript files with source map, LESS to CSS, symlink HTMLs
 cd src
 compile from=.coffee to=.js   with=compile-coffee src=../build/src/%s out=../build/%s **/*.coffee
