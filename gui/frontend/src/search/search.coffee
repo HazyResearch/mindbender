@@ -65,7 +65,7 @@ angular.module "mindbender.search", [
         _type:  $scope.type
         _id:    $scope.id
 
-.directive "deepdiveVisualizedData", (DeepDiveSearch) ->
+.directive "deepdiveVisualizedData", (DeepDiveSearch, $q) ->
     scope:
         data: "=deepdiveVisualizedData"
         searchResult: "="
@@ -82,23 +82,32 @@ angular.module "mindbender.search", [
             $scope.error = msg
         unless $scope.data._type? and ($scope.data._source? or $scope.data._id?)
             return showError "_type with _id or _type with _source must be given to deepdive-visualized-data"
+        fetchParentIfNeeded = (data) -> $q (resolve, reject) ->
+            if $scope.searchResult?
+                # no need to fetch parents ourselves
+                resolve data
+            else
+                DeepDiveSearch.fetchSourcesAsParents [data]
+                .then ([data]) -> resolve data
+                , reject
         initScope = (data) ->
-            DeepDiveSearch.fetchSourcesAsParents [data]
-            .then ([data]) ->
-                if data.parent?  # extraction
+            switch kind = DeepDiveSearch.types?[data._type]?.kind
+                when "extraction"
                     $scope.extractionDoc = data
                     $scope.extraction    = data._source
-                    DeepDiveSearch.fetchSourcesAsParents $scope.data
-                    .then ->
-                        $scope.sourceDoc = data.parent
-                        $scope.source    = data.parent._source
+                    fetchParentIfNeeded data
+                    unwatch = $scope.$watch (-> data.parent), (source) ->
+                        $scope.sourceDoc = source
+                        $scope.source    = source?._source
+                        do unwatch if source?
                     , showError
-                else  # source
+                when "source"
                     $scope.extractionDoc = null
                     $scope.extraction    = null
                     $scope.sourceDoc = data
                     $scope.source    = data._source
-            , showError
+                else
+                    console.error "#{kind}: Unrecognized kind for type #{data._type}"
         if $scope.data?._source?
             initScope $scope.data
         else
