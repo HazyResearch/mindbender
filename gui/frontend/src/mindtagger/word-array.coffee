@@ -30,7 +30,7 @@ angular.module 'mindbender.mindtagger.wordArray', [
                 newFormat
             ]) =>
                 @wordArray =
-                    if newFormat?
+                    if newFormat
                         ($filter "parsedArray") newArray, newFormat
                     else
                         newArray

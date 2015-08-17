@@ -56,7 +56,8 @@ angular.module 'mindbender.mindtagger.arrayParsers', [
 
 .filter 'parsedArray', ($filter) ->
     (text, format) ->
-        return text if text instanceof Array
+        return text if not text? or (text instanceof Array)
+        return [text] if (typeof text) isnt "string"
         switch format
             when "postgres"
                 ($filter "parsedPostgresArray") text
@@ -65,7 +66,7 @@ angular.module 'mindbender.mindtagger.arrayParsers', [
             else # when "json"
                 try JSON.parse text
                 catch err
-                    console.error err
+                    console.error err.message
                     [text]
 
 .filter 'concatArray', (parsedArrayFilter) ->
