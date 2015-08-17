@@ -66,10 +66,10 @@
                     <span ng-init="query = search.query" ng-include="'search/search-query.html'"></span>
                     <script type="text/ng-template" id="search/search-query.html">
                         for
-                        <span ng-if="query.body.query.query_string.query">
-                            [ <strong>{{query.body.query.query_string.query}}</strong> ]
+                        <span ng-if="query._query_string">
+                            [ <strong>{{query._query_string}}</strong> ]
                         </span>
-                        <span ng-if="!query.body.query.query_string.query">everything</span>
+                        <span ng-if="!query._query_string">everything</span>
                         <span ng-if="query.type"> in <em>{{query.type}}</em></span>
                     </script>
                 </p>

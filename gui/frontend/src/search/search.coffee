@@ -202,6 +202,22 @@ angular.module "mindbenderApp.search", [
                                 terms:
                                     field: navigable
             @error = null
+            # query_string query
+            qs = @params.q
+            q =
+                if @params.q
+                    query_string:
+                        default_operator: "AND"
+                        query: qs
+            # also search source when possible
+            # TODO highlight what's found here?
+            if q? and @types?[@params.t]?.source?
+                q = bool: should:
+                    [ q
+                    , has_parent:
+                        parent_type: @types[@params.t].source.type
+                        query: q
+                    ]
             query =
                 index: @elasticsearchIndexName
                 type: @params.t
@@ -209,10 +225,7 @@ angular.module "mindbenderApp.search", [
                     # elasticsearch Query DSL (See: https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/quick-start.html#_elasticsearch_query_dsl)
                     size: @params.n
                     from: (@params.p - 1) * @params.n
-                    query: if @params.q
-                        query_string:
-                            default_operator: "AND"
-                            query: @params.q
+                    query: q
                     # TODO support filters
                     aggs: aggs
                     highlight:
@@ -224,6 +237,7 @@ angular.module "mindbenderApp.search", [
                 @error = null
                 @queryRunning = null
                 @query = query
+                @query._query_string = qs
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
             , (err) =>
