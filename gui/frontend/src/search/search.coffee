@@ -8,8 +8,9 @@ angular.module "mindbender.search", [
     $routeProvider.when "/search/:index*?",
         brand: "DeepDive", brandIcon: "search"
         title: 'Search {{
-                q ? "for [" + q + "] " : "everything "}}{{
+                q ? "for [" + q + "] " : (s ? "for [" + s + "] " : "everything ")}}{{
                 t ? "in " + t + " " : ""}}{{
+                s ? (q ? "from sources matching [" + s + "] " : "") : ""}}{{
                 index ? "(" + index + ") " : ""
             }}- DeepDive'
         templateUrl: "search/search.html"
@@ -158,6 +159,7 @@ angular.module "mindbender.search", [
             @query = @results = @error = null
             @paramsDefault =
                 q: null # query string
+                s: null # query string for source
                 t: null # type to search
                 n: 10   # number of items in a page
                 p: 1    # page number (starts from 1)
@@ -212,21 +214,33 @@ angular.module "mindbender.search", [
                                     field: navigable
             @error = null
             # query_string query
-            qs = @params.q
+            if (st = (@getSourceFor @params.t)?.type)?
+                # extraction type
+                sq = @params.s
+                qs = @params.q
+            else
+                # source type
+                sq = null
+                qs = @params.s
             q =
-                if @params.q
+                if qs?.length > 0
                     query_string:
                         default_operator: "AND"
                         query: qs
             # also search source when possible
             # TODO highlight what's found here?
-            if q? and @types?[@params.t]?.source?
-                q = bool: should:
-                    [ q
-                    , has_parent:
-                        parent_type: @types[@params.t].source.type
-                        query: q
+            if st? and sq?.length > 0
+                q = bool:
+                    should: [
+                        q
+                      , has_parent:
+                            parent_type: st
+                            query:
+                                query_string:
+                                    default_operator: "AND"
+                                    query: sq
                     ]
+                    minimum_should_match: 2
             query =
                 index: @elasticsearchIndexName
                 type: @params.t
@@ -247,6 +261,8 @@ angular.module "mindbender.search", [
                 @queryRunning = null
                 @query = query
                 @query._query_string = qs
+                @query._source_type = st
+                @query._source_query_string = sq
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
             , (err) =>
@@ -258,8 +274,7 @@ angular.module "mindbender.search", [
             # TODO cache sources and invalidate upon ever non-continuing search?
             # find out what source docs we need fetch for current search results
             docRefs = []; docsByMgetOrder = []
-            for doc in docs when @types?[doc._type]?.source and not doc.parent?
-                parentRef = @types[doc._type].source
+            for doc in docs when (parentRef = @getSourceFor doc._type)? and not doc.parent?
                 docsByMgetOrder.push doc
                 docRefs.push
                     _index: doc._index
@@ -286,7 +301,7 @@ angular.module "mindbender.search", [
             , reject
 
         doNavigate: (field, value) =>
-            qExtra =
+            qsExtra =
                 if value?
                     if field in @getFieldsFor "navigable"
                         # use field-specific search for navigable fields
@@ -297,13 +312,21 @@ angular.module "mindbender.search", [
                 else
                     # filtering down null has a special query_string syntax
                     "_missing_:#{field}"
-            # TODO check if qExtra is already there in @params.q
-            @params.q =
-                if @params.q?
-                    "#{@params.q} #{qExtra}"
+            # TODO check if qsExtra is already there in @params.q
+            qs = if (@getSourceFor @params.t)? then "q" else "s"
+            @params[qs] =
+                if @params[qs]
+                    "#{@params[qs]} #{qsExtra}"
                 else
-                    qExtra
+                    qsExtra
             @doSearch no
+
+        splitQueryString: (query_string) =>
+            # TODO be sensitive to "phrase with spaces"
+            query_string.split /\s+/
+
+        getSourceFor: (type) =>
+            @types?[type]?.source
 
         getFieldsFor: (what, type = @params.t) =>
             if what instanceof Array

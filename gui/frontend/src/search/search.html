@@ -71,6 +71,11 @@
                         </span>
                         <span ng-if="!query._query_string">everything</span>
                         <span ng-if="query.type"> in <em>{{query.type}}</em></span>
+                        <span ng-if="query._source_query_string">
+                            from <em>{{query._source_type}}</em>
+                            matching
+                            [ <strong>{{query._source_query_string}}</strong> ]
+                        </span>
                     </script>
                 </p>
 
@@ -80,7 +85,7 @@
                         <!-- provenance hyperlink -->
                         <p>
                             <!-- TODO routing param -->
-                            <a href="#/view/{{hit._index | urlEncode
+                            <a ng-href="#/view/{{hit._index | urlEncode
                                     }}/{{hit._type | urlEncode
                                     }}?{{hit.parent ? 'parent=' + (hit.parent._id | urlEncode) + '&' : ''
                                     }}id={{hit._id | urlEncode
