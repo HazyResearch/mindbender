@@ -55,7 +55,7 @@ exports.configureRoutes = (app, args) ->
         res.json searchSchema
 
     # expose custom search result templates to frontend
-    app.use "/search/template", express.static "#{process.env.DEEPDIVE_APP}/search/template"
+    app.use "/search/template", express.static "#{process.env.DEEPDIVE_APP}/mindbender/search-template"
     # fallback to default template
     app.get "/search/template/*.html", (req, res) ->
         res.redirect "/search/result-template-default.html"
