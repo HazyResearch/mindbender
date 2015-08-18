@@ -42,6 +42,10 @@ case ${1:-} in
         usage "$0" "No action given: gui, update, status, or destroy"
 esac
 
+# create a temporary space
+tmpdir=$(mktemp -d ${TMPDIR:-/tmp}/mindbender-search.XXXXXXX)
+trap "rm -rf $tmpdir" EXIT
+
 # simple wrapper for elasticsearch HTTP API
 esAPI() {
     local verb=$1 path=$2; shift 2
@@ -53,15 +57,8 @@ esAPIx() {
     local verb=$1 path=$2; shift 2
     esAPI "$verb" "/$ELASTICSEARCH_INDEX_NAME$path" "$@"
 }
-need_tmpdir() {
-    if ! [[ -d "${tmpdir:-}" ]]; then
-        tmpdir=$(mktemp -d ${TMPDIR:-/tmp}/mindbender-search.XXXXXXX)
-        trap "rm -rf $tmpdir" EXIT
-    fi
-}
 jqSchema() {
     if ! [[ -f "${DDLOG_SCHEMA_JSON:-}" ]]; then
-        need_tmpdir
         DDLOG_SCHEMA_JSON="$tmpdir"/app.ddlog.json
         # TODO keep this schema exporting under deepdive command?
         ddlog export-schema app.ddlog >"$DDLOG_SCHEMA_JSON"
@@ -70,12 +67,10 @@ jqSchema() {
     jqDDlog <"$DDLOG_SCHEMA_JSON" "$@"
 }
 
-
 # perform action on search index
 case $Action in
     gui)
         # derive a schema for search frontend from DDlog
-        need_tmpdir
         DDLOG_SEARCH_SCHEMA="$tmpdir"/search-frontend-schema.json
         jqSchema '[relations] | mindbenderSearchFrontendSchemaForRelations' >"$DDLOG_SEARCH_SCHEMA"
         export DDLOG_SEARCH_SCHEMA
@@ -85,7 +80,6 @@ case $Action in
         ;;
 
     update)
-        need_tmpdir
         # use relations specified over command-line to filter target relations
         export DDLOG_RELATIONS_SELECTED
         if [[ $# -eq 0 ]]; then
