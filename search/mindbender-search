@@ -72,7 +72,7 @@ case $Action in
     gui)
         # derive a schema for search frontend from DDlog
         DDLOG_SEARCH_SCHEMA="$tmpdir"/search-frontend-schema.json
-        jqSchema '[relations] | mindbenderSearchFrontendSchemaForRelations' >"$DDLOG_SEARCH_SCHEMA"
+        jqSchema '[relations] | searchFrontendSchema' >"$DDLOG_SEARCH_SCHEMA"
         export DDLOG_SEARCH_SCHEMA
 
         # launch the GUI

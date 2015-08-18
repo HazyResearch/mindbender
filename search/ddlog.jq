@@ -83,14 +83,72 @@ def relationsReferencingThisRelation:
     ]
 ;
 
-# SQL query for unloading a relation from PostgreSQL database with associated relations nested
-def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
+## schema graph traversal for search document model
+# build a spanning tree from the current relation
+def relationSubgraphForSearchFromRelation(parentRelation):
     # TODO detect cycles
     # TODO limit nestingLevel
     . as $this |
+    { relation: $this
+    , references: [
+            relationsReferencedByThisRelation[] |
+            # don't nest @source relations
+            if (.relation != parentRelation) and
+               (.relation | relationByName | isAnnotated(.name == "source") | not)
+            then .graph = (.relation | relationByName |
+                           relationSubgraphForSearchFromRelation($this.name))
+            else .
+            end
+        ]
+    , referencedBy: [
+            relationsReferencingThisRelation[] |
+            # don't nest other @extraction relations that references this
+            if (.byRelation != parentRelation) and
+               (.byRelation | relationByName | isAnnotated(.name == "extraction") | not)
+            then .graph = (.byRelation | relationByName |
+                           relationSubgraphForSearchFromRelation($this.name))
+            else .
+            end
+        ]
+    }
+;
+def relationSubgraphForSearchFromRelation: relationSubgraphForSearchFromRelation(null);
+
+# from the subgraph, enumerate all qualified field names, e.g., R.Q.col1, R.Q.col2, that meet given conditions
+def allNestedFields(selectColumn):
+    # first enumerate all nodes with its path
+    {path:[], graph:.} | recurse(
+        . as $this |
+        .graph | (
+            .references[] | select(.graph) |
+            .path = $this.path + [.alias]
+        ), (
+            .referencedBy[] | select(.graph) |
+            .path = $this.path + ["\(.byRelation)_\(.alias)"]
+        )
+    ) |
+    # turn each node into qualified field names
+    [.path + (.graph.relation | columns | selectColumn | [.name]) | join(".")][]
+;
+
+# enumerate the @source relation names this one @references
+def sourceRelations:
+    relationsReferenced[] |
+    select(.relation | relationByName | isAnnotated(.name == "source"))
+    # TODO
+    #relationSubgraphForSearchFromRelation |
+    #def r:
+    #    .references[] | select
+    #;
+;
+
+# SQL query for unloading a relation from PostgreSQL database with associated relations nested
+def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
     "\n\(indent)" as $indent |
 
     # collect some info about this relation
+    # TODO use relationSubgraphForSearchFromRelation instead
+    . as $this |
     { this: .
     , references: [
             relationsReferencedByThisRelation[] |
@@ -249,8 +307,7 @@ def jqExprForColumns:
 def jqForBulkLoadingRelationIntoElasticsearch:
     (
         # taking the first group of columns referencing a @source relation
-        [ relationsReferenced[] |
-          select(.relation | relationByName | isAnnotated(.name == "source"))
+        [ sourceRelations |
           .byColumn | map(.name)
         ][0]
     ) as $columnsForParent |
@@ -271,27 +328,23 @@ def elasticsearchMappingsForRelations:
         key: .name,
         value: (
             # TODO generate a full mapping with all properties
-            [
-                relationsReferenced[] |
-                select(.relation | relationByName | isAnnotated(.name == "source"))
-            ][0].relation |
+            [sourceRelations][0].relation |
             if . then { _parent: { type: . } } else {} end
         )
     }) |
     { mappings: from_entries }
 ;
 
-def mindbenderSearchFrontendSchemaForRelations:
+def searchFrontendSchema:
     [ relations | annotated([.name] | inside(["source", "extraction"])) |
-    { key: .name, value: {
-              kind: (if isAnnotated(.name == "source") then "source" else "extraction" end),
+    { key: .name, value: relationSubgraphForSearchFromRelation | {
+              kind: (if .relation | isAnnotated(.name == "source") then "source" else "extraction" end),
         # TODO add paths for nested fields
-        searchable: [columns | annotated(.name == "searchable") | .name],
-         navigable: [columns | annotated(.name ==  "navigable") | .name],
+        searchable: [allNestedFields(annotated(.name == "searchable"))],
+         navigable: [allNestedFields(annotated(.name == "navigable"))],
         # TODO presentation fields
             source: [
-                relationsReferenced[] |
-                select(.relation | relationByName | isAnnotated(.name == "source")) |
+                .relation | sourceRelations |
                 { type: .relation
                 , fields: (.byColumn | map(.name))
                 , alias: .alias
