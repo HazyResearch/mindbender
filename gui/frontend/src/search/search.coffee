@@ -305,7 +305,7 @@ angular.module "mindbender.search", [
                 if value?
                     if field in @getFieldsFor "navigable"
                         # use field-specific search for navigable fields
-                        "#{field}:#{value}"
+                        "#{field}:\"#{value}\""
                     else if field in @getFieldsFor "searchable"
                         # just add extra keyword to the search
                         value
