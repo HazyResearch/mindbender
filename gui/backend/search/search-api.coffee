@@ -47,7 +47,7 @@ exports.configureApp = (app, args) ->
                 .send "Elasticsearch service not configured\n($ELASTICSEARCH_BASEURL environment not set)"
 
 exports.configureRoutes = (app, args) ->
-    app.use "/api/search/schema.json", express.static process.env.DDLOG_SEARCH_SCHEMA
+    app.use "/api/search/schema.json", express.static process.env.DDLOG_SEARCH_SCHEMA if process.env.DDLOG_SEARCH_SCHEMA?
     app.get "/api/search/schema.json", (req, res) -> res.json {}
 
     # expose custom search result templates to frontend
