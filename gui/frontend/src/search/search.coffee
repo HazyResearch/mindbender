@@ -25,12 +25,16 @@ angular.module "mindbender.search", [
         redirectTo: "/search/"
 
 ## for searching extraction/source data
-.controller "SearchResultCtrl", ($scope, $routeParams, DeepDiveSearch, $modal) ->
+.controller "SearchResultCtrl", ($scope, $routeParams, $location, DeepDiveSearch, $modal) ->
     $scope.search = DeepDiveSearch.init $routeParams.index
     $scope.openModal = (options) ->
         $modal.open _.extend {
             scope: $scope
         }, options
+
+    # make sure we show search results at first visit (when no parameters are there yet)
+    if (_.size $location.search()) == 0
+        do $scope.search.doSearch
 
 .directive "deepdiveSearchBar", ->
     scope:
