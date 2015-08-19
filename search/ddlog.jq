@@ -133,13 +133,9 @@ def allNestedFields(selectColumn):
 
 # enumerate the @source relation names this one @references
 def sourceRelations:
+    # TODO use relationSubgraphForSearchFromRelation instead
     relationsReferenced[] |
     select(.relation | relationByName | isAnnotated(.name == "source"))
-    # TODO
-    #relationSubgraphForSearchFromRelation |
-    #def r:
-    #    .references[] | select
-    #;
 ;
 
 # SQL query for unloading a relation from PostgreSQL database with associated relations nested
@@ -323,23 +319,80 @@ def jqForBulkLoadingRelationIntoElasticsearch:
 ;
 
 ## Search frontend and Elasticsearch helpers
+# type mapping
+{
+    # TODO byte
+    # TODO short
+    int: "integer",
+    bigint: "long",
+    # float
+    # double
+    text: "string",
+    bool: "boolean"
+    # TODO date
+    # TODO binary
+} as $toElasticsearchTypes |
+def elasticsearchTypeForDDlogType:
+    rtrimstr("[]") | # TODO handle nested arrays
+    $toElasticsearchTypes[.] // .
+;
+
+# properties
+def elasticsearchPropertiesForMappings:
+    [(
+        [.relation | columns]
+        # except the columns referencing others
+        - [.references[] | select(.graph) | .byColumn[]] | .[] |
+        {
+            key: .name,
+            value: {
+                type: .type | elasticsearchTypeForDDlogType,
+                index: (
+                    # only have @searchable columns broken into tokens
+                    if isAnnotated(.name == "searchable")
+                    then "analyzed"
+                    else "not_analyzed"
+                    end
+                )
+            }
+        }
+    ), (
+        .references[] | select(.graph) | {
+            key: .alias,
+            value: {
+                properties: .graph | elasticsearchPropertiesForMappings
+            }
+        }
+    ), (
+        .referencedBy[] | select(.graph) | {
+            key: "\(.byRelation)_\(.alias)",
+            value: {
+                properties: .graph | elasticsearchPropertiesForMappings
+            }
+        }
+    )] | from_entries
+;
+
 def elasticsearchMappingsForRelations:
     map({
         key: .name,
-        value: (
-            # TODO generate a full mapping with all properties
-            [sourceRelations][0].relation |
+        value: relationSubgraphForSearchFromRelation | ({
+            # generate a full mapping with all properties
+            properties: elasticsearchPropertiesForMappings,
+        } * (
+            # _parent to the first @source relation
+            [.relation | sourceRelations][0].relation |
             if . then { _parent: { type: . } } else {} end
-        )
+        ))
     }) |
-    { mappings: from_entries }
+    from_entries
 ;
 
 def searchFrontendSchema:
     [ relations | annotated([.name] | inside(["source", "extraction"])) |
     { key: .name, value: relationSubgraphForSearchFromRelation | {
               kind: (if .relation | isAnnotated(.name == "source") then "source" else "extraction" end),
-        # TODO add paths for nested fields
+        # add paths for nested fields
         searchable: [allNestedFields(annotated(.name == "searchable"))],
          navigable: [allNestedFields(annotated(.name == "navigable"))],
         # TODO presentation fields
