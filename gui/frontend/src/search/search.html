@@ -1,7 +1,7 @@
 <!-- Search Page -->
 
 <nav class="navbar navbar-default navbar-fixed-top">
-    <div class="container">
+    <div class="container-fluid">
         <div class="navbar-header" ng-include="'app-navbar-header.html'"></div>
         <div deepdive-search-bar for="search"></div>
     </div>
@@ -12,24 +12,25 @@
 <!-- Search results -->
 <div class="container-fluid">
     <div class="row">
-        <div class="col-xs-2 affix sidebar">
+        <div class="col-xs-2 col-md-3 affix sidebar">
             <!-- faceted search with aggregations -->
-            <div ng-repeat="(field, agg) in search.results.aggregations">
+            <div ng-repeat="(field, agg) in search.results.aggregations" ng-if="agg.buckets.length > 0">
                 <h4>{{field}}</h4>
-                <table ng-init="fieldType = search.getFieldType(field)">
-                    <tr ng-repeat="bucket in agg.buckets track by $index">
-                        <td><button class="btn btn-default btn-xs" ng-click="search.doNavigate(field, bucket.key)">{{bucket.key}}</button></td>
+                <table class="table table-hover table-condensed"
+                    ng-init="fieldType = search.getFieldType(field)">
+                    <tr ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate(field, bucket.key)">
+                        <td><a>{{bucket.key}}<em ng-if="bucket.key == ''">(empty)</em></a></td>
                         <td class="text-right"><span class="badge badge-default">{{bucket.doc_count}}</span></td>
                     </tr>
                     <tr ng-if="fieldType != 'string' && search.results.hits.total > search.countTotalDocCountOfBuckets(agg)">
-                        <td><button class="btn btn-default btn-xs" ng-click="search.doNavigate(field, null)"><em>null</em></button></td>
+                        <td><a><em>null</em></a></td>
                         <td class="text-right"><span class="badge badge-default">{{search.results.hits.total - search.countTotalDocCountOfBuckets(agg)}}</span></td>
                     </tr>
                 </table>
             </div>
 
         </div>
-        <div class="col-xs-10 col-xs-offset-2 main">
+        <div class="col-xs-10 col-xs-offset-2 col-md-9 col-md-offset-3 main">
             <div class="pull-right">
 	        <button type="button" class="btn btn-default"
 	            ng-click='openModal({templateUrl:"search/search-debug-modal.html", size:"lg"})'
@@ -141,6 +142,14 @@
     top: 70px;
     bottom: 90px;
     overflow-y: auto; 
+}
+.sidebar h4, .sidebar a {
+    word-break: break-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+.sidebar tr {
+    cursor: pointer;
 }
 
 .hit blockquote .hlt1 { background-color: #ffc; }
