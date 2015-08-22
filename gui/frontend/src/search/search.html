@@ -15,7 +15,9 @@
         <div class="col-xs-2 col-md-3 affix sidebar">
             <!-- faceted search with aggregations -->
             <div ng-repeat="(field, agg) in search.results.aggregations" ng-if="agg.buckets.length > 0">
-                <h4>{{field}}</h4>
+                <h4 data-toggle="collapse" data-target="#facets-{{field | safeId}}"
+                    aria-expanded="true" aria-controls="facets-{{field | safeId}}">{{field}}</h4>
+                <div id="facets-{{field | safeId}}" class="collapse in">
                 <table class="table table-hover table-condensed"
                     ng-init="fieldType = search.getFieldType(field)">
                     <tr ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate(field, bucket.key)">
@@ -27,6 +29,7 @@
                         <td class="text-right"><span class="badge badge-default">{{search.results.hits.total - search.countTotalDocCountOfBuckets(agg)}}</span></td>
                     </tr>
                 </table>
+                </div>
             </div>
 
         </div>
@@ -148,7 +151,7 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
-.sidebar tr {
+.sidebar h4, .sidebar tr {
     cursor: pointer;
 }
 

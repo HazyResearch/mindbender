@@ -380,3 +380,8 @@ angular.module "mindbender.search", [
             changed
 
     new DeepDiveSearch
+
+# a handy filter for generating safe id strings for HTML
+.filter "safeId", () ->
+    (text) ->
+        text?.replace /[^A-Za-z0-9_-]/g, "_"
