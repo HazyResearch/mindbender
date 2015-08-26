@@ -29,6 +29,7 @@ people_mentions(
   @highlight_length()
   length         int,
   @searchable
+  @navigable
   text           text,
   @key
   mention_id     text).
@@ -51,10 +52,11 @@ has_spouse_candidates(
 has_spouse_features(
   @references(relation="has_spouse_candidates", column="relation_id")
   relation_id text,
-  @searchable
+  @navigable
   feature     text).
 
 has_spouse?(
+  @key
   @references(relation="has_spouse_candidates", column="relation_id")
   relation_id text
   ).
