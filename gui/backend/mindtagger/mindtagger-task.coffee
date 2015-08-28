@@ -125,7 +125,11 @@ class MindtaggerTask
                 byNewKey = {}
                 oldKeyColumns = allTags.key_columns
                 for item,idx in allItems
-                    oldKey = @keyFor item, idx, oldKeyColumns
+                    oldKey =
+                        if oldKeyColumns?
+                            @keyFor item, idx, oldKeyColumns
+                        else
+                            idx
                     if (tag = allTags.by_key[oldKey])?
                         newKey = @keyFor item, idx
                         byNewKey[newKey] = tag
