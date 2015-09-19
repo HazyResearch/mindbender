@@ -19,6 +19,10 @@ errorHandler = require "errorhandler"
 bodyParser = require "body-parser"
 jade = require "jade"
 socketIO = require "socket.io"
+cookieParser = require "cookie-parser"
+expressSession = require "express-session"
+passport = require "passport"
+GoogleStrategy = require("passport-google-oauth").OAuth2Strategy
 
 ## express.js server
 app = module.exports = express()
@@ -29,6 +33,7 @@ io = socketIO.listen server
 app.set "port", (parseInt process.env.PORT ? 8000)
 app.set "views", "#{__dirname}/views"
 app.set "view engine", "jade"
+ 
 
 # set up logging
 app.use logger "dev"
@@ -46,6 +51,26 @@ process.on "uncaughtException", (err) ->
         process.exit 2
     else
         throw err
+
+## enable authentication #######################################################
+
+require "./auth/auth-api"
+
+app.use cookieParser()
+app.use expressSession({ 
+  secret: 'keyboard cat',
+  resave: true,
+  saveUninitialized: true 
+})
+app.use passport.initialize()
+app.use passport.session()
+
+ensureAuthenticated = (req, res, next) ->
+  if !REQUIRES_LOGIN || req.isAuthenticated()
+    next()
+  else
+    res.redirect '/auth/google'
+
 
 # TODO use a more sophisticated command-line parser
 cmdlnArgs = process.argv[2..]
@@ -74,6 +99,57 @@ app.use (bodyParser.urlencoded extended: true)
 # set up routes
 for component in components
     component.configureRoutes? app, cmdlnArgs
+
+###############################################################################
+
+# Login
+REQUIRES_LOGIN = false 
+GOOGLE_CLIENT_ID = 'INSERT_GOOGLE_CLIENT_ID_HERE'
+GOOGLE_CLIENT_SECRET = 'INSERT_GOOGLE_CLIENT_SECRET_HERE'
+GOOGLE_CALLBACK_ENDPOINT = 'http://localhost:8000'
+
+passport.serializeUser (user,done) ->
+  console.log "serializeUser"
+  console.log user
+  done null, user
+
+passport.deserializeUser (obj, done) ->
+  console.log "deserializeUser"
+  console.log obj
+  done null, obj
+
+passport.use new GoogleStrategy({
+    clientID: GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET,
+    callbackURL: "#{GOOGLE_CALLBACK_ENDPOINT}/auth/google/callback"
+  },
+  (accessToken, refreshToken, profile, done) ->
+    process.nextTick () ->
+      return done null, profile
+  )
+
+app.get '/auth/google',
+  passport.authenticate('google', { prompt:'select_account', scope: ['https://www.googleapis.com/auth/plus.login'] }),
+  (req, res) -> ''
+    # The request will be redirected to Google for authentication, so this
+    # function will not be called.
+
+app.get '/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) ->
+    req.session.save (err) ->
+      return res.redirect '/'
+
+app.get '/user', (req, res) ->
+  res.send req.user 
+
+app.get '/logout', (req, res) ->
+  req.logout()
+  req.session.destroy (err) ->
+    res.redirect '/'
+
+
+app.get '/', ensureAuthenticated
 
 ###############################################################################
 

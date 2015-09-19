@@ -13,6 +13,7 @@ PACKAGEVERSIONSUFFIX := -$(shell uname)-$(shell uname -m)
 # list of modules
 MODULES += dashboard
 MODULES += search
+MODULES += auth
 MODULES += depends
 MODULES += depends/nodejs
 MODULES += gui/backend

@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+# mindbender-auth -- Creates and maintains database of authorized users
+# 
+# To launch the database:
+# $ mindbender auth start
+# 
+# To update the search index with new searchable data produced by DeepDive, run:
+# $ mindbender search update
+# You can specify which searchable relations to update:
+# $ mindbender search update [RELATION]...
+# 
+# To check the search index status:
+# $ mindbender search status
+# 
+# For any reason, to drop the search index, run:
+# $ mindbender search drop
+# Or specify the relation to drop:
+# $ mindbender search drop [RELATION]...
+# 
+# To see internal schema mappings:
+# $ mindbender search show-frontend-schema
+# $ mindbender search show-elasticsearch-mappings
+#
+##
+# Author: Jaeho Shin <netj@cs.stanford.edu>
+# Created: 2015-07-31
+set -eu
+set -o pipefail
+
+# needs to work on a DeepDive app
+#DEEPDIVE_APP=$(find-deepdive-app)
+#export DEEPDIVE_APP
+#cd "$DEEPDIVE_APP"
+
+# use the DeepDive app's folder name for the ES index name
+#: ${ELASTICSEARCH_INDEX_NAME:=$(basename "$DEEPDIVE_APP")}
+#: ${ELASTICSEARCH_BULK_BATCHSIZE:=1000}
+
+# parse command-line args
+case ${1:-} in
+      start)
+          ${MONGODB_RUNNING:-false} ||
+              exec start-mongodb
+          Action=$1; shift
+          ;;
+      stop)
+          exec stop-mongodb
+          Action=$1; shift
+          ;;
+
+
+#     gui|update|status|drop)
+#         # make sure elasticsearch is running
+#         ${ELASTICSEARCH_RUNNING:-false} ||
+#             exec keep-elasticsearch-during -- "$0" "$@"
+#         Action=$1; shift
+#         ;;
+#     show-frontend-schema|show-elasticsearch-mappings)
+#         # no need for elasticsearch
+#         Action=$1; shift
+#         ;;
+     *)
+        usage "$0" "Invalid action given: gui, update, status, or drop"
+esac
+
+# # create a temporary space
+# tmpdir=$(mktemp -d ${TMPDIR:-/tmp}/mindbender-search.XXXXXXX)
+# trap "rm -rf $tmpdir" EXIT
+# 
+# # simple wrapper for elasticsearch HTTP API
+# esAPI() {
+#     local verb=$1 path=$2; shift 2
+#     curl -sS -X$verb "$ELASTICSEARCH_BASEURL$path" "$@"
+#     echo  # because ES does not put an EOL
+# }
+# # shorthand for APIs on the index
+# esAPIx() {
+#     local verb=$1 path=$2; shift 2
+#     esAPI "$verb" "/$ELASTICSEARCH_INDEX_NAME$path" "$@"
+# }
+# esAPIcheck() {
+#     # translate error response into error messages and exit status
+#     local errmsg=$(jq -e -r -s '
+#         if length == 0 then "empty response"
+#         else .[] | .error | select(.)
+#         end | "Elasticsearch error: \(.)"
+#     ')
+#     [[ -z "$errmsg" ]] || error "$errmsg"
+# }
+# jqSchema() {
+#     if ! [[ -f "${DDLOG_SCHEMA_JSON:-}" ]]; then
+#         DDLOG_SCHEMA_JSON="$tmpdir"/app.ddlog.json
+#         # TODO keep this schema exporting under deepdive command?
+#         ddlog export-schema app.ddlog >"$DDLOG_SCHEMA_JSON"
+#     fi
+#     export DDLOG_SCHEMA_JSON
+#     jqDDlog <"$DDLOG_SCHEMA_JSON" "$@"
+# }
+# setDDlogRelationsSelected() {
+#     # use relations specified over command-line to filter target relations
+#     export DDLOG_RELATIONS_SELECTED
+#     if [[ $# -eq 0 ]]; then
+#         # default to all searchable entities discovered from DDlog
+#         eval set -- $(jqSchema 'relations | .name | @sh')
+#     else
+#         # check errors in given names of relations
+#         DDLOG_RELATIONS_SELECTED=$(
+#             printf '%s\n' "$@" | jq -R -s -c 'rtrimstr("\n") | split("\n")')
+#         badNames=$(jqSchema '
+#             env.DDLOG_RELATIONS_SELECTED | fromjson[] |
+#             select(
+#                 ([relationByName] | length == 0) or
+#                 (relationByName | isAnnotated([.name] | inside(["source", "extraction"])) | not)
+#             )
+#         ' -r)
+#         [[ -z "$badNames" ]] ||
+#             error "$badNames: must be a @source or @extraction relation"
+#     fi
+#     # filter down to only @source and @extraction relations
+#     DDLOG_RELATIONS_SELECTED=$(jqSchema '[
+#         relationsSelected |
+#         annotated([.name] | inside(["source", "extraction"])) |
+#         .name
+#     ]' -c)
+#     [[ "$DDLOG_RELATIONS_SELECTED" != "[]" ]] ||
+#         error "No @source or @extraction relations found"
+# }
+# 
+# # perform action on search index
+# case $Action in
+#     gui)
+#         # derive a schema for search frontend from DDlog
+#         DDLOG_SEARCH_SCHEMA="$tmpdir"/search-frontend-schema.json
+#         jqSchema 'searchFrontendSchema' >"$DDLOG_SEARCH_SCHEMA"
+#         export DDLOG_SEARCH_SCHEMA
+# 
+#         # launch the GUI
+#         exec mindbender-gui "$@"
+#         ;;
+# 
+#     update)
+#         setDDlogRelationsSelected "$@"
+# 
+#         # set up parent-child mapping based on @references annotations
+#         # (See: https://www.elastic.co/guide/en/elasticsearch/guide/current/parent-child-mapping.html)
+#         eval set -- $(jqSchema 'relationsSelected | .name | @sh' -r)
+#         echo >&2 "Deriving mappings for relations $*"
+#         mappings="$tmpdir"/mappings.json
+#         jqSchema '[relationsSelected] | elasticsearchMappingsForRelations' >"$mappings"
+#         if ! esAPIx GET "/" | esAPIcheck &>/dev/null; then
+#             # create the index
+#             echo >&2 "Creating index $ELASTICSEARCH_INDEX_NAME"
+#             jq <"$mappings" '{mappings:.}' |
+#             esAPIx PUT "/" --data-binary @- | esAPIcheck
+#         else
+#             # or update individual relations
+#             for relation; do
+#                 # show which ones will be indexed first
+#                 echo >&2 "Updating mappings for relation $relation"
+#                 jq <"$tmpdir"/mappings.json "{ $relation: .$relation }" |
+#                 esAPIx PUT "/_mappings/$relation" --data-binary @- | esAPIcheck ||
+#                     error "Retry after \`mindbender search drop $relation\`"
+#             done
+#         fi
+# 
+#         # bulk load to ES from DeepDive database
+#         update-relation() {
+#             local relation=$1; shift
+#             local sqlToUnload=$1; shift
+#             local jqToFormat=$1; shift
+#             echo >&2 "Indexing relation $relation"
+#             # unload data from database in json lines
+#             deepdive sql eval "$sqlToUnload" format=json |
+#             # show progress
+#             pv --line-mode --size="$(deepdive sql eval "SELECT COUNT(*) FROM $relation")" |
+#             # split records into multiple batches
+#             # TODO parallelize
+#             split --lines=$ELASTICSEARCH_BULK_BATCHSIZE --filter="$(escape-args-for-shell sh -euc '
+#                 jqToFormat=$1 indexURL=$2
+#                 # produce elasticsearch bulk load action for each JSON record
+#                 jq -c "$jqToFormat" |
+#                 # send them to elasticsearch
+#                 curl -sS -XPUT "$indexURL/_bulk" --data-binary @- |
+#                 # discard all result but the error field
+#                 jq ".errors"
+#                 ' -- "$jqToFormat" "$ELASTICSEARCH_BASEURL/$ELASTICSEARCH_INDEX_NAME/$relation")" |
+#             # make sure there wasn't any error
+#             jq -e -s "any | not" >/dev/null ||
+#                 error "Error loading relation $relation"
+#         }
+#         eval "$(jqSchema '
+#             # generate shell commands that index every selected relations
+#             relationsSelected |
+#             "update-relation \(.name | @sh) \(
+#                 sqlForRelationNestingAssociated | @sh) \(
+#                 jqForBulkLoadingRelationIntoElasticsearch | @sh
+#             )"
+#         ')"
+#         ;;
+# 
+#     status)
+#         esAPI GET '/_stats'
+#         ;;
+# 
+#     drop)
+#         if [[ $# -gt 0 ]]; then
+#             # drop the given relations from the index
+#             for relation; do
+#                 echo >&2 "Dropping relation $relation"
+#                 esAPIx DELETE "/$relation" | esAPIcheck
+#             done
+#         else
+#             # drop the entire ES index
+#             echo >&2 "Dropping entire index $ELASTICSEARCH_INDEX_NAME"
+#             esAPIx DELETE "/" | esAPIcheck
+#         fi
+#         ;;
+# 
+#     # show some internal schema mappings
+#     show-frontend-schema)
+#         jqSchema 'searchFrontendSchema'
+#         ;;
+#     show-elasticsearch-mappings)
+#         setDDlogRelationsSelected "$@"
+#         jqSchema '[ relationsSelected ] | elasticsearchMappingsForRelations'
+#         ;;
+# 
+#     *)
+#         error "$Action: unknown action"
+# esac
