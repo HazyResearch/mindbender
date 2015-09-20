@@ -48,19 +48,10 @@ process.on "uncaughtException", (err) ->
     else
         throw err
 
-## enable authentication #######################################################
-
-## Set this to true if you want to require users to login
-#REQUIRES_LOGIN = false
+## enable authentication ######################################################
 
 authApi = require "./auth/auth-api"
 authApi.configureRoutes? app, cmdlnArgs
-
-#ensureAuthenticated = (req, res, next) ->
-#  if !REQUIRES_LOGIN || req.isAuthenticated()
-#    next()
-#  else
-#    res.redirect '/auth/google'
 
 # TODO use a more sophisticated command-line parser
 cmdlnArgs = process.argv[2..]
