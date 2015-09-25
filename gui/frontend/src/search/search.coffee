@@ -196,27 +196,6 @@ angular.module "mindbender.search", [
         doSearch: (isContinuing = no) => @initialized.then =>
             @params.p = 1 unless isContinuing
             fieldsSearchable = @getFieldsFor "searchable", @params.t
-            # forumate aggregations
-            aggs = {}
-            if @indexes?
-                for navigable in @getFieldsFor ["navigable", "searchable"], @params.t
-                    aggs[navigable] =
-                        switch @getFieldType navigable
-                            when "boolean"
-                                terms:
-                                    field: navigable
-                            when "string"
-                                significant_terms:
-                                    field: navigable
-                                    min_doc_count: 1
-                            when "long"
-                                # TODO range? with automatic rnages
-                                # TODO extended_stats?
-                                stats:
-                                    field: navigable
-                            else # TODO any better default for unknown types?
-                                terms:
-                                    field: navigable
             @error = null
             # query_string query
             if (st = (@getSourceFor @params.t)?.type)?
@@ -246,6 +225,34 @@ angular.module "mindbender.search", [
                                     query: sq
                     ]
                     minimum_should_match: 2
+            # forumate aggregations
+            aggs = {}
+            if @indexes?
+                for navigable in @getFieldsFor ["navigable", "searchable"], @params.t
+                    aggs[navigable] =
+                        switch @getFieldType navigable
+                            when "boolean"
+                                terms:
+                                    field: navigable
+                            when "string"
+                                # significant_terms buckets are empty if query is empty;
+                                # terms buckets are not empty in that case.
+                                # we want to show facets even for initial page with empty query.
+                                if qs?.length > 0
+                                    significant_terms:
+                                        field: navigable
+                                        min_doc_count: 1
+                                else
+                                    terms:
+                                        field: navigable
+                            when "long"
+                                # TODO range? with automatic rnages
+                                # TODO extended_stats?
+                                stats:
+                                    field: navigable
+                            else # TODO any better default for unknown types?
+                                terms:
+                                    field: navigable
             query =
                 index: @elasticsearchIndexName
                 type: @params.t
