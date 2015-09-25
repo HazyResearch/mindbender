@@ -208,6 +208,7 @@ angular.module "mindbender.search", [
                             when "string"
                                 significant_terms:
                                     field: navigable
+                                    min_doc_count: 1
                             when "long"
                                 # TODO range? with automatic rnages
                                 # TODO extended_stats?
