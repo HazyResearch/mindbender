@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # mindbender-search -- Creates and maintains search index
-# 
+#
 # To launch the search GUI:
 # $ mindbender search gui
-# 
+#
 # To update the search index with new searchable data produced by DeepDive, run:
 # $ mindbender search update
 # You can specify which searchable relations to update:
 # $ mindbender search update [RELATION]...
-# 
+#
 # To check the search index status:
 # $ mindbender search status
-# 
+#
 # For any reason, to drop the search index, run:
 # $ mindbender search drop
 # Or specify the relation to drop:
 # $ mindbender search drop [RELATION]...
-# 
+#
 # To see internal schema mappings:
 # $ mindbender search show-frontend-schema
 # $ mindbender search show-elasticsearch-mappings

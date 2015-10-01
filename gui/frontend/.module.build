@@ -107,6 +107,7 @@ fi
 
 # Construct the final version at app/ with necessary files only
 echo >&2 "Staging final products at app/"
+
 dest=../app
 mkdir -p $dest
 rsync -aH --omit-dir-times --delete \
@@ -126,7 +127,8 @@ compile-in() {
     local src=$1 out=$2
     compile-xdocs "$src"
 }
-compile from=.js.in to=.js  with=compile-in  src/ace/**/*.in
+# Commenting out line below for now because it blocks compilation on Mac
+# compile from=.js.in to=.js  with=compile-in  src/ace/**/*.in
 rsync -aHv --omit-dir-times \
     --exclude=*.{in,out} src/ace/ \
     bower_components/ace-builds/src-noconflict/

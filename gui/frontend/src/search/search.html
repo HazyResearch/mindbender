@@ -14,14 +14,24 @@
     <div class="row">
         <div class="col-xs-2 col-md-3 affix sidebar">
             <!-- faceted search with aggregations -->
-            <div ng-repeat="(field, agg) in search.results.aggregations" ng-if="agg.buckets.length > 0">
+            <div ng-repeat="agg in search.results.facets" ng-if="agg.buckets.length > 0" ng-init="field=agg.field">
                 <h4 data-toggle="collapse" data-target="#facets-{{field | safeId}}"
                     aria-expanded="true" aria-controls="facets-{{field | safeId}}">{{field}}</h4>
                 <div id="facets-{{field | safeId}}" class="collapse in">
                 <table class="table table-hover table-condensed"
                     ng-init="fieldType = search.getFieldType(field)">
                     <tr ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate(field, bucket.key)">
-                        <td><a>{{bucket.key}}<em ng-if="bucket.key == ''">(empty)</em></a></td>
+                        <td><a>
+                            <span ng-if="field == 'domain_type'" class="label"
+                                ng-class="bucket.key == 'ads' ? 'label-info' : 'label-success'">
+                                {{bucket.key}}
+                            </span>
+                            <span ng-if="field !== 'domain_type'"
+                                ng-class="field == 'flags' ? 'label label-warning' : ''">
+                                {{bucket.key}}
+                            </span>
+                            <em ng-if="bucket.key == ''">(empty)</em>
+                        </a></td>
                         <td class="text-right"><span class="badge badge-default">{{bucket.doc_count}}</span></td>
                     </tr>
                     <tr ng-if="fieldType != 'string' && search.results.hits.total > search.countTotalDocCountOfBuckets(agg)">
@@ -35,7 +45,7 @@
         </div>
         <div class="col-xs-10 col-xs-offset-2 col-md-9 col-md-offset-3 main">
             <div class="pull-right">
-	        <button type="button" class="btn btn-default"
+	        <button type="button" class="btn btn-default hide"
 	            ng-click='openModal({templateUrl:"search/search-debug-modal.html", size:"lg"})'
 	            data-toggle="modal" data-target="#search-debug-modal"><i class="fa fa-cogs"></i></button>
 	    </div>
@@ -73,8 +83,6 @@
                         <span ng-if="query._query_string">
                             [ <strong>{{query._query_string}}</strong> ]
                         </span>
-                        <span ng-if="!query._query_string">everything</span>
-                        <span ng-if="query.type"> in <em>{{query.type}}</em></span>
                         <span ng-if="query._source_query_string">
                             from <em>{{query._source_type}}</em>
                             matching
@@ -89,31 +97,31 @@
                         <!-- provenance hyperlink -->
                         <p>
                             <!-- TODO routing param -->
-                            <a ng-href="#/view/{{hit._index | urlEncode
+                            <span ng-href="#/view/{{hit._index | urlEncode
                                     }}/{{hit._type | urlEncode
                                     }}?{{hit.parent ? 'parent=' + (hit.parent._id | urlEncode) + '&' : ''
                                     }}id={{hit._id | urlEncode
                                     }}"
-                               class="text-muted">{{hit._type}}( {{hit._id}} ) in {{hit._index}}</a>
+                               class="text-muted">{{hit._id}}</span>
                         </p>
 
                         <!-- highlights, visualization -->
-                        <blockquote>
+
                             <!-- highlight to hint why this is a result -->
-                            <div ng-repeat="(field, highlight) in hit.highlight">
+                            <blockquote class="small" ng-repeat="(field, highlight) in hit.highlight">
                                 <strong class="text-muted">{{field}}:</strong>
-                                <div ng-repeat="h in highlight track by $index">
-                                    <div ng-if="$index > 0">...</div>
-                                    <p ng-bind-html="h"></p>
-                                </div>
-                            </div>
+                                <span ng-repeat="h in highlight track by $index">
+                                    <span ng-if="$index > 0">...</span>
+                                    <span ng-bind-html="h"></span>
+                                </span>
+                            </blockquote>
 
                             <!-- use custom per-type presentation templates -->
                             <p deepdive-visualized-data="hit" search-result="hit"></p>
 
                             <!-- raw data -->
-                            <p show-raw-data="hit"></p>
-                        </blockquote>
+                            <!-- <p show-raw-data="hit"></p> -->
+
                     </li>
                 </ol>
             </div>
@@ -140,11 +148,18 @@
         </div>
     </div>
 </div>
+
+<link href='https://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+<!-- <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'> -->
+
 <style>
+body, .VS-interface, .VS-search .dialog, .VS-search input {
+    font-family: Lato !important;
+}
 .sidebar {
     top: 70px;
-    bottom: 90px;
-    overflow-y: auto; 
+    bottom: 50px;
+    overflow-y: auto;
 }
 .sidebar h4, .sidebar a {
     word-break: break-all;
@@ -154,13 +169,26 @@
 .sidebar h4, .sidebar tr {
     cursor: pointer;
 }
+blockquote {
+    font-size: normal !important;
+}
+.hit .hlt1 { background-color: #ffc; }
+.hit .hlt2 { background-color: #cff; }
+.hit .hlt3 { background-color: #fcf; }
+.hit .hlt4 { background-color: #ccf; }
+.hit .hlt5 { background-color: #cfc; }
+.hit .hlt6 { background-color: #fcc; }
 
-.hit blockquote .hlt1 { background-color: #ffc; }
-.hit blockquote .hlt2 { background-color: #cff; }
-.hit blockquote .hlt3 { background-color: #fcf; }
-.hit blockquote .hlt4 { background-color: #ccf; }
-.hit blockquote .hlt5 { background-color: #cfc; }
-.hit blockquote .hlt6 { background-color: #fcc; }
+.pagination {
+    margin: 5px auto;
+}
+.navbar.navbar-fixed-bottom {
+    min-height: auto;
+}
+.panel-heading .breadcrumb {
+    margin-bottom: auto;
+    padding: 5px;
+}
 
 [ng-hide=showJsonTree] {
     font-size: 13px;
@@ -185,3 +213,102 @@
     </div>
 </nav>
 <style>body { padding-bottom: 70px; }</style>
+
+<script type="text/javascript" charset="utf-8">
+window.setupSearchBar = function() {
+    var SEARCH = angular.element($('.navbar-fixed-top').find('[for=search]')[0]).scope().search;
+    var ELASTIC = SEARCH.elastic;
+    var searchable = SEARCH.getFieldsFor('searchable');
+    var navigable = SEARCH.getFieldsFor('navigable');
+    // Categories would break VS as it's not compatible with JqUI 1.11.4
+    // var facets = _.map(searchable, function(x) {
+    //     return {
+    //         label: x,
+    //         category: 'Content Fields'
+    //     };
+    // }).concat(_.map(navigable, function(x) {
+    //     return {
+    //         label: x,
+    //         category: 'Facet Fields'
+    //     };
+    // }));
+    var facets = searchable.concat(navigable);
+    window.visualSearch = VS.init({
+      container : $('.visual_search'),
+      query     : '',
+      callbacks : {
+        search       : function(query, searchCollection) {
+            SEARCH.params.s = query;
+            SEARCH.doSearch();
+        },
+        facetMatches : function(callback) {
+            callback(facets);
+        },
+        valueMatches : function(facet, searchTerm, callback) {
+            if (!_.contains(navigable, facet)) return;
+            var request = {
+                index:  '_all',
+                type: SEARCH.params.t,
+            };
+            var promise;
+            if (!searchTerm) {
+                // ES suggest API doesn't return results when query is empty.
+                // We use the aggs API instead in that case.
+                request.body = {
+                    aggs: {
+                        hist: {
+                            terms: {
+                                size: 20,
+                                field: facet
+                            }
+                        }
+                    }
+                };
+                promise = ELASTIC.search(request);
+            } else {
+                request.body = {
+                    suggest: {
+                        text: searchTerm,
+                        completion :{
+                            size: 20,
+                            fuzzy: {
+                                prefix_length: 0
+                            },
+                            field : facet + "__suggest"
+                        }
+                    }
+                }
+                promise = ELASTIC.suggest(request);
+            }
+            promise.then(function(data) {
+                var results;
+                if (data.suggest && data.suggest.length) {
+                    results = _.map(data.suggest[0].options, function(item) {
+                        return {
+                            value: item.text,
+                            // Although we do set weight=1 when indexing suggest fileds,
+                            // the final score is not the sum.
+                            label: item.text // + ' (' + item.score + ')'
+                        };
+                    });
+                } else if (data.aggregations && data.aggregations.hist) {
+                    results = _.map(data.aggregations.hist.buckets, function(item) {
+                        return {
+                            value: item.key,
+                            label: item.key + ' (' + item.doc_count + ')'
+                        };
+                    });
+                } else {
+                    return;
+                }
+
+                callback(results, {
+                    preserveMatches: true
+                });
+            });
+        }
+      }
+    });
+    window.visualSearch.SEARCH = SEARCH;
+}
+</script>

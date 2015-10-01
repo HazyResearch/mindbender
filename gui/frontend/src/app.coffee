@@ -27,15 +27,8 @@ angular.module 'mindbender', [
     $rootScope.$on "$routeUpdate",      updateRootScopeFromCurrentRoute
 
 .controller 'LandingPageCtrl', ($rootScope, $http, $location) ->
-    # redirect to mindtagger or dashboard at first visit
-    unless $rootScope.mindtaggerTasks?
-        $http.get "api/mindtagger/"
-            .success (tasks) ->
-                $rootScope.mindtaggerTasks = tasks
-                if tasks.length > 0
-                    $location.path "/mindtagger"
-                else
-                    $location.path "/dashboard"
+    $location.path "/search/"
+
 
 ## Workaround to get source mapping for uncaught exceptions
 ## See: http://stackoverflow.com/a/25642699

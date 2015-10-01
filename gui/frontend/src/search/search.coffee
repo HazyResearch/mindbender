@@ -6,7 +6,7 @@ angular.module "mindbender.search", [
 
 .config ($routeProvider) ->
     $routeProvider.when "/search/:index*?",
-        brand: "DeepDive", brandIcon: "search"
+        brand: "Evidently LE", brandIcon: "search"
         title: 'Search {{
                 q ? "for [" + q + "] " : (s ? "for [" + s + "] " : "everything ")}}{{
                 t ? "in " + t + " " : ""}}{{
@@ -17,7 +17,7 @@ angular.module "mindbender.search", [
         controller: "SearchResultCtrl"
         reloadOnSearch: no
     $routeProvider.when "/view/:index/:type",
-        brand: "DeepDive", brandIcon: "search"
+        brand: "Evidently LE", brandIcon: "search"
         title: """{{type}}( {{id}} ) in {{index}} - DeepDive"""
         templateUrl: "search/view.html"
         controller: "SearchViewCtrl"
@@ -60,7 +60,7 @@ angular.module "mindbender.search", [
 
 ## for viewing individual extraction/source data
 .controller "SearchViewCtrl", ($scope, $routeParams, $location, DeepDiveSearch) ->
-    $scope.search = DeepDiveSearch.init $routeParams.index
+    $scope.search = DeepDiveSearch.init $routeParams.indexs
     _.extend $scope, $routeParams
     searchParams = $location.search()
     $scope.id = searchParams.id
@@ -80,6 +80,8 @@ angular.module "mindbender.search", [
         <span class="alert alert-danger" ng-if="error">{{error}}</span>
         """
     link: ($scope) ->
+        $scope.search = DeepDiveSearch.init()
+        $scope.isArray = angular.isArray
         showError = (err) ->
             msg = err?.message ? err
             console.error msg
@@ -164,18 +166,20 @@ angular.module "mindbender.search", [
             @paramsDefault =
                 q: null # query string
                 s: null # query string for source
-                t: null # type to search
+                t: 'everything' # type to search
                 n: 10   # number of items in a page
                 p: 1    # page number (starts from 1)
             @params = _.extend {}, @paramsDefault
             @types = null
             @indexes = null
+            @elastic = elasticsearch
 
             @initialized = $q.all [
                 # load the search schema
                 $http.get "/api/search/schema.json"
                     .success (data) =>
                         @types = data
+                        window.setupSearchBar()
                     .error (err) =>
                         console.error err.message
             ,
@@ -206,6 +210,8 @@ angular.module "mindbender.search", [
                 # source type
                 sq = null
                 qs = @params.s
+            if window.visualSearch
+                window.visualSearch.searchBox.value(qs)
             q =
                 if qs?.length > 0
                     query_string:
@@ -228,13 +234,13 @@ angular.module "mindbender.search", [
             # forumate aggregations
             aggs = {}
             if @indexes?
-                for navigable in @getFieldsFor ["navigable", "searchable"], @params.t
+                for navigable in @getFieldsFor ["navigable", "searchableXXXXXX"], @params.t
                     aggs[navigable] =
                         switch @getFieldType navigable
                             when "boolean"
                                 terms:
                                     field: navigable
-                            when "string"
+                            when "stringXXXXXX"
                                 # significant_terms buckets are empty if query is empty;
                                 # terms buckets are not empty in that case.
                                 # we want to show facets even for initial page with empty query.
@@ -277,6 +283,20 @@ angular.module "mindbender.search", [
                 @query._source_query_string = sq
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
+                facets = []
+                best_facets = ['domain_type', 'flags', 'locations', 'countries', 'domain']
+                for f in best_facets
+                    if f of data.aggregations
+                        facet = data.aggregations[f]
+                        facet.field = f
+                        facets.push facet
+                for k, v of data.aggregations
+                    if k not in best_facets
+                        facet = data.aggregations[k]
+                        facet.field = k
+                        facets.push facet
+                @results.facets = facets
+
             , (err) =>
                 @error = err
                 console.error err.message
@@ -328,7 +348,10 @@ angular.module "mindbender.search", [
             qs = if (@getSourceFor @params.t)? then "q" else "s"
             @params[qs] =
                 if @params[qs]
-                    "#{@params[qs]} #{qsExtra}"
+                    if @params[qs].indexOf(qsExtra) == -1
+                        "#{@params[qs]} #{qsExtra}"
+                    else
+                        @params[qs]
                 else
                     qsExtra
             @doSearch no

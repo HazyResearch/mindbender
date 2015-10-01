@@ -1,7 +1,7 @@
 <form class="navbar-form navbar-right" role="search" style="width:85%;">
     <div class="form-group input-group" style="width:100%;">
         <!-- type dropdown -->
-        <div class="input-group-btn dropdown" style="width:1%;" ng-if="search.types">
+        <div class="input-group-btn dropdown hide" style="width:1%;" ng-if="search.types">
             <button type="button" class="btn dropdown-toggle"
                 ng-class="{
                     'btn-default': !search.params.t,
@@ -22,8 +22,10 @@
             </ul>
         </div>
 
+        <span class="visual_search"></span>
+
         <!-- single search box -->
-        <input type="search" class="form-control"
+        <input type="search" class="form-control hide"
             ng-if="!search.getSourceFor(search.params.t).type"
             placeholder="matching any keywords, /regex/, field:term, ..."
             ng-model="search.params.s">
@@ -46,7 +48,7 @@
             ng-model="search.params.s">
 
         <!-- search button -->
-        <span class="input-group-btn" style="width:1%;">
+        <span class="input-group-btn hide" style="width:1%;">
             <button type="submit" class="btn btn-primary" ng-click="search.doSearch()">
                 <i class="fa fa-search"></i><span class="sr-only"> Search</span></button>
         </span>
