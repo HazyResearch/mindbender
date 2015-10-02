@@ -14,7 +14,34 @@ exports.configureApp = (app, args) ->
     # See: http://stackoverflow.com/a/21663820/390044
     url = require "url"
     httpProxy = require 'http-proxy'
+    bodyParser = require('body-parser')
+    morgan = require('morgan')
     proxy = httpProxy.createProxyServer {}
+    app.enable('trust proxy')
+
+    morgan.token 'json', getJson = (req) ->
+        esq = null
+        if Object.prototype.toString.call(req.body) == "[object Object]"
+            esq = _.clone(req.body)
+            if esq.aggs and esq.query
+                delete esq.aggs
+                delete esq.highlight
+        fields = {
+            ts: Date.now() / 1000.0,
+            time: new Date().toISOString(),
+            ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || req.ips,
+            url: req.url,
+            params: req.params,
+            query: req.query,
+            method: req.method,
+            referer: req.headers.referer,
+            user_agent: req.headers['user-agent'],
+            content_type: req.headers['content-type'],
+            accept_languages: req.headers['accept-language'],
+            es: esq
+        }
+        return JSON.stringify(fields)
+
     apiProxyMiddlewareFor = (path, target, rewrites) -> (req, res, next) ->
         if req.url.match path
             # rewrite pathname if any rules were specified
@@ -24,8 +51,16 @@ exports.configureApp = (app, args) ->
                     newUrl.pathname = newUrl.pathname.replace pathnameRegex, replacement
                 req.url = url.format newUrl
             # proxy request to the target
+            # restreaming hack from https://github.com/nodejitsu/node-http-proxy/issues/180#issuecomment-97702206
+            body = JSON.stringify(req.body)
+            req.headers['content-length'] = Buffer.byteLength(body, 'utf8')
+            buffer = {}
+            buffer.pipe = (dest)->
+                process.nextTick ->
+                    dest.write(body)
             proxy.web req, res,
                     target: target
+                    buffer: buffer
                 , (err, req, res) ->
                     res
                         .status 503
@@ -36,6 +71,15 @@ exports.configureApp = (app, args) ->
     # Reverse proxy for Elasticsearch
     elasticsearchApiPath = /// ^/api/elasticsearch(|/.*)$ ///
     if process.env.ELASTICSEARCH_BASEURL?
+        app.use(bodyParser.json())
+        if process.env.MBSEARCH_LOG_FILE?
+            console.log 'INFO: Logging requests at MBSEARCH_LOG_FILE = ' + process.env.MBSEARCH_LOG_FILE
+            morgan_opt = {}
+            fs = require('fs')
+            morgan_opt.stream = fs.createWriteStream(process.env.MBSEARCH_LOG_FILE, {flags: 'a'})
+            app.use(morgan(':json', morgan_opt))
+        else
+            console.log 'WARNING: MBSEARCH_LOG_FILE undefined; not logging.'
         app.use apiProxyMiddlewareFor elasticsearchApiPath, process.env.ELASTICSEARCH_BASEURL, [
             # pathname /api/elasticsearch must be stripped for Elasticsearch
             [/// ^/api/elasticsearch ///, "/"]
