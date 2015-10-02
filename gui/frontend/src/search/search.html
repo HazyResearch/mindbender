@@ -21,17 +21,19 @@
                 <table class="table table-hover table-condensed"
                     ng-init="fieldType = search.getFieldType(field)">
                     <tr ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate(field, bucket.key)">
-                        <td><a>
-                            <span ng-if="field == 'domain_type'" class="label"
+                        <td>
+                            <a ng-if="field == 'domain_type'" class="label"
+                                style="cursor: pointer"
                                 ng-class="bucket.key == 'ads' ? 'label-info' : 'label-success'">
                                 {{bucket.key}}
-                            </span>
-                            <span ng-if="field !== 'domain_type'"
+                            </a>
+                            <a ng-if="field !== 'domain_type'"
+                                style="cursor: pointer"
                                 ng-class="field == 'flags' ? 'label label-warning' : ''">
                                 {{bucket.key}}
-                            </span>
-                            <em ng-if="bucket.key == ''">(empty)</em>
-                        </a></td>
+                            </a>
+                            <a ng-if="bucket.key == ''"><em>(empty)</em></a>
+                        </td>
                         <td class="text-right"><span class="badge badge-default">{{bucket.doc_count}}</span></td>
                     </tr>
                     <tr ng-if="fieldType != 'string' && search.results.hits.total > search.countTotalDocCountOfBuckets(agg)">
@@ -188,6 +190,14 @@ blockquote {
 .panel-heading .breadcrumb {
     margin-bottom: auto;
     padding: 5px;
+}
+
+.hover-show {
+    visibility: hidden;
+}
+
+.hover-show-wrapper:hover .hover-show {
+    visibility: inherit;
 }
 
 [ng-hide=showJsonTree] {

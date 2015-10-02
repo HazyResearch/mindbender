@@ -70,7 +70,7 @@ angular.module "mindbender.search", [
         _type:  $scope.type
         _id:    $scope.id
 
-.directive "deepdiveVisualizedData", (DeepDiveSearch, $q) ->
+.directive "deepdiveVisualizedData", (DeepDiveSearch, $q, $timeout) ->
     scope:
         data: "=deepdiveVisualizedData"
         searchResult: "="
@@ -79,7 +79,7 @@ angular.module "mindbender.search", [
         <span ng-include="'search/template/' + data._type + '.html'"></span>
         <span class="alert alert-danger" ng-if="error">{{error}}</span>
         """
-    link: ($scope) ->
+    link: ($scope, $element) ->
         $scope.search = DeepDiveSearch.init()
         $scope.isArray = angular.isArray
         showError = (err) ->
@@ -128,6 +128,10 @@ angular.module "mindbender.search", [
                 _.extend $scope.data, data
                 initScope data
             , showError
+
+        $timeout () ->
+            $element.find('[data-toggle=tooltip]').tooltip()
+
 
 .directive "showRawData", ->
     restrict: "A"
@@ -334,7 +338,7 @@ angular.module "mindbender.search", [
                 , reject
             , reject
 
-        doNavigate: (field, value) =>
+        doNavigate: (field, value, newSearch = false) =>
             qsExtra =
                 if value?
                     if field in @getFieldsFor "navigable"
@@ -349,7 +353,7 @@ angular.module "mindbender.search", [
             # TODO check if qsExtra is already there in @params.q
             qs = if (@getSourceFor @params.t)? then "q" else "s"
             @params[qs] =
-                if @params[qs]
+                if @params[qs] and not newSearch
                     if @params[qs].indexOf(qsExtra) == -1
                         "#{@params[qs]} #{qsExtra}"
                     else
