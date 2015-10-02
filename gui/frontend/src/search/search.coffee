@@ -273,10 +273,12 @@ angular.module "mindbender.search", [
                         tags_schema: "styled"
                         fields: _.object ([f,{}] for f in fieldsSearchable)
             @queryRunning = query
+            @querystringRunning = qs
             elasticsearch.search query
             .then (data) =>
                 @error = null
                 @queryRunning = null
+                @querystringRunning = null
                 @query = query
                 @query._query_string = qs
                 @query._source_type = st

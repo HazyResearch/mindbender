@@ -23,7 +23,7 @@ exports.configureApp = (app, args) ->
         esq = null
         if Object.prototype.toString.call(req.body) == "[object Object]"
             esq = _.clone(req.body)
-            if esq.aggs and esq.query
+            if esq.aggs and esq.highlight
                 delete esq.aggs
                 delete esq.highlight
         fields = {
