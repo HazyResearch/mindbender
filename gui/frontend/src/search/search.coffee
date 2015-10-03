@@ -347,9 +347,11 @@ angular.module "mindbender.search", [
                     else if field in @getFieldsFor "searchable"
                         # just add extra keyword to the search
                         value
-                else
+                else if field?
                     # filtering down null has a special query_string syntax
                     "_missing_:#{field}"
+                else
+                    ""
             # TODO check if qsExtra is already there in @params.q
             qs = if (@getSourceFor @params.t)? then "q" else "s"
             @params[qs] =
