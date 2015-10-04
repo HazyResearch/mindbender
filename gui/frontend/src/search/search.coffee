@@ -216,8 +216,9 @@ angular.module "mindbender.search", [
                 sq = null
                 qs = @params.s
 
+            qs = qs || ''
             if window.visualSearch
-                window.visualSearch.searchBox.value(qs || '')
+                window.visualSearch.searchBox.value(qs)
             q =
                 if qs?.length > 0
                     query_string:
@@ -292,7 +293,7 @@ angular.module "mindbender.search", [
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
                 facets = []
-                best_facets = ['domain_type', 'flags', 'locations', 'countries', 'domain']
+                best_facets = ['domain_type', 'flags', 'domain', 'locations']
                 for f in best_facets
                     if f of data.aggregations
                         facet = data.aggregations[f]
@@ -354,16 +355,16 @@ angular.module "mindbender.search", [
                     "_missing_:#{field}"
                 else
                     ""
+            qsExtra = qsExtra || ''
             # TODO check if qsExtra is already there in @params.q
             qs = if (@getSourceFor @params.t)? then "q" else "s"
             @params[qs] =
-                if @params[qs] and not newSearch
-                    if @params[qs].indexOf(qsExtra) == -1
-                        "#{@params[qs]} #{qsExtra}"
-                    else
-                        @params[qs] || ''
-                else
+                if newSearch or not @params[qs]
                     qsExtra
+                else if qsExtra and @params[qs].indexOf(qsExtra) == -1
+                    "#{@params[qs]} #{qsExtra}"
+                else
+                    @params[qs]
             @doSearch no
 
         splitQueryString: (query_string) =>
