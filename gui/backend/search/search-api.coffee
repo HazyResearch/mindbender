@@ -26,6 +26,17 @@ exports.configureApp = (app, args) ->
             if esq.aggs and esq.highlight
                 delete esq.aggs
                 delete esq.highlight
+
+        user = null
+        if req.user?
+            user = {
+                id: req.user.id,
+                display_name: req.user.displayName,
+                name: req.user.name,
+                emails: req.user.emails,
+                photos: req.user.photos,
+                gender: req.user.gender
+            }
         fields = {
             ts: Date.now() / 1000.0,
             time: new Date().toISOString(),
@@ -38,7 +49,8 @@ exports.configureApp = (app, args) ->
             user_agent: req.headers['user-agent'],
             content_type: req.headers['content-type'],
             accept_languages: req.headers['accept-language'],
-            es: esq
+            es: esq,
+            user: user
         }
         return JSON.stringify(fields)
 
