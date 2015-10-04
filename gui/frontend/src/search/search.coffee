@@ -215,8 +215,9 @@ angular.module "mindbender.search", [
                 # source type
                 sq = null
                 qs = @params.s
+
             if window.visualSearch
-                window.visualSearch.searchBox.value(qs)
+                window.visualSearch.searchBox.value(qs || '')
             q =
                 if qs?.length > 0
                     query_string:
@@ -360,7 +361,7 @@ angular.module "mindbender.search", [
                     if @params[qs].indexOf(qsExtra) == -1
                         "#{@params[qs]} #{qsExtra}"
                     else
-                        @params[qs]
+                        @params[qs] || ''
                 else
                     qsExtra
             @doSearch no
