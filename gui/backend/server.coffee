@@ -29,6 +29,7 @@ io = socketIO.listen server
 app.set "port", (parseInt process.env.PORT ? 8000)
 app.set "views", "#{__dirname}/views"
 app.set "view engine", "jade"
+ 
 
 # set up logging
 app.use logger "dev"
@@ -46,6 +47,11 @@ process.on "uncaughtException", (err) ->
         process.exit 2
     else
         throw err
+
+## enable authentication ######################################################
+
+authApi = require "./auth/auth-api"
+authApi.configureRoutes? app, cmdlnArgs
 
 # TODO use a more sophisticated command-line parser
 cmdlnArgs = process.argv[2..]
@@ -74,6 +80,9 @@ app.use (bodyParser.urlencoded extended: true)
 # set up routes
 for component in components
     component.configureRoutes? app, cmdlnArgs
+
+
+app.get '/', authApi.ensureAuthenticated
 
 ###############################################################################
 

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# stop-mongodb -- Stops mongod instance 
+# $ stop-mongodb
+#
+# Modeled after search/keep-elasticsearch-during.
+##
+# Author: Raphael Hoffmann
+# Created: 2015-09-18
+set -eu
+
+# default settings
+: ${MONGODB_BASEURL:=http://localhost:27017} # TODO randomize port?
+: ${MONGODB_HOME:="$PWD"/auth}
+
+# make sure mongodb instance is available
+mongodb-is-up() {
+    mongo --eval "printjson(db.isMaster())" >/dev/null
+}
+case $MONGODB_BASEURL in
+    http://localhost:*)
+        terminate-local-mongodb() {
+            local pidfile="$MONGODB_HOME"/mongodb.pid
+            local pid=$(cat "$pidfile" 2>/dev/null)
+            echo "terminating pid $pid"
+            # kill the mongod process
+            [[ -z "$pid" ]] || {
+                kill -TERM $pid 
+                rm -f "$MONGODB_HOME"/mongodb.pid
+            }
+        }
+        # terminate if something's running locally but perhaps on a different port
+        if [[ -e "$MONGODB_HOME"/mongodb.pid ]]; then
+            terminate-local-mongodb
+        fi
+        ;;
+
+    *)
+        # skip setup since MONGODB_BASEURL is not localhost
+        # make sure the mongodb instance is there
+        error "$MONGODB_BASEURL: Not on localhost, cannot stop"
+esac
+

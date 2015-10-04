@@ -2,6 +2,7 @@ angular.module "mindbender.search", [
     'elasticsearch'
     'json-tree'
     'ngSanitize'
+    'mindbender.auth'
 ]
 
 .config ($routeProvider) ->
@@ -280,6 +281,7 @@ angular.module "mindbender.search", [
             @querystringRunning = qs
             elasticsearch.search query
             .then (data) =>
+                console.log JSON.stringify(data)
                 @error = null
                 @queryRunning = null
                 @querystringRunning = null

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# mindbender-auth -- Creates and maintains database of authorized users
+# 
+# To launch the database:
+# $ mindbender auth start
+# 
+set -eu
+set -o pipefail
+
+# parse command-line args
+case ${1:-} in
+      start)
+          ${MONGODB_RUNNING:-false} ||
+              exec start-mongodb
+          Action=$1; shift
+          ;;
+      stop)
+          exec stop-mongodb
+          Action=$1; shift
+          ;;
+     *)
+        usage "$0" "Invalid action given: gui, update, status, or drop"
+esac
+
