@@ -73,14 +73,14 @@
                 <!-- search results summary -->
                 <p class="lead">
                     <span ng-if="! search.results.hits.total > 0">No results</span>
-                    <span ng-if="search.results.hits.total > 0">
+                    <span ng-if="search.results.hits.total > 0 && search.query._query_string">
                         {{
                             search.query.body.from + 1                               | number
                         }}-{{
                             search.query.body.from + search.results.hits.hits.length | number
                         }} of {{search.results.hits.total | number}} results
                     </span>
-                    <span ng-init="query = search.query" ng-include="'search/search-query.html'"></span>
+                    <span ng-init="query = search.query" ng-if="search.query._query_string" ng-include="'search/search-query.html'"></span>
                     <script type="text/ng-template" id="search/search-query.html">
                         for
                         <span>
@@ -93,6 +93,15 @@
                         </span>
                     </script>
                 </p>
+
+                <div ng-if="!search.query._query_string" class="jumbotron">
+                    <h1>{{search.results.hits.total | number}}</h1>
+                    <p>documents</p>
+                    <br>
+                    <p>
+                        Enjoy!
+                    </p>
+                </div>
 
                 <!-- individual search results -->
                 <ol start="{{search.query.body.from + 1}}">
@@ -221,7 +230,7 @@ div.ter-juicy-review {
 
 
 <nav class="navbar navbar-default navbar-fixed-bottom">
-    <div class="container">
+    <div class="container" ng-if="search.query._query_string">
         <div class="text-center">
             <pagination class="pagination-sm fa"
             total-items="search.results ? search.results.hits.total

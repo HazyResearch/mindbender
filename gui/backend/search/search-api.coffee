@@ -19,7 +19,7 @@ exports.configureApp = (app, args) ->
     proxy = httpProxy.createProxyServer {}
     app.enable('trust proxy')
 
-    morgan.token 'json', getJson = (req) ->
+    morgan.token 'json', getJson = (req, res) ->
         esq = null
         if Object.prototype.toString.call(req.body) == "[object Object]"
             esq = _.clone(req.body)
@@ -39,9 +39,10 @@ exports.configureApp = (app, args) ->
             }
         fields = {
             ts: Date.now() / 1000.0,
+            millis: Date.now() - req._start,
             time: new Date().toISOString(),
             ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || req.ips,
-            url: req.url,
+            url: req._original_url || req.url,
             params: req.params,
             query: req.query,
             method: req.method,
@@ -59,8 +60,16 @@ exports.configureApp = (app, args) ->
             # rewrite pathname if any rules were specified
             if rewrites?
                 newUrl = url.parse req.url
+                # Empty query can be particularly slow.
+                # We cache it: https://www.elastic.co/guide/en/elasticsearch/reference/1.7/index-modules-shard-query-cache.html
+                if req.body and req.body.aggs and not req.body.query
+                    if not newUrl.query?
+                        newUrl.query = {}
+                    newUrl.query.search_type = 'count'
+                    newUrl.query.query_cache = 'true'
                 for [pathnameRegex, replacement] in rewrites
                     newUrl.pathname = newUrl.pathname.replace pathnameRegex, replacement
+                req._original_url = req.url
                 req.url = url.format newUrl
             # proxy request to the target
             # restreaming hack from https://github.com/nodejitsu/node-http-proxy/issues/180#issuecomment-97702206
@@ -83,6 +92,9 @@ exports.configureApp = (app, args) ->
     # Reverse proxy for Elasticsearch
     elasticsearchApiPath = /// ^/api/elasticsearch(|/.*)$ ///
     if process.env.ELASTICSEARCH_BASEURL?
+        app.use (req, res, next) ->
+            req._start = Date.now()
+            next()
         app.use(bodyParser.json())
         if process.env.MBSEARCH_LOG_FILE?
             console.log 'INFO: Logging requests at MBSEARCH_LOG_FILE = ' + process.env.MBSEARCH_LOG_FILE

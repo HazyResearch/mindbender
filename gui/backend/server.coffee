@@ -29,10 +29,10 @@ io = socketIO.listen server
 app.set "port", (parseInt process.env.PORT ? 8000)
 app.set "views", "#{__dirname}/views"
 app.set "view engine", "jade"
- 
+
 
 # set up logging
-app.use logger "dev"
+app.use logger "common"
 switch app.get "env"
     when "production"
         app.use logger "combined",

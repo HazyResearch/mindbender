@@ -281,7 +281,6 @@ angular.module "mindbender.search", [
             @querystringRunning = qs
             elasticsearch.search query
             .then (data) =>
-                console.log JSON.stringify(data)
                 @error = null
                 @queryRunning = null
                 @querystringRunning = null
