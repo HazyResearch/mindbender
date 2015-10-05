@@ -298,16 +298,19 @@ window.setupSearchBar = function() {
                 };
                 promise = ELASTIC.search(request);
             } else {
+                var comp = {
+                    size: 20,
+                    field : facet + "__suggest"
+                };
+                if (facet != 'phones') {
+                    comp.fuzzy = {
+                        prefix_length: 0
+                    };
+                }
                 request.body = {
                     suggest: {
                         text: searchTerm,
-                        completion :{
-                            size: 20,
-                            fuzzy: {
-                                prefix_length: 0
-                            },
-                            field : facet + "__suggest"
-                        }
+                        completion: comp
                     }
                 }
                 promise = ELASTIC.suggest(request);
