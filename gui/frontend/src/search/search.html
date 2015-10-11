@@ -41,7 +41,7 @@
                             </a>
                             <a ng-if="bucket.key == ''"><em>(empty)</em></a>
                         </td>
-                        <td class="text-right"><span class="badge badge-default">{{bucket.doc_count}}</span></td>
+                        <td class="text-right"><span class="badge badge-default">{{bucket.doc_count | number}}</span></td>
                     </tr>
                     <tr ng-if="fieldType != 'string' && search.results.hits.total > search.countTotalDocCountOfBuckets(agg)">
                         <td><a><em>null</em></a></td>
@@ -258,105 +258,117 @@ $(function(){
     $('body').on('click', '.facet-header', function(){
         $(this).find('i').toggleClass('fa-plus-square-o').toggleClass('fa-minus-square-o')
     });
-});
 
-window.setupSearchBar = function() {
-    var SEARCH = angular.element($('.navbar-fixed-top').find('[for=search]')[0]).scope().search;
-    var ELASTIC = SEARCH.elastic;
-    var searchable = SEARCH.getFieldsFor('searchable');
-    var navigable = SEARCH.getFieldsFor('navigable');
-    // Categories would break VS as it's not compatible with JqUI 1.11.4
-    // var facets = _.map(searchable, function(x) {
-    //     return {
-    //         label: x,
-    //         category: 'Content Fields'
-    //     };
-    // }).concat(_.map(navigable, function(x) {
-    //     return {
-    //         label: x,
-    //         category: 'Facet Fields'
-    //     };
-    // }));
-    var facets = searchable.concat(navigable);
-    window.visualSearch = VS.init({
-      container : $('.visual_search'),
-      query     : '',
-      callbacks : {
-        search       : function(query, searchCollection) {
-            SEARCH.params.s = query;
-            SEARCH.doSearch();
-        },
-        facetMatches : function(callback) {
-            callback(facets);
-        },
-        valueMatches : function(facet, searchTerm, callback) {
-            if (!_.contains(navigable, facet)) return;
-            var request = {
-                index:  '_all',
-                type: SEARCH.params.t,
-            };
-            var promise;
-            if (!searchTerm) {
-                // ES suggest API doesn't return results when query is empty.
-                // We use the aggs API instead in that case.
-                request.body = {
-                    aggs: {
-                        hist: {
-                            terms: {
-                                size: 20,
-                                field: facet
+    function setupSearchBar() {
+        var SEARCH = angular.element($('.navbar-fixed-top').find('[for=search]')[0]).scope().search;
+        var ELASTIC = SEARCH.elastic;
+        var searchable = SEARCH.getFieldsFor('searchable');
+        var navigable = SEARCH.getFieldsFor('navigable');
+        // Categories would break VS as it's not compatible with JqUI 1.11.4
+        // var facets = _.map(searchable, function(x) {
+        //     return {
+        //         label: x,
+        //         category: 'Content Fields'
+        //     };
+        // }).concat(_.map(navigable, function(x) {
+        //     return {
+        //         label: x,
+        //         category: 'Facet Fields'
+        //     };
+        // }));
+        var facets = searchable.concat(navigable);
+        window.visualSearch = VS.init({
+          container : $('.visual_search'),
+          query     : '',
+          callbacks : {
+            search       : function(query, searchCollection) {
+                SEARCH.params.s = query;
+                SEARCH.doSearch();
+            },
+            facetMatches : function(callback) {
+                callback(facets);
+            },
+            valueMatches : function(facet, searchTerm, callback) {
+                if (!_.contains(navigable, facet)) return;
+                var request = {
+                    index:  '_all',
+                    type: SEARCH.params.t,
+                };
+                var promise;
+                if (!searchTerm) {
+                    // ES suggest API doesn't return results when query is empty.
+                    // We use the aggs API instead in that case.
+                    request.body = {
+                        aggs: {
+                            hist: {
+                                terms: {
+                                    size: 20,
+                                    field: facet
+                                }
                             }
                         }
-                    }
-                };
-                promise = ELASTIC.search(request);
-            } else {
-                var comp = {
-                    size: 20,
-                    field : facet + "__suggest"
-                };
-                if (facet != 'phones') {
-                    comp.fuzzy = {
-                        prefix_length: 3
                     };
-                }
-                request.body = {
-                    suggest: {
-                        text: searchTerm,
-                        completion: comp
-                    }
-                }
-                promise = ELASTIC.suggest(request);
-            }
-            promise.then(function(data) {
-                var results;
-                if (data.suggest && data.suggest.length) {
-                    results = _.map(data.suggest[0].options, function(item) {
-                        return {
-                            value: item.text,
-                            // Although we do set weight=1 when indexing suggest fileds,
-                            // the final score is not the sum.
-                            label: item.text // + ' (' + item.score + ')'
-                        };
-                    });
-                } else if (data.aggregations && data.aggregations.hist) {
-                    results = _.map(data.aggregations.hist.buckets, function(item) {
-                        return {
-                            value: item.key,
-                            label: item.key + ' (' + item.doc_count + ')'
-                        };
-                    });
+                    promise = ELASTIC.search(request);
                 } else {
-                    return;
+                    var comp = {
+                        size: 20,
+                        field : facet + "__suggest"
+                    };
+                    if (facet != 'phones') {
+                        comp.fuzzy = {
+                            prefix_length: 3
+                        };
+                    }
+                    request.body = {
+                        suggest: {
+                            text: searchTerm,
+                            completion: comp
+                        }
+                    }
+                    promise = ELASTIC.suggest(request);
                 }
+                promise.then(function(data) {
+                    var results;
+                    if (data.suggest && data.suggest.length) {
+                        results = _.map(data.suggest[0].options, function(item) {
+                            return {
+                                value: item.text,
+                                // Although we do set weight=1 when indexing suggest fileds,
+                                // the final score is not the sum.
+                                label: item.text // + ' (' + item.score + ')'
+                            };
+                        });
+                    } else if (data.aggregations && data.aggregations.hist) {
+                        results = _.map(data.aggregations.hist.buckets, function(item) {
+                            return {
+                                value: item.key,
+                                label: item.key + ' (' + item.doc_count + ')'
+                            };
+                        });
+                    } else {
+                        return;
+                    }
 
-                callback(results, {
-                    preserveMatches: true
+                    callback(results, {
+                        preserveMatches: true
+                    });
                 });
-            });
+            }
+          }
+        });
+        window.visualSearch.SEARCH = SEARCH;
+    }
+
+    function setupSearchBarWhenSchemaJsonIsFetched() {
+        var SEARCH = angular.element($('.navbar-fixed-top').find('[for=search]')[0]).scope().search;
+        if(!SEARCH || !SEARCH.types) {
+            window.setTimeout(setupSearchBarWhenSchemaJsonIsFetched, 100);
+        } else {
+            setupSearchBar();
         }
-      }
-    });
-    window.visualSearch.SEARCH = SEARCH;
-}
+    }
+    setupSearchBarWhenSchemaJsonIsFetched();
+
+});
+
 </script>

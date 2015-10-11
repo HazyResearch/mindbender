@@ -185,7 +185,6 @@ angular.module "mindbender.search", [
                 $http.get "/api/search/schema.json"
                     .success (data) =>
                         @types = data
-                        window.setupSearchBar()
                     .error (err) =>
                         console.error err.message
             ,
