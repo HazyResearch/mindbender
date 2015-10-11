@@ -22,6 +22,7 @@
                     ng-click="search.toggleFacetCollpase(field)">
                     <i class="fa" ng-class="agg.collapsed ? 'fa-plus-square-o' : 'fa-minus-square-o'"></i>&nbsp;
                     {{field}}
+                    <small class="muted">({{agg.count | number}})</small>
                 </h4>
                 <div id="facets-{{field | safeId}}" class="collapse" ng-class="agg.collapsed ? '' : 'in'">
                 <table class="table table-hover table-condensed"
@@ -112,7 +113,7 @@
                 <ol start="{{search.query.body.from + 1}}">
                     <li ng-repeat="hit in search.results.hits.hits track by $index" class="hit">
                         <!-- provenance hyperlink -->
-                        <p>
+                        <p class='hide'>
                             <!-- TODO routing param -->
                             <span ng-href="#/view/{{hit._index | urlEncode
                                     }}/{{hit._type | urlEncode

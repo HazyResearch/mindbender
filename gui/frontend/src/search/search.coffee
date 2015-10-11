@@ -273,6 +273,9 @@ angular.module "mindbender.search", [
                             else # TODO any better default for unknown types?
                                 terms:
                                     field: navigable
+                    aggs[navigable + '__count'] =
+                        value_count:
+                            field: navigable
             query =
                 index: @elasticsearchIndexName
                 type: @params.t
@@ -305,13 +308,15 @@ angular.module "mindbender.search", [
                     if f of data.aggregations
                         facet = data.aggregations[f]
                         facet.field = f
+                        facet.count = data.aggregations[f + '__count'].value
                         if f of @collapsed_facets
                             facet.collapsed = true
                         facets.push facet
                 for k, v of data.aggregations
-                    if k not in best_facets
+                    if k not in best_facets and k + '__count' of data.aggregations
                         facet = data.aggregations[k]
                         facet.field = k
+                        facet.count = data.aggregations[k + '__count'].value
                         if k of @collapsed_facets
                             facet.collapsed = true
                         facets.push facet
