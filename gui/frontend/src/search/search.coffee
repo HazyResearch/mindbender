@@ -178,6 +178,7 @@ angular.module "mindbender.search", [
             @types = null
             @indexes = null
             @elastic = elasticsearch
+            @collapsed_facets = {}
 
             @initialized = $q.all [
                 # load the search schema
@@ -201,6 +202,12 @@ angular.module "mindbender.search", [
 
         init: (@elasticsearchIndexName = "_all") =>
             @
+
+        toggleFacetCollpase: (field) =>
+            if field of @collapsed_facets
+                delete @collapsed_facets[field]
+            else
+                @collapsed_facets[field] = true
 
         doSearch: (isContinuing = no) => @initialized.then =>
             @params.p = 1 unless isContinuing
@@ -298,11 +305,15 @@ angular.module "mindbender.search", [
                     if f of data.aggregations
                         facet = data.aggregations[f]
                         facet.field = f
+                        if f of @collapsed_facets
+                            facet.collapsed = true
                         facets.push facet
                 for k, v of data.aggregations
                     if k not in best_facets
                         facet = data.aggregations[k]
                         facet.field = k
+                        if k of @collapsed_facets
+                            facet.collapsed = true
                         facets.push facet
                 @results.facets = facets
 

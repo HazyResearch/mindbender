@@ -17,8 +17,13 @@
             <!-- faceted search with aggregations -->
             <div ng-repeat="agg in search.results.facets" ng-if="agg.buckets.length > 0" ng-init="field=agg.field">
                 <h4 data-toggle="collapse" data-target="#facets-{{field | safeId}}"
-                    aria-expanded="true" aria-controls="facets-{{field | safeId}}">{{field}}</h4>
-                <div id="facets-{{field | safeId}}" class="collapse in">
+                    aria-expanded="true" aria-controls="facets-{{field | safeId}}"
+                    class='facet-header'
+                    ng-click="search.toggleFacetCollpase(field)">
+                    <i class="fa" ng-class="agg.collapsed ? 'fa-plus-square-o' : 'fa-minus-square-o'"></i>&nbsp;
+                    {{field}}
+                </h4>
+                <div id="facets-{{field | safeId}}" class="collapse" ng-class="agg.collapsed ? '' : 'in'">
                 <table class="table table-hover table-condensed"
                     ng-init="fieldType = search.getFieldType(field)">
                     <tr ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate(field, bucket.key)">
@@ -247,6 +252,13 @@ div.ter-juicy-review {
 <style>body { padding-bottom: 70px; }</style>
 
 <script type="text/javascript" charset="utf-8">
+
+$(function(){
+    $('body').on('click', '.facet-header', function(){
+        $(this).find('i').toggleClass('fa-plus-square-o').toggleClass('fa-minus-square-o')
+    });
+});
+
 window.setupSearchBar = function() {
     var SEARCH = angular.element($('.navbar-fixed-top').find('[for=search]')[0]).scope().search;
     var ELASTIC = SEARCH.elastic;
