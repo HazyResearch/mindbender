@@ -286,7 +286,18 @@ $(function(){
                 SEARCH.doSearch();
             },
             facetMatches : function(callback) {
-                callback(facets);
+                var views = visualSearch.searchBox.inputViews;
+                var view = views[views.length - 1];
+                var val = view.value();
+                var cur = view.box[0].selectionStart;
+                if (cur != val.length) {
+                    callback([]);
+                } else {
+                    var matches = _.filter(facets, function(x) {
+                        return x.indexOf(val) === 0;
+                    });
+                    callback(matches);
+                }
             },
             valueMatches : function(facet, searchTerm, callback) {
                 if (!_.contains(navigable, facet)) return;
