@@ -228,6 +228,7 @@ angular.module "mindbender.search", [
             q =
                 if qs?.length > 0
                     query_string:
+                        default_field: "content"
                         default_operator: "AND"
                         query: qs
             # also search source when possible
@@ -240,6 +241,7 @@ angular.module "mindbender.search", [
                             parent_type: st
                             query:
                                 query_string:
+                                    default_field: "content"
                                     default_operator: "AND"
                                     query: sq
                     ]
