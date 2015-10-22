@@ -236,7 +236,7 @@ angular.module "mindbender.search", [
             q =
                 if qs?.length > 0
                     # Take care of quotations added by VisualSearch
-                    qs_for_es = qs.replace('"[', '[').replace(']"', ']').replace("'[", '[').replace("]'", ']')
+                    qs_for_es = qs.replace(/["']\[/g, '[').replace(/\]["']/g, ']')
                     query_string:
                         default_field: "content"
                         default_operator: "AND"

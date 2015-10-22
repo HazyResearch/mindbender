@@ -279,10 +279,10 @@ $(function(){
             field = $p.data('field');
         if (!min && !max) return;
         if (!/^[a-zA-Z0-9-_]*$/.test(min)) {
-            min = '"' + min.replace('"', '\\"') + '"';
+            min = '"' + min.replace(/"/g, '\\"') + '"';
         }
         if (!/^[a-zA-Z0-9-_]*$/.test(max)) {
-            max = '"' + max.replace('"', '\\"') + '"';
+            max = '"' + max.replace(/"/g, '\\"') + '"';
         }
         var val = '[' + (min || '*') + ' TO ' + (max || '*') + ']';
         if (val.indexOf('"') >= 0) {
