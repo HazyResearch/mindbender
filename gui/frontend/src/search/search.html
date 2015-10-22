@@ -26,8 +26,14 @@
                 </h4>
                 <div id="facets-{{field | safeId}}" class="collapse" ng-class="agg.collapsed ? '' : 'in'">
                 <div class="row" ng-if="agg.is_range" style="margin-bottom:8px" data-field="{{field}}">
-                    <div class="col-sm-4"><input type='text' placeholder='Min' class="form-control input-sm min-box"></div>
-                    <div class="col-sm-4"><input type='text' placeholder='Max' class="form-control input-sm max-box"></div>
+                    <div class="col-sm-4">
+                        <input type='text' placeholder='Min' class="form-control input-sm min-box" mydatepicker ng-if="agg.is_date">
+                        <input type='text' placeholder='Min' class="form-control input-sm min-box" ng-if="!agg.is_date">
+                    </div>
+                    <div class="col-sm-4">
+                        <input type='text' placeholder='Max' class="form-control input-sm max-box" mydatepicker ng-if="agg.is_date">
+                        <input type='text' placeholder='Max' class="form-control input-sm max-box" ng-if="!agg.is_date">
+                    </div>
                     <div class="col-sm-1"><button type="button" class="btn btn-default btn-small input-sm minmax-go">Go</button></div>
                 </div>
                 <table class="table table-hover table-condensed"
@@ -258,6 +264,8 @@ div.ter-juicy-review {
 <style>body { padding-bottom: 70px; }</style>
 
 <script type="text/javascript" charset="utf-8">
+
+$.fn.bootstrapDP = $.fn.datepicker.noConflict();
 
 $(function(){
     $('body').on('click', '.facet-header', function(){

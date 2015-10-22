@@ -59,6 +59,14 @@ angular.module "mindbender.search", [
                 $location.search DeepDiveSearch.params
                 $location.path "/search/"
 
+
+.directive "mydatepicker", ->
+    restrict: 'A'
+    replace: true
+    link: ($scope, $element) ->
+        $element.bootstrapDP({format: "yyyy-mm-dd"})
+
+
 ## for viewing individual extraction/source data
 .controller "SearchViewCtrl", ($scope, $routeParams, $location, DeepDiveSearch) ->
     $scope.search = DeepDiveSearch.init $routeParams.indexs
@@ -308,12 +316,14 @@ angular.module "mindbender.search", [
                 facets = []
                 best_facets = ['domain_type', 'flags', 'domain', 'locations', 'phones', 'post_date']
                 range_facets = ['ages', 'post_date', 'phones']
+                date_facets = ['post_date']
                 for f in best_facets
                     if f of data.aggregations
                         facet = data.aggregations[f]
                         facet.field = f
                         facet.count = data.aggregations[f + '__count'].value
                         facet.is_range = (f in range_facets)
+                        facet.is_date = (f in date_facets)
                         if f of @collapsed_facets
                             facet.collapsed = true
                         facets.push facet
@@ -323,6 +333,7 @@ angular.module "mindbender.search", [
                         facet.field = k
                         facet.count = data.aggregations[k + '__count'].value
                         facet.is_range = (k in range_facets)
+                        facet.is_date = (k in date_facets)
                         if k of @collapsed_facets
                             facet.collapsed = true
                         facets.push facet
