@@ -227,10 +227,12 @@ angular.module "mindbender.search", [
                 window.visualSearch.searchBox.value(qs)
             q =
                 if qs?.length > 0
+                    # Take care of quotations added by VisualSearch
+                    qs_for_es = qs.replace('"[', '[').replace(']"', ']').replace("'[", '[').replace("]'", ']')
                     query_string:
                         default_field: "content"
-                        default_operator: "OR"
-                        query: qs
+                        default_operator: "AND"
+                        query: qs_for_es
             # also search source when possible
             # TODO highlight what's found here?
             if st? and sq?.length > 0
@@ -242,7 +244,7 @@ angular.module "mindbender.search", [
                             query:
                                 query_string:
                                     default_field: "content"
-                                    default_operator: "OR"
+                                    default_operator: "AND"
                                     query: sq
                     ]
                     minimum_should_match: 2
@@ -289,7 +291,7 @@ angular.module "mindbender.search", [
                     aggs: aggs
                     highlight:
                         tags_schema: "styled"
-                        fields: _.object ([f,{}] for f in fieldsSearchable)
+                        fields: _.object ([f,{require_field_match: true}] for f in fieldsSearchable)
             @queryRunning = query
             @querystringRunning = qs
             elasticsearch.search query
@@ -304,12 +306,14 @@ angular.module "mindbender.search", [
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
                 facets = []
-                best_facets = ['domain_type', 'flags', 'domain', 'locations']
+                best_facets = ['domain_type', 'flags', 'domain', 'locations', 'phones', 'post_date']
+                range_facets = ['ages', 'post_date', 'phones']
                 for f in best_facets
                     if f of data.aggregations
                         facet = data.aggregations[f]
                         facet.field = f
                         facet.count = data.aggregations[f + '__count'].value
+                        facet.is_range = (f in range_facets)
                         if f of @collapsed_facets
                             facet.collapsed = true
                         facets.push facet
@@ -318,6 +322,7 @@ angular.module "mindbender.search", [
                         facet = data.aggregations[k]
                         facet.field = k
                         facet.count = data.aggregations[k + '__count'].value
+                        facet.is_range = (k in range_facets)
                         if k of @collapsed_facets
                             facet.collapsed = true
                         facets.push facet
@@ -363,7 +368,11 @@ angular.module "mindbender.search", [
                 if value?
                     if field in @getFieldsFor "navigable"
                         # use field-specific search for navigable fields
-                        "#{field}:\"#{value}\""
+                        # VisualSearch may have added the quotes already
+                        if value.indexOf("'") == 0 or value.indexOf('"') == 0
+                            "#{field}:#{value}"
+                        else
+                            "#{field}:\"#{value}\""
                     else if field in @getFieldsFor "searchable"
                         # just add extra keyword to the search
                         value
