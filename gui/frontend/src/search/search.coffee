@@ -229,7 +229,7 @@ angular.module "mindbender.search", [
                 if qs?.length > 0
                     query_string:
                         default_field: "content"
-                        default_operator: "AND"
+                        default_operator: "OR"
                         query: qs
             # also search source when possible
             # TODO highlight what's found here?
@@ -242,7 +242,7 @@ angular.module "mindbender.search", [
                             query:
                                 query_string:
                                     default_field: "content"
-                                    default_operator: "AND"
+                                    default_operator: "OR"
                                     query: sq
                     ]
                     minimum_should_match: 2
