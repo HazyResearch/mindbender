@@ -43,7 +43,7 @@ if [ -n "$os" -a -n "$arch" ]; then
     zipname="${fullname}.zip"
     download "https://www.sqlite.org/2015/${zipname}" "$zipname"
     mkdir -p prefix
-    tar xf "$zipname" -C prefix
+    unzip -u "$zipname" -d prefix
 fi
 
 # place symlinks for commands under $DEPENDS_PREFIX/bin/
