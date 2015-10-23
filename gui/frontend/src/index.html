@@ -9,6 +9,14 @@
   <title ng-bind="title">DeepDive</title>
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src='https://cdn.rawgit.com/google/closure-library/master/closure/goog/base.js'></script>
+  <script>
+goog.require('goog.dom');
+goog.require('goog.dom.classes');
+goog.require('goog.array');
+goog.require('goog.dom.Range');
+goog.require('goog.editor.range.Point');
+  </script>
   <link rel="stylesheet" href="bower_components/jquery-ui/themes/smoothness/jquery-ui.min.css">
   <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="bower_components/fontawesome/css/font-awesome.min.css">
@@ -18,6 +26,7 @@
   <link rel="stylesheet" href="bower_components/visualsearch/build-min/visualsearch-datauri.css">
   <link rel="stylesheet" href="bower_components/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css">
   <link rel="stylesheet" href="app.css"/>
+  <link rel="stylesheet" href="lattice.css"/>
 </head>
 <body>
   <!--[if lt IE 7]>
