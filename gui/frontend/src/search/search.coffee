@@ -64,7 +64,11 @@ angular.module "mindbender.search", [
     restrict: 'A'
     replace: true
     link: ($scope, $element) ->
-        $element.bootstrapDP({format: "yyyy-mm-dd"})
+        $element.bootstrapDP({
+            format: "yyyy-mm-dd",
+            immediateUpdates: true,
+            orientation: "bottom auto"
+        })
 
 
 ## for viewing individual extraction/source data
@@ -315,7 +319,7 @@ angular.module "mindbender.search", [
                 @fetchSourcesAsParents @results.hits.hits
                 facets = []
                 best_facets = ['domain_type', 'flags', 'domain', 'locations', 'phones', 'post_date']
-                range_facets = ['ages', 'post_date', 'phones']
+                range_facets = ['ages', 'post_date', 'phones', 'ages']
                 date_facets = ['post_date']
                 for f in best_facets
                     if f of data.aggregations
