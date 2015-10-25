@@ -1,7 +1,7 @@
 /* TokensVisualization */
 //var CharOffsets = require('./CharOffsets.js')
 
-var Span = function(sels, color) {
+var Span = function(sels, color, label) {
     var state = {}
 
 	var fragment = function(i, length) {
@@ -15,12 +15,17 @@ var Span = function(sels, color) {
 
     // initialize
     state.sels = sels
-    state.color = color || 'red'  //'red'
+    state.color = color || 'red' 
 	if (!sels) return;
 	var ii = sels.length;
 	$.each(sels, function(i, sel) {
 		$(sel).addClass('highlight_' + state.color);
 		$(sel).addClass('highlight_' + fragment(i, ii));
+                if (label) {
+                    $(sel).attr('data-toggle', 'tooltip');
+                    $(sel).attr('data-placement', 'bottom');
+                    $(sel).attr('data-original-title', label);
+                }
 		//$(sel).on('click', function() {
 		//	console.log('clicked');
 		//});
@@ -37,9 +42,7 @@ var Span = function(sels, color) {
     return state
 }
 
-var SpansVisualization = function(element, spans, colors) {
-        console.log('rendering spans')
-
+var SpansVisualization = function(element, spans, label, colors) {
 	var state = {
 	 	renderedSpans: new Array(),
 	 	destroyed: false
@@ -50,13 +53,11 @@ var SpansVisualization = function(element, spans, colors) {
 		
 	CharOffsets.createMultiRangeSpans([element,this], spans, state.renderedSpans, documentOffset)
 
-        console.log(state.renderedSpans)
-
 	$.each(state.renderedSpans, function(i, rs) {
                 var color = 'red'
                 if (colors && colors[i])
                     color = colors[i]
-		var span = new Span(rs.sels, color)
+		var span = new Span(rs.sels, color, label)
 	});
 
 	state.destroy = function() {
