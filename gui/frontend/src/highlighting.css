@@ -1,115 +1,86 @@
 /* Highlights */
 .highlight_left {
-    border-top-left-radius:3px;
-    border-bottom-left-radius:3px;
+  border-top-left-radius:3px;
+  border-bottom-left-radius:3px;
   border-bottom:1px solid;
   border-left:1px solid;
   border-top:1px solid;
   box-sizing:border-box;
-    margin-left:-1px;
-    margin-right:0px;
-    /*
-    box-shadow: inset 8px 0px 8px -8px red, 
-                inset 0px 8px 8px -8px red,
-                inset 0px -8px 8px -8px red;
-                */
+  margin-left:-1px;
+  margin-right:0px;
 }
 
 .highlight_right {
-    border-top-right-radius:3px;
-    border-bottom-right-radius:3px;
+  border-top-right-radius:3px;
+  border-bottom-right-radius:3px;
   border-bottom:1px solid;
   border-right:1px solid;
   border-top:1px solid;
   box-sizing:border-box;
-    margin-right:-1px;
-    margin-left:0px;
-    /*
-    box-shadow: inset -8px 0px 8px -8px red, 
-                inset 0px 8px 8px -8px red,
-                inset 0px -8px 8px -8px red;
-                */
+  margin-right:-1px;
+  margin-left:0px;
 }
 
 .highlight_leftright {
-    border-radius:3px;
+  border-radius:3px;
   border:1px solid transparent;
   box-sizing:border-box;
   -webkit-box-sizing:border-box;
   margin-left:-1px;
-    margin-right:-1px;
-    /*
-    box-shadow: inset 0px 0px 8px 0px red;
-    */
+  margin-right:-1px;
 }
 
 .highlight_inner {
   border-top:1px solid;
   border-bottom:1px solid;
   box-sizing:border-box;
-    padding:0px;
-    margin:0px;
-    /*
-    box-shadow: inset 0px 8px 8px -8px red,
-                inset 0px -8px 8px -8px red;
-                */
+  padding:0px;
+  margin:0px;
 }
 
-
-
 .highlight_black {
-  /*background-color:rgba(255,0,0,0.3);*/
   background-color:rgba(0,0,0,1);
   border-color:rgba(0,0,0,1);
   color:white;
 }
 
 .highlight_lightgreen {
-  /*background-color:rgba(255,0,0,0.3);*/
   background-color:rgba(162,209,75,0.6);
   border-color:rgba(162,209,75,0.4);
   color:black;
 }
 
 .highlight_lightblue {
-  /*background-color:rgba(255,0,0,0.3);*/
   background-color:rgba(75,124,209,0.6);
   border-color:rgba(75,124,209,0.4);
   color:black;
 }
 
-
 .highlight_green {
-  /*background-color:rgba(255,0,0,0.3);*/
   background-color:rgba(0,255,0,0.6);
   border-color:rgba(0,255,0,0.4);
   color:white;
 }
 
 .highlight_blue {
-  /*background-color:rgba(255,0,0,0.3);*/
   background-color:rgba(0,0,255,0.6);
   border-color:rgba(0,0,255,0.4);
   color:white;
 }
 
 .highlight_red {
-  /*background-color:rgba(255,0,0,0.3);*/
   background-color:rgba(255,0,0,0.6);
   border-color:rgba(255,0,0,0.4); 
   color:white;
 }
 
 .highlight_strongred {
-/*  background-color:rgba(255,0,0,0.6) !important;
-  border-color:rgba(255,0,0,0.4) !important;  */
   background-color:rgba(255,0,0,1) !important;
   border-color:rgba(255,0,0,1) !important;  
   color:white !important;
 }
 
 .highlight_grey {
-  /*background-color:rgba(255,0,0,0.3);*/
   background-color:rgba(200,200,200,0.6);
   border-color:rgba(200,200,200,0.4); 
   color:black;
