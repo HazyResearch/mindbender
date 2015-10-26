@@ -89,13 +89,14 @@ angular.module "mindbender.search", [
         searchResult: "="
         routing: "="
     template: """
-        <span ng-include="'search/template/' + data._type + '.html'" onload="finishLoading()"></span>
+        <span ng-include="'search/template/' + data._type + '.html'" onload="finishLoadingCustomTemplate()"></span>
         <span class="alert alert-danger" ng-if="error">{{error}}</span>
         """
     link: ($scope, $element) ->
-        $scope.finishLoading = () ->
-            $element.find(".panel-body").append(
-                TextWithAnnotations.create($scope.searchResult))
+        $scope.finishLoadingCustomTemplate = () ->
+            if $scope.searchResult?
+                $element.find(".panel-body").append(
+                    TextWithAnnotations.create($scope.searchResult))
             return false
 
         $scope.search = DeepDiveSearch.init()
