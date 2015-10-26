@@ -1,21 +1,23 @@
 ###
 # Auth
+#
+# We read settings from environment variables
+#
 ###
 
 
 # Set this to true if you want to require users to login
-REQUIRES_LOGIN = false
+REQUIRES_LOGIN = (process.env.REQUIRES_LOGIN == "true")
 
 # Set this to true if you only want to grant access to users which you have manually added using above commands
-ONLY_AUTHORIZED = false
+ONLY_AUTHORIZED = (process.env.ONLY_AUTHORIZED == "true")
 
 # Shown when access denied
-REQUEST_EMAIL = "email@email"
+REQUEST_EMAIL = process.env.REQUEST_EMAIL or "email@email"
 
-GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'
-GOOGLE_CLIENT_SECRET = 'YOUR_GOOGLE_CLIENT_SECRET'
-GOOGLE_CALLBACK_ENDPOINT = 'http://localhost:8000'
-
+GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID or "YOUR_CLIENT_ID"
+GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET or "YOUR_CLIENT_SECRET"
+GOOGLE_CALLBACK_ENDPOINT = process.env.GOOGLE_CALLBACK_ENDPOINT or "http://localhost:8001"
 
 fs = require "fs"
 util = require "util"

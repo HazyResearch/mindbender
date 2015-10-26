@@ -89,10 +89,19 @@ angular.module "mindbender.search", [
         searchResult: "="
         routing: "="
     template: """
-        <span ng-include="'search/template/' + data._type + '.html'"></span>
+        <span ng-include="'search/template/' + data._type + '.html'" onload="finishLoadingCustomTemplate()"></span>
         <span class="alert alert-danger" ng-if="error">{{error}}</span>
         """
     link: ($scope, $element) ->
+        $scope.finishLoadingCustomTemplate = () ->
+            if $scope.searchResult?
+                $element.find(".panel-body").append(
+                    TextWithAnnotations.create($scope.searchResult))
+            $timeout () ->
+                $element.find('[data-toggle=tooltip]').tooltip()
+
+            return false
+
         $scope.search = DeepDiveSearch.init()
         $scope.isArray = angular.isArray
         showError = (err) ->
@@ -128,6 +137,7 @@ angular.module "mindbender.search", [
                     $scope.source    = data._source
                 else
                     console.error "#{kind}: Unrecognized kind for type #{data._type}"
+
         if $scope.data?._source?
             initScope $scope.data
         else
@@ -141,9 +151,6 @@ angular.module "mindbender.search", [
                 _.extend $scope.data, data
                 initScope data
             , showError
-
-        $timeout () ->
-            $element.find('[data-toggle=tooltip]').tooltip()
 
 
 .directive "showRawData", ->
