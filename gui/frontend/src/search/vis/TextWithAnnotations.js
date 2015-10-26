@@ -9,7 +9,7 @@ var TextWithAnnotations = (function() {
             .append(jQuery.parseHTML(content))
 
     var extractions = obj._source.extractions
-    if (typeof extractions !== 'undefined') { 
+    if (extractions) { 
       for (var i=0; i < extractions.length; i++) {
          var ex = JSON.parse(extractions[i]);
          // see if we should merge multiple selections into a
