@@ -126,6 +126,7 @@ angular.module "mindbender.search", [
                 $element.prop('disabled', true)
                 $element.selectpicker('refresh')
                 return
+            $element.data('selectpicker').$newElement.fadeOut()
             $.getJSON '/api/dossier/by_dossier/', {dossier_name: dossier_name}, (items) ->
                 $element.empty()
                 $element.prop('disabled', false)
@@ -141,6 +142,7 @@ angular.module "mindbender.search", [
                         text: item.query_string
                     }).data('content', item_html))
                 picker = $element.selectpicker('refresh')
+                $element.data('selectpicker').$newElement.fadeIn()
                 $element.on 'change', ->
                     $scope.search.params.s = picker.val()
                     $scope.search.doSearch()
