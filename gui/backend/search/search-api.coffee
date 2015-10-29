@@ -158,6 +158,34 @@ exports.configureApp = (app, args) ->
         })
         Dossier.sync()
 
+        app.get '/api/dossier/', (req, res, next) ->
+            if not req.user or not req.user.id
+                res
+                    .status 400
+                    .send 'You must log in to use the dossier service.'
+            else
+                Dossier.aggregate 'dossier_name', 'DISTINCT', {plain: false}
+                    .then (dnames) ->
+                        names = _.pluck dnames, 'DISTINCT'
+                        res.send JSON.stringify(names)
+
+        app.get '/api/dossier/by_dossier/', (req, res, next) ->
+            if not req.user or not req.user.id
+                res
+                    .status 400
+                    .send 'You must log in to use the dossier service.'
+            else
+                Dossier.findAll
+                    where:
+                        dossier_name: req.query.dossier_name
+                    order: 'query_string'
+                .then (matches) ->
+                    results = _.map matches, (item) ->
+                        query_string: item.query_string
+                        user_name: item.user_name
+                        ts_created: item.createdAt
+                    res.send JSON.stringify(results)
+
         app.all '/api/dossier/by_query/', (req, res, next) ->
             if not req.user or not req.user.id
                 res

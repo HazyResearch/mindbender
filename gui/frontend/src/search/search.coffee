@@ -71,7 +71,7 @@ angular.module "mindbender.search", [
         })
 
 
-.directive "dossierpicker", ->
+.directive "queryDossierPicker", ->
     restrict: 'A'
     replace: true
     scope:
@@ -94,6 +94,56 @@ angular.module "mindbender.search", [
                     success: ->
                         console.log '/dossier/by_query/:', query, vals
                 })
+
+
+.directive "globalDossierPicker", ->
+    restrict: 'A'
+    replace: true
+    scope:
+        search: "=for"
+    link: ($scope, $element) ->
+        $.getJSON '/api/dossier/', (dossier_names) ->
+            _.each dossier_names, (name) ->
+                $element.append($('<option/>', {
+                    value: name,
+                    text: name
+                }))
+            picker = $element.selectpicker()
+            $element.on 'change', ->
+                $scope.search.active_dossier = picker.val()
+                $scope.$apply()
+
+
+.directive "dossierQueryPicker", ->
+    restrict: 'A'
+    replace: true
+    scope:
+        search: "=for"
+    link: ($scope, $element) ->
+        $scope.$watch 'search.active_dossier', (dossier_name) ->
+            if not dossier_name
+                $element.empty()
+                $element.prop('disabled', true)
+                $element.selectpicker('refresh')
+                return
+            $.getJSON '/api/dossier/by_dossier/', {dossier_name: dossier_name}, (items) ->
+                $element.empty()
+                $element.prop('disabled', false)
+                _.each items, (item) ->
+                    ts = new Date(item.ts_created)
+                    date = (ts.getMonth() + 1) + '/' + ts.getDate()
+                    time = ts.getHours() + ':' + ts.getMinutes()
+                    datetime = date + ' ' + time
+                    item_html = item.query_string + ' <em class="small muted">' + item.user_name +
+                        ' - ' + datetime +  '</em>'
+                    $element.append($('<option/>', {
+                        value: item.query_string,
+                        text: item.query_string
+                    }).data('content', item_html))
+                picker = $element.selectpicker('refresh')
+                $element.on 'change', ->
+                    $scope.search.params.s = picker.val()
+                    $scope.search.doSearch()
 
 
 ## for viewing individual extraction/source data
@@ -224,6 +274,7 @@ angular.module "mindbender.search", [
             @indexes = null
             @elastic = elasticsearch
             @collapsed_facets = {}
+            @active_dossier = null
 
             @initialized = $q.all [
                 # load the search schema
@@ -375,6 +426,10 @@ angular.module "mindbender.search", [
                             facet.collapsed = true
                         facets.push facet
                 @results.facets = facets
+
+                idx = query.body.from + 1
+                for hit in data.hits.hits
+                    hit.idx = idx++
 
             , (err) =>
                 @error = err

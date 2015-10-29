@@ -11,7 +11,7 @@
 
 
 <!-- Search results -->
-<div class="container-fluid">
+<div>
     <div class="row">
         <div class="col-xs-2 col-md-3 affix sidebar">
             <!-- faceted search with aggregations -->
@@ -88,23 +88,28 @@
 
             <div ng-if="!search.queryRunning">
                 <!-- search results summary -->
-                <div class="lead">
-                    <span ng-if="! search.results.hits.total > 0">No results</span>
-                    <span ng-if="search.results.hits.total > 0 && search.query._query_string">
-                        {{
-                            search.query.body.from + 1                               | number
-                        }}-{{
-                            search.query.body.from + search.results.hits.hits.length | number
-                        }} of {{search.results.hits.total | number}} results
-                    </span>
-                    <span ng-init="query = search.query" ng-if="search.query._query_string" ng-include="'search/search-query.html'"></span>
-                    <div ng-if="search.query._query_string" style="display:inline-block">
-                          <select class="selectpicker" dossierpicker multiple data-live-search="true"
+                <div class="clearfix">
+                    <div class="pull-left">
+                        <span ng-if="! search.results.hits.total > 0">No results</span>
+                        <span ng-if="search.results.hits.total > 0 && search.query._query_string">
+                            {{
+                                search.query.body.from + 1                               | number
+                            }}-{{
+                                search.query.body.from + search.results.hits.hits.length | number
+                            }} of {{search.results.hits.total | number}} results
+                        </span>
+                        <span ng-init="query = search.query" ng-if="search.query._query_string" ng-include="'search/search-query.html'"></span>
+                    </div>
+                    <div ng-if="search.query._query_string" class="pull-right">
+                        <span style="vertical-align: middle;">
+                            <i class='fa fa-folder-open-o'></i>
+                        </span>
+                          <select class="selectpicker" query-dossier-picker multiple data-live-search="true"
                                 for="search.query._query_string" title="Add to Dossiers...">
                           </select>
                     </div>
                     <script type="text/ng-template" id="search/search-query.html">
-                        for
+                        for <i class='fa fa-file-text-o'></i>
                         <span>
                             [ <strong>{{ (query._query_string || querystringRunning) || 'everything' }}</strong> ]
                         </span>
@@ -115,6 +120,7 @@
                         </span>
                     </script>
                 </div>
+                <br>
 
                 <div ng-if="!search.query._query_string" class="jumbotron">
                     <h1>{{search.results.hits.total | number}}</h1>
@@ -126,8 +132,8 @@
                 </div>
 
                 <!-- individual search results -->
-                <ol start="{{search.query.body.from + 1}}">
-                    <li ng-repeat="hit in search.results.hits.hits track by $index" class="hit">
+                <!-- <ol start="{{search.query.body.from + 1}}"> -->
+                    <div ng-repeat="hit in search.results.hits.hits track by $index" class="hit">
                         <!-- provenance hyperlink -->
                         <p class='hide'>
                             <!-- TODO routing param -->
@@ -156,8 +162,8 @@
                             <!-- raw data -->
                             <!-- <p show-raw-data="hit"></p> -->
 
-                    </li>
-                </ol>
+                    </div>
+                <!-- </ol> -->
             </div>
 
             <!-- debug info in a modal -->
@@ -182,6 +188,35 @@
         </div>
     </div>
 </div>
+
+<nav class="navbar navbar-default navbar-fixed-bottom container-fluid clearfix">
+    <div class="pull-left" style="margin: 5px 0;">
+        <span style="font-size:20px; vertical-align: middle;">
+            <i class='fa fa-folder-open-o'></i>
+        </span>
+        <select class="selectpicker" global-dossier-picker data-live-search="true"
+            for="search" title="Select Dossier...">
+        </select>
+
+        <span style="font-size:20px; vertical-align: middle; margin-left:20px;">
+            <i class='fa fa-file-text-o'></i>
+        </span>
+        <select class="selectpicker" dossier-query-picker data-live-search="true"
+            for="search" title="Select Query...">
+        </select>
+    </div>
+    <div class="pull-right" ng-if="search.query._query_string">
+        <pagination class="pagination-sm fa"
+        total-items="search.results ? search.results.hits.total
+                                    : search.params.p * search.params.n"
+                                        items-per-page="search.params.n"
+        ng-model="search.params.p"
+        ng-model-options="{ debounce: 200 }"
+        ng-change="search.doSearch(true)"
+        previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
+        max-size="9" boundary-links="true"></pagination>
+    </div>
+</nav>
 
 <link href='https://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
 <!-- <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'> -->
@@ -256,25 +291,10 @@ div.ter-juicy-review {
     margin-top: 5px;
     color: orange;
 }
+
+body { padding-bottom: 70px; }
+
 </style>
-
-
-<nav class="navbar navbar-default navbar-fixed-bottom">
-    <div class="container" ng-if="search.query._query_string">
-        <div class="text-center">
-            <pagination class="pagination-sm fa"
-            total-items="search.results ? search.results.hits.total
-                                        : search.params.p * search.params.n"
-                                            items-per-page="search.params.n"
-            ng-model="search.params.p"
-            ng-model-options="{ debounce: 200 }"
-            ng-change="search.doSearch(true)"
-            previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
-            max-size="9" boundary-links="true"></pagination>
-        </div>
-    </div>
-</nav>
-<style>body { padding-bottom: 70px; }</style>
 
 <script type="text/javascript" charset="utf-8">
 
@@ -291,6 +311,7 @@ window.setupMySelectPicker = function($elem, options, change_callback) {
         all_values[option.name] = true;
     });
     var picker = $elem.selectpicker().data('selectpicker');
+    picker.setStyle('btn-default btn-xs');
     var $dropdown = picker.$newElement.find('ul.dropdown-menu');
     var $new_item = $('<li class="hidden"><a><span class="text">AAA</span>' +
         '<span class="glyphicon glyphicon-plus create-mark"></span></a></li>');
