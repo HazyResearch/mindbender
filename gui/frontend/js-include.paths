@@ -46,3 +46,4 @@ bower_components/jquery-ui/ui/autocomplete.js
 bower_components/visualsearch/build-min/visualsearch.js
 
 bower_components/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js
+bower_components/bootstrap-select/dist/js/bootstrap-select.min.js

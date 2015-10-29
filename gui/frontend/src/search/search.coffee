@@ -71,6 +71,31 @@ angular.module "mindbender.search", [
         })
 
 
+.directive "dossierpicker", ->
+    restrict: 'A'
+    replace: true
+    scope:
+        query: "=for"
+    link: ($scope, $element) ->
+        query = $scope.query
+        $.getJSON '/api/dossier/by_query/', {query_string: query}, (options) ->
+            options_names = _.pluck options, 'name'
+            window.setupMySelectPicker $element, options, (vals) ->
+                vals = vals || []
+                $.ajax({
+                    type: "POST",
+                    url: "/api/dossier/by_query/",
+                    processData: false,
+                    contentType: 'application/json',
+                    data: JSON.stringify
+                        query_string: query
+                        selected_dossier_names: vals
+                        unselected_dossier_names: _.difference(options_names, vals)
+                    success: ->
+                        console.log '/dossier/by_query/:', query, vals
+                })
+
+
 ## for viewing individual extraction/source data
 .controller "SearchViewCtrl", ($scope, $routeParams, $location, DeepDiveSearch) ->
     $scope.search = DeepDiveSearch.init $routeParams.indexs
@@ -82,6 +107,7 @@ angular.module "mindbender.search", [
         _index: $scope.index
         _type:  $scope.type
         _id:    $scope.id
+
 
 .directive "deepdiveVisualizedData", (DeepDiveSearch, $q, $timeout) ->
     scope:
@@ -392,9 +418,9 @@ angular.module "mindbender.search", [
                         # use field-specific search for navigable fields
                         # VisualSearch may have added the quotes already
                         if value.indexOf("'") == 0 or value.indexOf('"') == 0
-                            "#{field}:#{value}"
+                            "#{field}: #{value}"
                         else
-                            "#{field}:\"#{value}\""
+                            "#{field}: \"#{value}\""
                     else if field in @getFieldsFor "searchable"
                         # just add extra keyword to the search
                         value

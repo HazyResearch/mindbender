@@ -6,6 +6,7 @@ fs = require "fs"
 util = require "util"
 _ = require "underscore"
 express = require "express"
+Sequelize = require "sequelize"
 
 # Install Search API handlers to the given ExpressJS app
 exports.configureApp = (app, args) ->
@@ -96,6 +97,7 @@ exports.configureApp = (app, args) ->
             req._start = Date.now()
             next()
         app.use(bodyParser.json())
+
         if process.env.MBSEARCH_LOG_FILE?
             console.log 'INFO: Logging requests at MBSEARCH_LOG_FILE = ' + process.env.MBSEARCH_LOG_FILE
             morgan_opt = {}
@@ -104,10 +106,107 @@ exports.configureApp = (app, args) ->
             app.use(morgan(':json', morgan_opt))
         else
             console.log 'WARNING: MBSEARCH_LOG_FILE undefined; not logging.'
+
         app.use apiProxyMiddlewareFor elasticsearchApiPath, process.env.ELASTICSEARCH_BASEURL, [
             # pathname /api/elasticsearch must be stripped for Elasticsearch
             [/// ^/api/elasticsearch ///, "/"]
         ]
+
+        sequelize = new Sequelize('database', 'username', 'password', {
+            dialect: 'sqlite',
+            storage: process.env.ELASTICSEARCH_HOME + '/dossier.db'
+        })
+
+        Dossier = sequelize.define('dossier', {
+            dossier_name:
+                type: Sequelize.TEXT
+                allowNull: false
+
+            user_id:
+                type: Sequelize.TEXT
+                allowNull: false
+
+            user_name:
+                type: Sequelize.TEXT
+                allowNull: false
+
+            query_string:
+                type: Sequelize.TEXT
+                allowNull: false
+
+            query_title:
+                type: Sequelize.TEXT
+
+            query_is_doc:
+                type: Sequelize.BOOLEAN
+                allowNull: false
+                defaultValue: false
+
+        }, {
+            indexes: [
+                {
+                    fields: ['dossier_name']
+                },
+                {
+                    fields: ['query_string']
+                },
+                {
+                    unique: true
+                    fields: ['dossier_name', 'query_string']
+                }
+            ]
+        })
+        Dossier.sync()
+
+        app.all '/api/dossier/by_query/', (req, res, next) ->
+            if not req.user or not req.user.id
+                res
+                    .status 400
+                    .send 'You must log in to use the dossier service.'
+            else
+                if req.method == 'POST'
+
+                    query = req.body.query_string
+                    selected = req.body.selected_dossier_names
+                    unselected = req.body.unselected_dossier_names
+
+                    _.each selected, (nm) ->
+                        Dossier.findOrCreate
+                            where:
+                                dossier_name: nm
+                                query_string: query
+                            defaults:
+                                user_id: req.user.id
+                                user_name: req.user.displayName || ''
+                                query_title: req.body.query_title || null
+                                query_is_doc: req.body.query_is_doc || false
+
+                    _.each unselected, (nm) ->
+                        Dossier.destroy
+                            where:
+                                    dossier_name: nm
+                                    query_string: query
+
+                    res.send 'Dossier API works!'
+                else
+                    Dossier.findAll
+                        where:
+                            query_string: req.query.query_string
+                    .then (matches) ->
+                        current_dnames = _.sortBy (_.pluck matches, 'dossier_name'), _.identity
+                        Dossier.aggregate 'dossier_name', 'DISTINCT', {plain: false}
+                            .then (dnames) ->
+                                options = _.map current_dnames, (nm) ->
+                                    name: nm
+                                    selected: true
+                                unselected_names = _.difference (_.pluck dnames, 'DISTINCT'), current_dnames
+                                unselected_options = _.map unselected_names, (nm) ->
+                                    name: nm
+                                    selected: false
+                                options = options.concat unselected_options
+
+                                res.send JSON.stringify(options)
+
     else
         app.all elasticsearchApiPath, (req, res) ->
             res

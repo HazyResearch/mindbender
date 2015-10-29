@@ -88,7 +88,7 @@
 
             <div ng-if="!search.queryRunning">
                 <!-- search results summary -->
-                <p class="lead">
+                <div class="lead">
                     <span ng-if="! search.results.hits.total > 0">No results</span>
                     <span ng-if="search.results.hits.total > 0 && search.query._query_string">
                         {{
@@ -98,6 +98,11 @@
                         }} of {{search.results.hits.total | number}} results
                     </span>
                     <span ng-init="query = search.query" ng-if="search.query._query_string" ng-include="'search/search-query.html'"></span>
+                    <div ng-if="search.query._query_string" style="display:inline-block">
+                          <select class="selectpicker" dossierpicker multiple data-live-search="true"
+                                for="search.query._query_string" title="Add to Dossiers...">
+                          </select>
+                    </div>
                     <script type="text/ng-template" id="search/search-query.html">
                         for
                         <span>
@@ -109,7 +114,7 @@
                             [ <strong>{{query._source_query_string}}</strong> ]
                         </span>
                     </script>
-                </p>
+                </div>
 
                 <div ng-if="!search.query._query_string" class="jumbotron">
                     <h1>{{search.results.hits.total | number}}</h1>
@@ -243,6 +248,14 @@ div.ter-juicy-review {
     font-size: 13px;
     font-family: monospace;
 }
+
+.bootstrap-select.btn-group.show-tick .dropdown-menu li a span.create-mark {
+    position: absolute;
+    display: inline-block;
+    right: 15px;
+    margin-top: 5px;
+    color: orange;
+}
 </style>
 
 
@@ -267,6 +280,50 @@ div.ter-juicy-review {
 
 $.fn.bootstrapDP = $.fn.datepicker.noConflict();
 
+window.setupMySelectPicker = function($elem, options, change_callback) {
+    $elem.empty();
+    var all_values = {};
+    _.each(options, function(option) {
+        $elem.append($('<option/>', {
+            value: option.name,
+            text: option.name
+        }).prop('selected', option.selected));
+        all_values[option.name] = true;
+    });
+    var picker = $elem.selectpicker().data('selectpicker');
+    var $dropdown = picker.$newElement.find('ul.dropdown-menu');
+    var $new_item = $('<li class="hidden"><a><span class="text">AAA</span>' +
+        '<span class="glyphicon glyphicon-plus create-mark"></span></a></li>');
+    $dropdown.prepend($new_item);
+    var $sbox = picker.$searchbox;
+    $sbox.on('input propertychange', function() {
+        var val = $.trim($sbox.val());
+        if (val && !all_values[val]) {
+            $new_item.find('span.text').text(val);
+            $new_item.removeClass('hidden');
+        } else {
+            $new_item.addClass('hidden');
+        }
+    });
+    $new_item.on('click', function(){
+        var val = $new_item.find('span.text').text();
+        if (!val || all_values[val]) return;
+        all_values[val] = true;
+        $new_item.detach();
+        $elem.prepend($('<option/>', {
+            value: val,
+            text: val
+        }).prop('selected', true));
+        picker.$newElement.removeClass('open');
+        picker.refresh();
+        $dropdown.prepend($new_item);
+    });
+    $elem.on('change', function(){
+        var vals = picker.val();
+        change_callback(vals);
+    });
+};
+
 $(function(){
     $('body').on('click', '.facet-header', function(){
         $(this).find('i').toggleClass('fa-plus-square-o').toggleClass('fa-minus-square-o')
@@ -288,7 +345,6 @@ $(function(){
         if (val.indexOf('"') >= 0) {
             val = "'" + val + "'";
         }
-        console.log(field, val);
         window.visualSearch.SEARCH.doNavigate(field, val);
     });
 
