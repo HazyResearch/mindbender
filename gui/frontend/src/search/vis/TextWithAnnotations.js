@@ -6,14 +6,15 @@ var TextWithAnnotations = (function() {
     var extractions = []
     var transitions = []
     if (extractions_str) {
-      var ex = JSON.parse(extractions[i]);
-      extraction_id = extractions.length;
-      extractions.push(ex)
-       // see if we should merge multiple selections into a
-       // a single one, we merge if there's only one char in
-       // between and it's part of the same extraction
-       var sels = []
-       for (var j=0; j < ex.selections.length; j++) {
+      for (var i=0; i<extractions_str.length; i++) {
+        var ex = JSON.parse(extractions_str[i]);
+        extraction_id = extractions.length;
+        extractions.push(ex)
+        // see if we should merge multiple selections into a
+        // a single one, we merge if there's only one char in
+        // between and it's part of the same extraction
+        var sels = []
+        for (var j=0; j < ex.selections.length; j++) {
             if (sels.length > 0) {
                var prev_end = sels[sels.length-1][1]
                var next_sta = ex.selections[j][0]
@@ -23,20 +24,21 @@ var TextWithAnnotations = (function() {
                }
             }
             sels.push(ex.selections[j])
-       }
-       ex.selections = sels
+        }
+        ex.selections = sels
 
-       // add transitions
-       for (var j=0; j < sels; j++) {
-         transitions.push({ 
-           'type':'start',
-           'pos': sels[j][0],
-           'extraction_id': extraction_id })
-         transitions.push({
-           'type':'end',
-           'pos': sels[j][1],
-           'extraction_id': extraction_id })
-       }
+        // add transitions
+        for (var j=0; j < sels.length; j++) {
+          transitions.push({ 
+            'type':'start',
+            'pos': sels[j][0],
+            'extraction_id': extraction_id })
+          transitions.push({
+            'type':'end',
+            'pos': sels[j][1],
+            'extraction_id': extraction_id })
+        }
+      }
     }
 
     transitions.sort(function(s,t) {
@@ -47,7 +49,7 @@ var TextWithAnnotations = (function() {
     var grouped_transitions = []
     var cur_group = { pos:-1, transitions: []}    
 
-    for (var j=0; j < transitions; j++) {
+    for (var j=0; j < transitions.length; j++) {
       var t = transitions[j]
       if (t.pos == cur_group.pos) {
         cur_group.transitions.push(t)
@@ -70,14 +72,17 @@ var TextWithAnnotations = (function() {
        var keys = Object.keys(spans)
        var str = html.substring(start, end)
        for (var k=0; k < keys.length; k++) {
-         str = '<span>' + str + '</span>'
+         str = '<span style="background-color:#ff0000;opacity:.5;color:white" '+
+               ' data-toggle="tooltip" ' +
+               ' data-placement="bottom" ' +
+               ' data-original-title="' + extractions[keys[k]].extractor + '">' + str + '</span>'
        }
        html_hl += str
     }
 
     var active_spans = {}
     var start = 0
-    for (var j=0; j < grouped_transitions; j++) {
+    for (var j=0; j < grouped_transitions.length; j++) {
       var gt = grouped_transitions[j]
       write_segment(start, gt.pos, active_spans)
       // update active spans for next segment
@@ -85,7 +90,7 @@ var TextWithAnnotations = (function() {
         var t = gt.transitions[k]
         if (t.type == 'start') {
           active_spans[t.extraction_id] = true
-        else
+        } else {
           delete active_spans[t.extraction_id]
         }
       }
@@ -93,6 +98,11 @@ var TextWithAnnotations = (function() {
     }
     // final segment
     write_segment(start, html.length, active_spans)
+
+    console.log(html_hl)
+    console.log(extractions)
+    console.log(transitions)
+    console.log(grouped_transitions)
 
     var content = html_hl
 
