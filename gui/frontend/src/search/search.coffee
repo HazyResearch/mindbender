@@ -82,13 +82,37 @@ angular.module "mindbender.search", [
     restrict: 'A'
     replace: true
     scope:
-        query: "=for"
+        search: "=for"
+        query: "=queryString"
+        docid: "=queryStringDocid"
+        query_title: "=queryTitle"
     link: ($scope, $element) ->
-        query = $scope.query
-        $.getJSON '/api/dossier/by_query/', {query_string: query}, (options) ->
+        if $scope.docid
+            query = 'doc_id: "' + $scope.docid + '"'
+            query_is_doc = true
+        else
+            query = $scope.query
+            query_is_doc = false
+        query_title = $scope.query_title
+        $scope.$watch 'search.query_to_dossiers', (q2d) ->
+            if not q2d
+                return
+            options = []
+            selected = {}
+            _.each q2d[query], (d) ->
+                options.push
+                    name: d
+                    selected: true
+                selected[d] = true
+            _.each $scope.search.all_dossiers, (d) ->
+                if not selected.hasOwnProperty d
+                    options.push
+                        name: d
+                        selected: false
+
             options_names = _.pluck options, 'name'
-            window.setupMySelectPicker $element, options, (vals) ->
-                vals = vals || []
+
+            window.setupMySelectPicker $element, options, (old_vals, new_vals) ->
                 $.ajax({
                     type: "POST",
                     url: "/api/dossier/by_query/",
@@ -96,10 +120,12 @@ angular.module "mindbender.search", [
                     contentType: 'application/json',
                     data: JSON.stringify
                         query_string: query
-                        selected_dossier_names: vals
-                        unselected_dossier_names: _.difference(options_names, vals)
+                        query_title: query_title
+                        query_is_doc: query_is_doc
+                        selected_dossier_names: _.difference(new_vals, old_vals)
+                        unselected_dossier_names: _.difference(old_vals, new_vals)
                     success: ->
-                        console.log '/dossier/by_query/:', query, vals
+                        console.log '/dossier/by_query/:', query, old_vals, new_vals
                 })
 
 
@@ -109,13 +135,21 @@ angular.module "mindbender.search", [
     scope:
         search: "=for"
     link: ($scope, $element) ->
-        $.getJSON '/api/dossier/', (dossier_names) ->
+        $scope.$watch 'search.all_dossiers', (dossier_names) ->
+            if not dossier_names
+                return
+            $element.empty()
             _.each dossier_names, (name) ->
-                $element.append($('<option/>', {
+                $option = $('<option/>', {
                     value: name,
                     text: name
-                }))
-            picker = $element.selectpicker()
+                })
+                $element.append($option)
+
+            picker = $element.selectpicker('refresh')
+            if $scope.search.active_dossier
+                picker.val $scope.search.active_dossier
+            picker = $element.selectpicker('refresh')
             $element.on 'change', ->
                 $scope.search.active_dossier = picker.val()
                 $scope.$apply()
@@ -137,13 +171,17 @@ angular.module "mindbender.search", [
             $.getJSON '/api/dossier/by_dossier/', {dossier_name: dossier_name}, (items) ->
                 $element.empty()
                 $element.prop('disabled', false)
+                $scope.search.active_dossier_queries = {}
                 _.each items, (item) ->
+                    $scope.search.active_dossier_queries[item.query_string] = true
                     ts = new Date(item.ts_created)
                     date = (ts.getMonth() + 1) + '/' + ts.getDate()
                     time = ts.getHours() + ':' + ts.getMinutes()
                     datetime = date + ' ' + time
-                    item_html = item.query_string + ' <em class="small muted">' + item.user_name +
-                        ' - ' + datetime +  '</em>'
+                    item_html = item.query_string
+                    if item.query_title
+                        item_html += ' (' + item.query_title + ')'
+                    item_html += ' <em class="small muted">' + item.user_name + ' - ' + datetime +  '</em>'
                     $element.append($('<option/>', {
                         value: item.query_string,
                         text: item.query_string
@@ -283,7 +321,10 @@ angular.module "mindbender.search", [
             @indexes = null
             @elastic = elasticsearch
             @collapsed_facets = {}
+
+            @all_dossiers = null
             @active_dossier = null
+            @query_to_dossiers = null
 
             @initialized = $q.all [
                 # load the search schema
@@ -306,6 +347,13 @@ angular.module "mindbender.search", [
 
         init: (@elasticsearchIndexName = "_all") =>
             @
+
+        fetch_dossiers: (queries) =>
+            $.getJSON '/api/dossier/by_query/', {queries: JSON.stringify(queries)}
+            .success (data) =>
+                @all_dossiers = data.all_dossiers
+                if queries and queries.length
+                    @query_to_dossiers = data.query_to_dossiers
 
         toggleFacetCollpase: (field) =>
             if field of @collapsed_facets
@@ -436,9 +484,14 @@ angular.module "mindbender.search", [
                         facets.push facet
                 @results.facets = facets
 
+                dossier_queries = [qs]
+
                 idx = query.body.from + 1
                 for hit in data.hits.hits
                     hit.idx = idx++
+                    dossier_queries.push('doc_id: "' + hit._id + '"')
+
+                @fetch_dossiers dossier_queries
 
             , (err) =>
                 @error = err

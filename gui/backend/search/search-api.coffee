@@ -8,6 +8,13 @@ _ = require "underscore"
 express = require "express"
 Sequelize = require "sequelize"
 
+sequelize = new Sequelize('evidently_dossier', '', '', {
+    dialect: 'postgres'
+    host: 'localhost'
+    port: 5432
+    # storage: process.env.ELASTICSEARCH_HOME + '/dossier.db'  # sqlite fails on concurrent writes
+})
+
 # Install Search API handlers to the given ExpressJS app
 exports.configureApp = (app, args) ->
     # A handy way to create API reverse proxy middlewares
@@ -112,11 +119,6 @@ exports.configureApp = (app, args) ->
             [/// ^/api/elasticsearch ///, "/"]
         ]
 
-        sequelize = new Sequelize('database', 'username', 'password', {
-            dialect: 'sqlite',
-            storage: process.env.ELASTICSEARCH_HOME + '/dossier.db'
-        })
-
         Dossier = sequelize.define('dossier', {
             dossier_name:
                 type: Sequelize.TEXT
@@ -182,6 +184,7 @@ exports.configureApp = (app, args) ->
                 .then (matches) ->
                     results = _.map matches, (item) ->
                         query_string: item.query_string
+                        query_title: item.query_title
                         user_name: item.user_name
                         ts_created: item.createdAt
                     res.send JSON.stringify(results)
@@ -209,31 +212,35 @@ exports.configureApp = (app, args) ->
                                 query_title: req.body.query_title || null
                                 query_is_doc: req.body.query_is_doc || false
 
-                    _.each unselected, (nm) ->
+                    if unselected and unselected.length
                         Dossier.destroy
                             where:
-                                    dossier_name: nm
-                                    query_string: query
+                                dossier_name: unselected
+                                query_string: query
 
                     res.send 'Dossier API works!'
                 else
+                    queries = JSON.parse(req.query.queries || '[]') || []
                     Dossier.findAll
                         where:
-                            query_string: req.query.query_string
+                            query_string: queries
+                        order: 'dossier_name'
                     .then (matches) ->
-                        current_dnames = _.sortBy (_.pluck matches, 'dossier_name'), _.identity
+                        query_to_dossiers = {}
+                        _.each matches, (m) ->
+                            if m.query_string of query_to_dossiers
+                                query_to_dossiers[m.query_string].push m.dossier_name
+                            else
+                                query_to_dossiers[m.query_string] = [m.dossier_name]
+
                         Dossier.aggregate 'dossier_name', 'DISTINCT', {plain: false}
                             .then (dnames) ->
-                                options = _.map current_dnames, (nm) ->
-                                    name: nm
-                                    selected: true
-                                unselected_names = _.difference (_.pluck dnames, 'DISTINCT'), current_dnames
-                                unselected_options = _.map unselected_names, (nm) ->
-                                    name: nm
-                                    selected: false
-                                options = options.concat unselected_options
+                                all_dossiers = _.pluck dnames, 'DISTINCT'
+                                result =
+                                    all_dossiers: all_dossiers
+                                    query_to_dossiers: query_to_dossiers
 
-                                res.send JSON.stringify(options)
+                                res.send JSON.stringify(result)
 
     else
         app.all elasticsearchApiPath, (req, res) ->

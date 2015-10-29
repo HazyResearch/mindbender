@@ -105,7 +105,8 @@
                             <i class='fa fa-folder-open-o'></i>
                         </span>
                           <select class="selectpicker" query-dossier-picker multiple data-live-search="true"
-                                for="search.query._query_string" title="Add to Dossiers...">
+                                data-style="btn-default btn-sm" for="search"
+                                query-string="search.query._query_string" title="Add to Dossiers...">
                           </select>
                     </div>
                     <script type="text/ng-template" id="search/search-query.html">
@@ -202,7 +203,7 @@
             <i class='fa fa-file-text-o'></i>
         </span>
         <select class="selectpicker" dossier-query-picker data-live-search="true"
-            for="search" title="Select Query...">
+            for="search" title="Select Query or Doc...">
         </select>
     </div>
     <div class="pull-right" ng-if="search.query._query_string">
@@ -301,19 +302,23 @@ body { padding-bottom: 70px; }
 $.fn.bootstrapDP = $.fn.datepicker.noConflict();
 
 window.setupMySelectPicker = function($elem, options, change_callback) {
-    $elem.empty();
+    $elem.empty()
+    $elem.off('change.dossier_callback');
     var all_values = {};
+    var old_values = [];
     _.each(options, function(option) {
         $elem.append($('<option/>', {
             value: option.name,
             text: option.name
         }).prop('selected', option.selected));
         all_values[option.name] = true;
+        if (option.selected) {
+            old_values.push(option.name);
+        }
     });
-    var picker = $elem.selectpicker().data('selectpicker');
-    picker.setStyle('btn-default btn-xs');
+    var picker = $elem.selectpicker('refresh').data('selectpicker');
     var $dropdown = picker.$newElement.find('ul.dropdown-menu');
-    var $new_item = $('<li class="hidden"><a><span class="text">AAA</span>' +
+    var $new_item = $('<li class="hidden"><a><span class="text"></span>' +
         '<span class="glyphicon glyphicon-plus create-mark"></span></a></li>');
     $dropdown.prepend($new_item);
     var $sbox = picker.$searchbox;
@@ -339,9 +344,10 @@ window.setupMySelectPicker = function($elem, options, change_callback) {
         picker.refresh();
         $dropdown.prepend($new_item);
     });
-    $elem.on('change', function(){
-        var vals = picker.val();
-        change_callback(vals);
+    $elem.on('change.dossier_callback', function(){
+        var vals = picker.val() || [];
+        change_callback(old_values, vals);
+        old_values = vals;
     });
 };
 
