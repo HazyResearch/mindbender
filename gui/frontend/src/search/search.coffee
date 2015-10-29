@@ -470,17 +470,15 @@ angular.module "mindbender.search", [
 
         doNavigate: (field, value, newSearch = false) =>
             qsExtra =
-                if value?
-                    if field in @getFieldsFor "navigable"
-                        # use field-specific search for navigable fields
-                        # VisualSearch may have added the quotes already
-                        if value.indexOf("'") == 0 or value.indexOf('"') == 0
-                            "#{field}: #{value}"
-                        else
-                            "#{field}: \"#{value}\""
-                    else if field in @getFieldsFor "searchable"
-                        # just add extra keyword to the search
-                        value
+                if field and value
+                    # use field-specific search for navigable fields
+                    # VisualSearch may have added the quotes already
+                    if value.indexOf("'") == 0 or value.indexOf('"') == 0
+                        "#{field}: #{value}"
+                    else
+                        "#{field}: \"#{value}\""
+                else if value?
+                    "#{value}"
                 else if field?
                     # filtering down null has a special query_string syntax
                     "_missing_:#{field}"
