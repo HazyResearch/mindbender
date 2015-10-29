@@ -27,11 +27,11 @@
                 <div id="facets-{{field | safeId}}" class="collapse" ng-class="agg.collapsed ? '' : 'in'">
                 <div class="row" ng-if="agg.is_range" style="margin-bottom:8px" data-field="{{field}}">
                     <div class="col-sm-4">
-                        <input type='text' placeholder='Min' class="form-control input-sm min-box" mydatepicker ng-if="agg.is_date">
+                        <input type='text' placeholder='Min' class="form-control input-sm min-box" my-date-picker ng-if="agg.is_date">
                         <input type='text' placeholder='Min' class="form-control input-sm min-box" ng-if="!agg.is_date">
                     </div>
                     <div class="col-sm-4">
-                        <input type='text' placeholder='Max' class="form-control input-sm max-box" mydatepicker ng-if="agg.is_date">
+                        <input type='text' placeholder='Max' class="form-control input-sm max-box" my-date-picker ng-if="agg.is_date">
                         <input type='text' placeholder='Max' class="form-control input-sm max-box" ng-if="!agg.is_date">
                     </div>
                     <div class="col-sm-1"><button type="button" class="btn btn-default btn-small input-sm minmax-go">Go</button></div>
@@ -101,7 +101,7 @@
                         <span ng-init="query = search.query" ng-if="search.query._query_string" ng-include="'search/search-query.html'"></span>
                     </div>
                     <div ng-if="search.query._query_string" class="pull-right">
-                        <span style="vertical-align: middle;">
+                        <span style="vertical-align: middle;" my-tool-tip title='Dossiers are shared by all users'>
                             <i class='fa fa-folder-open-o'></i>
                         </span>
                           <select class="selectpicker" query-dossier-picker multiple data-live-search="true"
@@ -191,7 +191,7 @@
 
 <nav class="navbar navbar-default navbar-fixed-bottom container-fluid clearfix">
     <div class="pull-left" style="margin: 5px 0;">
-        <span style="font-size:20px; vertical-align: middle;">
+        <span style="font-size:20px; vertical-align: middle;" my-tool-tip title='Dossiers are shared by all users'>
             <i class='fa fa-folder-open-o'></i>
         </span>
         <select class="selectpicker" global-dossier-picker data-live-search="true"
@@ -346,6 +346,7 @@ window.setupMySelectPicker = function($elem, options, change_callback) {
 };
 
 $(function(){
+
     $('body').on('click', '.facet-header', function(){
         $(this).find('i').toggleClass('fa-plus-square-o').toggleClass('fa-minus-square-o')
     });

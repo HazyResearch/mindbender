@@ -60,7 +60,7 @@ angular.module "mindbender.search", [
                 $location.path "/search/"
 
 
-.directive "mydatepicker", ->
+.directive "myDatePicker", ->
     restrict: 'A'
     replace: true
     link: ($scope, $element) ->
@@ -69,6 +69,13 @@ angular.module "mindbender.search", [
             immediateUpdates: true,
             orientation: "bottom auto"
         })
+
+
+.directive "myToolTip", ->
+    restrict: 'A'
+    replace: true
+    link: ($scope, $element) ->
+        $element.tooltip()
 
 
 .directive "queryDossierPicker", ->
