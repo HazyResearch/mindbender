@@ -322,6 +322,7 @@ window.setupMySelectPicker = function($elem, options, change_callback) {
         '<span class="glyphicon glyphicon-plus create-mark"></span></a></li>');
     $dropdown.prepend($new_item);
     var $sbox = picker.$searchbox;
+    $sbox.attr('placeholder', 'Search or create');
     $sbox.on('input propertychange', function() {
         var val = $.trim($sbox.val());
         if (val && !all_values[val]) {
