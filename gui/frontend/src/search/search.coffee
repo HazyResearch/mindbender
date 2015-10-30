@@ -260,6 +260,12 @@ angular.module "mindbender.search", [
             if $scope.searchResult?
                 $element.find(".panel-body").append(
                     TextWithAnnotations.create($scope.searchResult))
+                if $scope.searchResult._source.images?
+                    images = []
+                    _.each $scope.searchResult._source.images, (item) ->
+                        images.push(JSON.parse(item))
+                    $scope.searchResult._source.images_j = images
+
             $timeout () ->
                 $element.find('[data-toggle=tooltip]').tooltip()
 
