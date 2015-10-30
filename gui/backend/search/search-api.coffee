@@ -8,10 +8,10 @@ _ = require "underscore"
 express = require "express"
 Sequelize = require "sequelize"
 
-sequelize = new Sequelize('evidently_dossier', '', '', {
+sequelize = new Sequelize('evidently_dossier', process.env.DOSSIER_PG_USER || '', '', {
     dialect: 'postgres'
-    host: 'localhost'
-    port: 5432
+    host: process.env.DOSSIER_PG_USER || 'localhost'
+    port: process.env.DOSSIER_PG_PORT || 5432
     # storage: process.env.ELASTICSEARCH_HOME + '/dossier.db'  # sqlite fails on concurrent writes
 })
 
