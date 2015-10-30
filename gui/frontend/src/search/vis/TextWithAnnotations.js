@@ -99,11 +99,6 @@ var TextWithAnnotations = (function() {
     // final segment
     write_segment(start, html.length, active_spans)
 
-    console.log(html_hl)
-    console.log(extractions)
-    console.log(transitions)
-    console.log(grouped_transitions)
-
     var content = html_hl
 
     var el = $('<div></div>')
