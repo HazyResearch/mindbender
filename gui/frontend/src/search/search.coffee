@@ -94,12 +94,14 @@ angular.module "mindbender.search", [
             query = $scope.query
             query_is_doc = false
         query_title = $scope.query_title
-        $scope.$watch 'search.query_to_dossiers', (q2d) ->
-            if not q2d
-                return
+
+        initialized = false
+        old_all_dossiers = null
+
+        handler = () ->
             options = []
             selected = {}
-            _.each q2d[query], (d) ->
+            _.each $scope.search.query_to_dossiers[query], (d) ->
                 options.push
                     name: d
                     selected: true
@@ -110,10 +112,11 @@ angular.module "mindbender.search", [
                         name: d
                         selected: false
 
+            old_all_dossiers = _.clone $scope.search.all_dossiers
             options_names = _.pluck options, 'name'
 
             window.setupMySelectPicker $element, options, (old_vals, new_vals) ->
-                $.ajax({
+                $.ajax
                     type: "POST",
                     url: "/api/dossier/by_query/",
                     processData: false,
@@ -126,7 +129,34 @@ angular.module "mindbender.search", [
                         unselected_dossier_names: _.difference(old_vals, new_vals)
                     success: ->
                         console.log '/dossier/by_query/:', query, old_vals, new_vals
-                })
+
+                        _.each new_vals, (val) ->
+                            old_all_dossiers.push val
+                            $scope.search.add_dossier val
+                            if val == $scope.search.active_dossier
+                                # trigger dossierQueryPicker to reload
+                                $scope.search.active_dossier_force_updates += 1
+                        $scope.$apply()
+
+
+        $scope.$watch 'search.query_to_dossiers', ->
+            if not $scope.search.query_to_dossiers
+                return
+            handler()
+            initialized = true
+
+        $scope.$watch 'search.all_dossiers', ->
+            if not initialized or not $scope.search.all_dossiers
+                return
+
+            new_names = _.difference $scope.search.all_dossiers, old_all_dossiers
+
+            if new_names.length
+                _.each new_names, (nm) ->
+                    $element.prepend $('<option/>', {value: nm, text: nm})
+                $element.selectpicker('refresh')
+                old_all_dossiers = _.clone $scope.search.all_dossiers
+
 
 
 .directive "globalDossierPicker", ->
@@ -135,21 +165,24 @@ angular.module "mindbender.search", [
     scope:
         search: "=for"
     link: ($scope, $element) ->
-        $scope.$watch 'search.all_dossiers', (dossier_names) ->
-            if not dossier_names
+        $scope.$watch 'search.all_dossiers', ->
+            if not $scope.search.all_dossiers
                 return
             $element.empty()
-            _.each dossier_names, (name) ->
+            _.each $scope.search.all_dossiers, (name) ->
                 $option = $('<option/>', {
                     value: name,
                     text: name
                 })
                 $element.append($option)
 
-            picker = $element.selectpicker('refresh')
+            picker = $element.selectpicker('refresh').data('selectpicker')
             if $scope.search.active_dossier
                 picker.val $scope.search.active_dossier
-            picker = $element.selectpicker('refresh')
+            picker = $element.selectpicker('refresh').data('selectpicker')
+            picker.$searchbox.attr('placeholder', 'Search')
+            picker.$newElement.find('button').attr('title',
+                'Select an existing folder to list its queries and docs.').tooltip()
             $element.on 'change', ->
                 $scope.search.active_dossier = picker.val()
                 $scope.$apply()
@@ -161,7 +194,8 @@ angular.module "mindbender.search", [
     scope:
         search: "=for"
     link: ($scope, $element) ->
-        $scope.$watch 'search.active_dossier', (dossier_name) ->
+        handler = () ->
+            dossier_name = $scope.search.active_dossier
             if not dossier_name
                 $element.empty()
                 $element.prop('disabled', true)
@@ -178,7 +212,9 @@ angular.module "mindbender.search", [
                     date = (ts.getMonth() + 1) + '/' + ts.getDate()
                     time = ts.getHours() + ':' + ts.getMinutes()
                     datetime = date + ' ' + time
-                    item_html = item.query_string
+                    icon = if item.query_is_doc then 'file-o' else 'search'
+                    item_html = '<i class="fa fa-' + icon + '"></i>&nbsp; '
+                    item_html += item.query_string
                     if item.query_title
                         item_html += ' (' + item.query_title + ')'
                     item_html += ' <em class="small muted">' + item.user_name + ' - ' + datetime +  '</em>'
@@ -186,11 +222,15 @@ angular.module "mindbender.search", [
                         value: item.query_string,
                         text: item.query_string
                     }).data('content', item_html))
-                picker = $element.selectpicker('refresh')
+                picker = $element.selectpicker('refresh').data('selectpicker')
                 $element.data('selectpicker').$newElement.fadeIn()
+                picker.$searchbox.attr('placeholder', 'Search')
                 $element.on 'change', ->
                     $scope.search.params.s = picker.val()
                     $scope.search.doSearch()
+
+        $scope.$watch 'search.active_dossier', handler
+        $scope.$watch 'search.active_dossier_force_updates', handler
 
 
 ## for viewing individual extraction/source data
@@ -324,6 +364,7 @@ angular.module "mindbender.search", [
 
             @all_dossiers = null
             @active_dossier = null
+            @active_dossier_force_updates = 0
             @query_to_dossiers = null
 
             @initialized = $q.all [
@@ -354,6 +395,10 @@ angular.module "mindbender.search", [
                 @all_dossiers = data.all_dossiers
                 if queries and queries.length
                     @query_to_dossiers = data.query_to_dossiers
+
+        add_dossier: (dossier_name) =>
+            if dossier_name and dossier_name not in @all_dossiers
+                @all_dossiers = [dossier_name].concat @all_dossiers
 
         toggleFacetCollpase: (field) =>
             if field of @collapsed_facets

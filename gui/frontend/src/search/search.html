@@ -101,16 +101,16 @@
                         <span ng-init="query = search.query" ng-if="search.query._query_string" ng-include="'search/search-query.html'"></span>
                     </div>
                     <div ng-if="search.query._query_string" class="pull-right">
-                        <span style="vertical-align: middle;" my-tool-tip title='Dossiers are shared by all users'>
+                        <span style="vertical-align: middle;">
                             <i class='fa fa-folder-open-o'></i>
                         </span>
                           <select class="selectpicker" query-dossier-picker multiple data-live-search="true"
                                 data-style="btn-default btn-sm" for="search"
-                                query-string="search.query._query_string" title="Add to Dossiers...">
+                                query-string="search.query._query_string" title="Bookmark this query...">
                           </select>
                     </div>
                     <script type="text/ng-template" id="search/search-query.html">
-                        for <i class='fa fa-file-text-o'></i>
+                        for <i class='fa fa-search'></i>
                         <span>
                             [ <strong>{{ (query._query_string || querystringRunning) || 'everything' }}</strong> ]
                         </span>
@@ -192,15 +192,16 @@
 
 <nav class="navbar navbar-default navbar-fixed-bottom container-fluid clearfix">
     <div class="pull-left" style="margin: 5px 0;">
-        <span style="font-size:20px; vertical-align: middle;" my-tool-tip title='Dossiers are shared by all users'>
+        <span style="font-size:20px; vertical-align: middle;">
             <i class='fa fa-folder-open-o'></i>
         </span>
         <select class="selectpicker" global-dossier-picker data-live-search="true"
-            for="search" title="Select Dossier...">
+            for="search" title="Select Bookmark Folder...">
         </select>
 
-        <span style="font-size:20px; vertical-align: middle; margin-left:20px;">
-            <i class='fa fa-file-text-o'></i>
+        <span class="fa-stack fa-sm" style="vertical-align: middle; margin-left:20px;">
+            <i class='fa fa-file-o fa-stack-2x'></i>
+            <i class='fa fa-search fa-stack-1x'></i>
         </span>
         <select class="selectpicker" dossier-query-picker data-live-search="true"
             for="search" title="Select Query or Doc...">
@@ -321,6 +322,8 @@ window.setupMySelectPicker = function($elem, options, change_callback) {
     var $new_item = $('<li class="hidden"><a><span class="text"></span>' +
         '<span class="glyphicon glyphicon-plus create-mark"></span></a></li>');
     $dropdown.prepend($new_item);
+    picker.$newElement.find('button').attr('title',
+        'Select existing bookmark folders or create a new one. Folders are shared by all users.').tooltip()
     var $sbox = picker.$searchbox;
     $sbox.attr('placeholder', 'Search or create');
     $sbox.on('input propertychange', function() {

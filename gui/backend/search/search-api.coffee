@@ -185,6 +185,7 @@ exports.configureApp = (app, args) ->
                     results = _.map matches, (item) ->
                         query_string: item.query_string
                         query_title: item.query_title
+                        query_is_doc: item.query_is_doc
                         user_name: item.user_name
                         ts_created: item.createdAt
                     res.send JSON.stringify(results)
