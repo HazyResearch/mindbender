@@ -92,7 +92,7 @@
   color:black;
 }
 
-.image_blur {
+.image-blur {
   filter: blur(3px);
   -webkit-filter: blur(3px);
   -moz-filter: blur(3px);
@@ -100,7 +100,7 @@
   -ms-filter: blur(3px);
 }
 
-.image_blur:hover {
+.image-blur:hover {
   filter: blur(0px);
   -webkit-filter: blur(0px);
   -moz-filter: blur(0px);
