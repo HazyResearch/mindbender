@@ -170,8 +170,8 @@ case $Action in
             pv --line-mode --size="$(deepdive sql eval "SELECT COUNT(*) FROM $relation")" |
             # split records into multiple batches
             # TODO parallelize
-            # split --lines=$ELASTICSEARCH_BULK_BATCHSIZE --filter="$(escape-args-for-shell sh -euc '
-            parallel --pipe --jobs $ELASTICSEARCH_INDEX_JOBS --ungroup --block 8M "$(escape-args-for-shell sh -euc '
+            #parallel --pipe --jobs $ELASTICSEARCH_INDEX_JOBS --ungroup --block 8M "$(escape-args-for-shell sh -euc '
+            split --lines=$ELASTICSEARCH_BULK_BATCHSIZE --filter="$(escape-args-for-shell sh -euc '
                 jqToFormat=$1 indexURL=$2
                 # produce elasticsearch bulk load action for each JSON record
                 jq -c "$jqToFormat" |
