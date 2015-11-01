@@ -256,6 +256,7 @@ angular.module "mindbender.search", [
         <span class="alert alert-danger" ng-if="error">{{error}}</span>
         """
     link: ($scope, $element) ->
+
         $scope.finishLoadingCustomTemplate = () ->
             if $scope.searchResult?
                 $element.find(".panel-body").append(
@@ -268,7 +269,8 @@ angular.module "mindbender.search", [
 
             $timeout () ->
                 $element.find('[data-toggle=tooltip]').tooltip()
-
+                $element.find('img').lazyload()
+                $element.find('a.img-link').colorbox({rel:'imggroup-' + $scope.searchResult.idx })
             return false
 
         $scope.search = DeepDiveSearch.init()
