@@ -2,11 +2,12 @@ angular.module "mindbender.search", [
     'elasticsearch'
     'json-tree'
     'ngSanitize'
+    'mindbender.auth'
 ]
 
 .config ($routeProvider) ->
     $routeProvider.when "/search/:index*?",
-        brand: "DeepDive", brandIcon: "search"
+        brand: "Evidently LE", brandIcon: "search"
         title: 'Search {{
                 q ? "for [" + q + "] " : (s ? "for [" + s + "] " : "everything ")}}{{
                 t ? "in " + t + " " : ""}}{{
@@ -17,7 +18,7 @@ angular.module "mindbender.search", [
         controller: "SearchResultCtrl"
         reloadOnSearch: no
     $routeProvider.when "/view/:index/:type",
-        brand: "DeepDive", brandIcon: "search"
+        brand: "Evidently LE", brandIcon: "search"
         title: """{{type}}( {{id}} ) in {{index}} - DeepDive"""
         templateUrl: "search/view.html"
         controller: "SearchViewCtrl"
@@ -58,9 +59,183 @@ angular.module "mindbender.search", [
                 $location.search DeepDiveSearch.params
                 $location.path "/search/"
 
+
+.directive "myDatePicker", ->
+    restrict: 'A'
+    replace: true
+    link: ($scope, $element) ->
+        $element.bootstrapDP({
+            format: "yyyy-mm-dd",
+            immediateUpdates: true,
+            orientation: "bottom auto"
+        })
+
+
+.directive "myToolTip", ->
+    restrict: 'A'
+    replace: true
+    link: ($scope, $element) ->
+        $element.tooltip()
+
+
+.directive "queryDossierPicker", ->
+    restrict: 'A'
+    replace: true
+    scope:
+        search: "=for"
+        query: "=queryString"
+        docid: "=queryStringDocid"
+        query_title: "=queryTitle"
+    link: ($scope, $element) ->
+        if $scope.docid
+            query = 'doc_id: "' + $scope.docid + '"'
+            query_is_doc = true
+        else
+            query = $scope.query
+            query_is_doc = false
+        query_title = $scope.query_title
+
+        initialized = false
+        old_all_dossiers = null
+
+        handler = () ->
+            options = []
+            selected = {}
+            _.each $scope.search.query_to_dossiers[query], (d) ->
+                options.push
+                    name: d
+                    selected: true
+                selected[d] = true
+            _.each $scope.search.all_dossiers, (d) ->
+                if not selected.hasOwnProperty d
+                    options.push
+                        name: d
+                        selected: false
+
+            old_all_dossiers = _.clone $scope.search.all_dossiers
+            options_names = _.pluck options, 'name'
+
+            window.setupMySelectPicker $element, options, (old_vals, new_vals) ->
+                $.ajax
+                    type: "POST",
+                    url: "/api/dossier/by_query/",
+                    processData: false,
+                    contentType: 'application/json',
+                    data: JSON.stringify
+                        query_string: query
+                        query_title: query_title
+                        query_is_doc: query_is_doc
+                        selected_dossier_names: _.difference(new_vals, old_vals)
+                        unselected_dossier_names: _.difference(old_vals, new_vals)
+                    success: ->
+                        console.log '/dossier/by_query/:', query, old_vals, new_vals
+
+                        _.each new_vals, (val) ->
+                            old_all_dossiers.push val
+                            $scope.search.add_dossier val
+                            if val == $scope.search.active_dossier
+                                # trigger dossierQueryPicker to reload
+                                $scope.search.active_dossier_force_updates += 1
+                        $scope.$apply()
+
+
+        $scope.$watch 'search.query_to_dossiers', ->
+            if not $scope.search.query_to_dossiers
+                return
+            handler()
+            initialized = true
+
+        $scope.$watch 'search.all_dossiers', ->
+            if not initialized or not $scope.search.all_dossiers
+                return
+
+            new_names = _.difference $scope.search.all_dossiers, old_all_dossiers
+
+            if new_names.length
+                _.each new_names, (nm) ->
+                    $element.prepend $('<option/>', {value: nm, text: nm})
+                $element.selectpicker('refresh')
+                old_all_dossiers = _.clone $scope.search.all_dossiers
+
+
+
+.directive "globalDossierPicker", ->
+    restrict: 'A'
+    replace: true
+    scope:
+        search: "=for"
+    link: ($scope, $element) ->
+        $scope.$watch 'search.all_dossiers', ->
+            if not $scope.search.all_dossiers
+                return
+            $element.empty()
+            _.each $scope.search.all_dossiers, (name) ->
+                $option = $('<option/>', {
+                    value: name,
+                    text: name
+                })
+                $element.append($option)
+
+            picker = $element.selectpicker('refresh').data('selectpicker')
+            if $scope.search.active_dossier
+                picker.val $scope.search.active_dossier
+            picker = $element.selectpicker('refresh').data('selectpicker')
+            picker.$searchbox.attr('placeholder', 'Search')
+            picker.$newElement.find('button').attr('title',
+                'Select an existing folder to list its queries and docs.').tooltip()
+            $element.on 'change', ->
+                $scope.search.active_dossier = picker.val()
+                $scope.$apply()
+
+
+.directive "dossierQueryPicker", ->
+    restrict: 'A'
+    replace: true
+    scope:
+        search: "=for"
+    link: ($scope, $element) ->
+        handler = () ->
+            dossier_name = $scope.search.active_dossier
+            if not dossier_name
+                $element.empty()
+                $element.prop('disabled', true)
+                $element.selectpicker('refresh')
+                return
+            $element.data('selectpicker').$newElement.fadeOut()
+            $.getJSON '/api/dossier/by_dossier/', {dossier_name: dossier_name}, (items) ->
+                $element.empty()
+                $element.prop('disabled', false)
+                $scope.search.active_dossier_queries = {}
+                _.each items, (item) ->
+                    $scope.search.active_dossier_queries[item.query_string] = true
+                    ts = new Date(item.ts_created)
+                    date = (ts.getMonth() + 1) + '/' + ts.getDate()
+                    time = ts.getHours() + ':' + ts.getMinutes()
+                    datetime = date + ' ' + time
+                    icon = if item.query_is_doc then 'file-o' else 'search'
+                    item_html = '<i class="fa fa-' + icon + '"></i>&nbsp; '
+                    item_html += item.query_string
+                    if item.query_title
+                        item_html += ' (' + item.query_title + ')'
+                    item_html += ' <em class="small muted">' + item.user_name + ' - ' + datetime +  '</em>'
+                    $element.append($('<option/>', {
+                        value: item.query_string,
+                        text: item.query_string
+                    }).data('content', item_html))
+                picker = $element.selectpicker('refresh').data('selectpicker')
+                $element.data('selectpicker').$newElement.fadeIn()
+                picker.$searchbox.attr('placeholder', 'Search')
+                $element.on 'change', ->
+                    $scope.search.params.s = picker.val()
+                    $scope.search.doSearch()
+
+        $scope.$watch 'search.active_dossier', handler
+        $scope.$watch 'search.active_dossier_force_updates', handler
+
+
 ## for viewing individual extraction/source data
 .controller "SearchViewCtrl", ($scope, $routeParams, $location, DeepDiveSearch) ->
-    $scope.search = DeepDiveSearch.init $routeParams.index
+    $scope.search = DeepDiveSearch.init $routeParams.indexs
     _.extend $scope, $routeParams
     searchParams = $location.search()
     $scope.id = searchParams.id
@@ -70,16 +245,36 @@ angular.module "mindbender.search", [
         _type:  $scope.type
         _id:    $scope.id
 
-.directive "deepdiveVisualizedData", (DeepDiveSearch, $q) ->
+
+.directive "deepdiveVisualizedData", (DeepDiveSearch, $q, $timeout) ->
     scope:
         data: "=deepdiveVisualizedData"
         searchResult: "="
         routing: "="
     template: """
-        <span ng-include="'search/template/' + data._type + '.html'"></span>
+        <span ng-include="'search/template/' + data._type + '.html'" onload="finishLoadingCustomTemplate()"></span>
         <span class="alert alert-danger" ng-if="error">{{error}}</span>
         """
-    link: ($scope) ->
+    link: ($scope, $element) ->
+
+        $scope.finishLoadingCustomTemplate = () ->
+            if $scope.searchResult?
+                $element.find(".panel-body").append(
+                    TextWithAnnotations.create($scope.searchResult))
+                if $scope.searchResult._source.images?
+                    images = []
+                    _.each $scope.searchResult._source.images, (item) ->
+                        images.push(JSON.parse(item))
+                    $scope.searchResult._source.images_j = images
+
+            $timeout () ->
+                $element.find('[data-toggle=tooltip]').tooltip()
+                $element.find('img').lazyload()
+                $element.find('a.img-link').colorbox({rel:'imggroup-' + $scope.searchResult.idx })
+            return false
+
+        $scope.search = DeepDiveSearch.init()
+        $scope.isArray = angular.isArray
         showError = (err) ->
             msg = err?.message ? err
             console.error msg
@@ -113,6 +308,7 @@ angular.module "mindbender.search", [
                     $scope.source    = data._source
                 else
                     console.error "#{kind}: Unrecognized kind for type #{data._type}"
+
         if $scope.data?._source?
             initScope $scope.data
         else
@@ -126,6 +322,7 @@ angular.module "mindbender.search", [
                 _.extend $scope.data, data
                 initScope data
             , showError
+
 
 .directive "showRawData", ->
     restrict: "A"
@@ -164,12 +361,19 @@ angular.module "mindbender.search", [
             @paramsDefault =
                 q: null # query string
                 s: null # query string for source
-                t: null # type to search
+                t: 'everything' # type to search
                 n: 10   # number of items in a page
                 p: 1    # page number (starts from 1)
             @params = _.extend {}, @paramsDefault
             @types = null
             @indexes = null
+            @elastic = elasticsearch
+            @collapsed_facets = {}
+
+            @all_dossiers = null
+            @active_dossier = null
+            @active_dossier_force_updates = 0
+            @query_to_dossiers = null
 
             @initialized = $q.all [
                 # load the search schema
@@ -193,6 +397,23 @@ angular.module "mindbender.search", [
         init: (@elasticsearchIndexName = "_all") =>
             @
 
+        fetch_dossiers: (queries) =>
+            $.getJSON '/api/dossier/by_query/', {queries: JSON.stringify(queries)}
+            .success (data) =>
+                @all_dossiers = data.all_dossiers
+                if queries and queries.length
+                    @query_to_dossiers = data.query_to_dossiers
+
+        add_dossier: (dossier_name) =>
+            if dossier_name and dossier_name not in @all_dossiers
+                @all_dossiers = [dossier_name].concat @all_dossiers
+
+        toggleFacetCollpase: (field) =>
+            if field of @collapsed_facets
+                delete @collapsed_facets[field]
+            else
+                @collapsed_facets[field] = true
+
         doSearch: (isContinuing = no) => @initialized.then =>
             @params.p = 1 unless isContinuing
             fieldsSearchable = @getFieldsFor "searchable", @params.t
@@ -206,11 +427,18 @@ angular.module "mindbender.search", [
                 # source type
                 sq = null
                 qs = @params.s
+
+            qs = qs || ''
+            if window.visualSearch
+                window.visualSearch.searchBox.value(qs)
             q =
                 if qs?.length > 0
+                    # Take care of quotations added by VisualSearch
+                    qs_for_es = qs.replace(/["']\[/g, '[').replace(/\]["']/g, ']')
                     query_string:
+                        default_field: "content"
                         default_operator: "AND"
-                        query: qs
+                        query: qs_for_es
             # also search source when possible
             # TODO highlight what's found here?
             if st? and sq?.length > 0
@@ -221,6 +449,7 @@ angular.module "mindbender.search", [
                             parent_type: st
                             query:
                                 query_string:
+                                    default_field: "content"
                                     default_operator: "AND"
                                     query: sq
                     ]
@@ -228,13 +457,13 @@ angular.module "mindbender.search", [
             # forumate aggregations
             aggs = {}
             if @indexes?
-                for navigable in @getFieldsFor ["navigable", "searchable"], @params.t
+                for navigable in @getFieldsFor ["navigable", "searchableXXXXXX"], @params.t
                     aggs[navigable] =
                         switch @getFieldType navigable
                             when "boolean"
                                 terms:
                                     field: navigable
-                            when "string"
+                            when "stringXXXXXX"
                                 # significant_terms buckets are empty if query is empty;
                                 # terms buckets are not empty in that case.
                                 # we want to show facets even for initial page with empty query.
@@ -253,6 +482,9 @@ angular.module "mindbender.search", [
                             else # TODO any better default for unknown types?
                                 terms:
                                     field: navigable
+                    aggs[navigable + '__count'] =
+                        value_count:
+                            field: navigable
             query =
                 index: @elasticsearchIndexName
                 type: @params.t
@@ -265,18 +497,55 @@ angular.module "mindbender.search", [
                     aggs: aggs
                     highlight:
                         tags_schema: "styled"
-                        fields: _.object ([f,{}] for f in fieldsSearchable)
+                        fields: _.object ([f,{require_field_match: true}] for f in fieldsSearchable)
             @queryRunning = query
+            @querystringRunning = qs
             elasticsearch.search query
             .then (data) =>
                 @error = null
                 @queryRunning = null
+                @querystringRunning = null
                 @query = query
                 @query._query_string = qs
                 @query._source_type = st
                 @query._source_query_string = sq
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
+                facets = []
+                best_facets = ['domain_type', 'flags', 'domain', 'locations', 'phones', 'post_date']
+                range_facets = ['ages', 'post_date', 'phones', 'ages']
+                date_facets = ['post_date']
+                for f in best_facets
+                    if f of data.aggregations
+                        facet = data.aggregations[f]
+                        facet.field = f
+                        facet.count = data.aggregations[f + '__count'].value
+                        facet.is_range = (f in range_facets)
+                        facet.is_date = (f in date_facets)
+                        if f of @collapsed_facets
+                            facet.collapsed = true
+                        facets.push facet
+                for k, v of data.aggregations
+                    if k not in best_facets and k + '__count' of data.aggregations
+                        facet = data.aggregations[k]
+                        facet.field = k
+                        facet.count = data.aggregations[k + '__count'].value
+                        facet.is_range = (k in range_facets)
+                        facet.is_date = (k in date_facets)
+                        if k of @collapsed_facets
+                            facet.collapsed = true
+                        facets.push facet
+                @results.facets = facets
+
+                dossier_queries = [qs]
+
+                idx = query.body.from + 1
+                for hit in data.hits.hits
+                    hit.idx = idx++
+                    dossier_queries.push('doc_id: "' + hit._id + '"')
+
+                @fetch_dossiers dossier_queries
+
             , (err) =>
                 @error = err
                 console.error err.message
@@ -312,25 +581,32 @@ angular.module "mindbender.search", [
                 , reject
             , reject
 
-        doNavigate: (field, value) =>
+        doNavigate: (field, value, newSearch = false) =>
             qsExtra =
-                if value?
-                    if field in @getFieldsFor "navigable"
-                        # use field-specific search for navigable fields
-                        "#{field}:\"#{value}\""
-                    else if field in @getFieldsFor "searchable"
-                        # just add extra keyword to the search
-                        value
-                else
+                if field and value
+                    # use field-specific search for navigable fields
+                    # VisualSearch may have added the quotes already
+                    if value.indexOf("'") == 0 or value.indexOf('"') == 0
+                        "#{field}: #{value}"
+                    else
+                        "#{field}: \"#{value}\""
+                else if value?
+                    "#{value}"
+                else if field?
                     # filtering down null has a special query_string syntax
                     "_missing_:#{field}"
+                else
+                    ""
+            qsExtra = qsExtra || ''
             # TODO check if qsExtra is already there in @params.q
             qs = if (@getSourceFor @params.t)? then "q" else "s"
             @params[qs] =
-                if @params[qs]
+                if newSearch or not @params[qs]
+                    qsExtra
+                else if qsExtra and @params[qs].indexOf(qsExtra) == -1
                     "#{@params[qs]} #{qsExtra}"
                 else
-                    qsExtra
+                    @params[qs]
             @doSearch no
 
         splitQueryString: (query_string) =>

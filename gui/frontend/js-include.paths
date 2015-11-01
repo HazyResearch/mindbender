@@ -35,3 +35,15 @@ bower_components/marked/lib/marked.js
 bower_components/elasticsearch/elasticsearch.angular.js
 
 bower_components/json-tree/json-tree.js
+
+bower_components/backbone/backbone-min.js
+
+bower_components/jquery-ui/ui/core.js
+bower_components/jquery-ui/ui/position.js
+bower_components/jquery-ui/ui/widget.js
+bower_components/jquery-ui/ui/menu.js
+bower_components/jquery-ui/ui/autocomplete.js
+bower_components/visualsearch/build-min/visualsearch.js
+
+bower_components/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js
+bower_components/bootstrap-select/dist/js/bootstrap-select.min.js

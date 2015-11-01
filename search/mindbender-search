@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # mindbender-search -- Creates and maintains search index
-# 
+#
 # To launch the search GUI:
 # $ mindbender search gui
-# 
+#
 # To update the search index with new searchable data produced by DeepDive, run:
 # $ mindbender search update
 # You can specify which searchable relations to update:
 # $ mindbender search update [RELATION]...
-# 
+#
 # To check the search index status:
 # $ mindbender search status
-# 
+#
 # For any reason, to drop the search index, run:
 # $ mindbender search drop
 # Or specify the relation to drop:
 # $ mindbender search drop [RELATION]...
-# 
+#
 # To see internal schema mappings:
 # $ mindbender search show-frontend-schema
 # $ mindbender search show-elasticsearch-mappings
@@ -34,7 +34,8 @@ cd "$DEEPDIVE_APP"
 
 # use the DeepDive app's folder name for the ES index name
 : ${ELASTICSEARCH_INDEX_NAME:=$(basename "$DEEPDIVE_APP")}
-: ${ELASTICSEARCH_BULK_BATCHSIZE:=1000}
+: ${ELASTICSEARCH_BULK_BATCHSIZE:=10000}
+: ${ELASTICSEARCH_INDEX_JOBS:=$(expr `nproc` / 2)}
 
 # parse command-line args
 case ${1:-} in
@@ -152,6 +153,11 @@ case $Action in
             done
         fi
 
+        # Temporarily disable auto refresh to speed up bulk indexing.
+        # https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-update-settings.html#bulk
+        echo 'Setting refresh_interval = -1'
+        esAPIx PUT "/_settings" -d '{"index" : {"refresh_interval" : "-1"} }'
+
         # bulk load to ES from DeepDive database
         update-relation() {
             local relation=$1; shift
@@ -164,6 +170,7 @@ case $Action in
             pv --line-mode --size="$(deepdive sql eval "SELECT COUNT(*) FROM $relation")" |
             # split records into multiple batches
             # TODO parallelize
+            #parallel --pipe --jobs $ELASTICSEARCH_INDEX_JOBS --ungroup --block 8M "$(escape-args-for-shell sh -euc '
             split --lines=$ELASTICSEARCH_BULK_BATCHSIZE --filter="$(escape-args-for-shell sh -euc '
                 jqToFormat=$1 indexURL=$2
                 # produce elasticsearch bulk load action for each JSON record
@@ -185,6 +192,11 @@ case $Action in
                 jqForBulkLoadingRelationIntoElasticsearch | @sh
             )"
         ')"
+
+        echo 'Setting refresh_interval = 1s and merging segments'
+        esAPIx PUT "/_settings" -d '{"index" : {"refresh_interval" : "1s"} }'
+        esAPIx POST "/_optimize"
+
         ;;
 
     status)

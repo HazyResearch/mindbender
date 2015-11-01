@@ -43,6 +43,7 @@ compile from=.css    to=.css  with=:              src=../build/%s     out=../bui
 compile from=.png    to=.png  with=:              src=../build/%s     out=../build/%s **/*.png
 compile from=.gif    to=.gif  with=:              src=../build/%s     out=../build/%s **/*.gif
 compile from=.json   to=.json with=:              src=../build/%s     out=../build/%s **/*.json
+compile from=.js     to=.js   with=:              src=../build/%s     out=../build/%s **/*.js
 cd ..
 
 # remove all dangling symlinks
@@ -107,6 +108,7 @@ fi
 
 # Construct the final version at app/ with necessary files only
 echo >&2 "Staging final products at app/"
+
 dest=../app
 mkdir -p $dest
 rsync -aH --omit-dir-times --delete \
@@ -126,7 +128,8 @@ compile-in() {
     local src=$1 out=$2
     compile-xdocs "$src"
 }
-compile from=.js.in to=.js  with=compile-in  src/ace/**/*.in
+# Commenting out line below for now because it blocks compilation on Mac
+# compile from=.js.in to=.js  with=compile-in  src/ace/**/*.in
 rsync -aHv --omit-dir-times \
     --exclude=*.{in,out} src/ace/ \
     bower_components/ace-builds/src-noconflict/

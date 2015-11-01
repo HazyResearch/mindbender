@@ -270,7 +270,7 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
         map("\(.expr) \(.alias)") |
         join(
     "\($indent)     , ")
-    
+
     )\(
         if .joinConditions | length == 0 then "" else "\(""
     )\($indent) WHERE \(
@@ -307,14 +307,34 @@ def jqForBulkLoadingRelationIntoElasticsearch:
           .byColumn | map(.name)
         ][0]
     ) as $columnsForParent |
+    (
+        [columns] |
+        [ .[] |
+            (
+                if isAnnotated(.name == "navigable") then
+                    {(.name): 1}
+                else empty end
+            )
+        ] | add
+    ) as $navigableColumns |
     "
     # index action/metadata
     {index:{ _id: \(keyColumns | map(.name) | jqExprForColumns)\(
           if $columnsForParent == null then "" else
       ", _parent: \($columnsForParent | jqExprForColumns
        )" end) }},
-    # followed by the actual document to index
-    .
+    # followed by the actual document to index plus suggestion fields
+    (
+        to_entries | [
+            .[] | (
+                if (.key | in(\($navigableColumns))) then
+                    {\"\\(.key)__suggest\": {input: .value, weight: 1}, (.key): .value}
+                else
+                    {(.key): .value}
+                end
+            )
+        ] | add
+    )
     " # TODO remove redundant @references columns
 ;
 
@@ -356,6 +376,28 @@ def elasticsearchPropertiesForMappings:
                 )
             }
         }
+    ),
+    (
+        [.relation | columns]
+        # except the columns referencing others
+        - [.references[] | select(.graph) | .byColumn[]] | .[] |
+        (
+            if isAnnotated(.name == "navigable") then
+                {
+                    key: "\(.name)__suggest",
+                    value: {
+                        type: "completion",
+                        preserve_position_increments: false,
+                        preserve_separators: false,
+                        index_analyzer: "standard",
+                        search_analyzer: "standard",
+                        payloads: false
+                    }
+                }
+            else
+                empty
+            end
+        )
     ), (
         .references[] | select(.graph) | {
             key: .alias,

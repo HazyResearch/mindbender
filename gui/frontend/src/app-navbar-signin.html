@@ -1,0 +1,16 @@
+<span ng-if="user.isSignedIn" class="navbar-brand dropdown" keyboard-nav style="padding-top:5px">
+    <span class="dropdown-toggle" aria-haspopup="true" aria-expanded="false" style="cursor:pointer;">
+        <img ng-src="{{user.thumb}}" style="border-radius:20px;width:40px;height:40px" />
+    </span>
+    <ul class="dropdown-menu dropdown-menu-right" role="menu">
+        <li><span style="padding-left:10px;padding-right:10px;color:#AAA">{{user.name}}</span></li>
+        <li><a href="/logout"><i class="fa fa-sign-out"></i> Sign out</a></li>
+    </ul>
+</span>
+
+<span ng-if="!user.isSignedIn" class="navbar-brand" keyboard-nav>
+    <span style="cursor:pointer">
+        <a href="/auth/google"><i class="fa fa-sign-in"></i></a>
+    </span>
+</span>
+

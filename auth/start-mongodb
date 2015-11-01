@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# start-mongodb -- Launches mongod instance 
+# $ start-mongodb
+# Sets environment MONGODB_RUNNING=true when running COMMAND.
+#
+# Modeled after search/keep-elasticsearch-during.
+##
+# Author: Raphael Hoffmann
+# Created: 2015-09-18
+set -eu
+
+# default settings
+: ${MONGODB_BASEURL:=http://localhost:27017} # TODO randomize port?
+: ${MONGODB_HOME:="$PWD"/auth}
+
+# make sure mongodb instance is available
+mongodb-is-up() {
+    STDERR=$(mongo --eval "printjson(db.isMaster())" 2>&1 >/dev/null)
+    if [[ -z "$STDERR" ]]; then
+      return 0   # true
+    else
+      return 1   # false
+    fi
+}
+case $MONGODB_BASEURL in
+    http://localhost:*)
+        port=${MONGODB_BASEURL#http://localhost:}
+        port=${port%%/*}
+        # make sure search repo is initialized
+        mkdir -p "$MONGODB_HOME"/{config,data,logs,data/db}
+        [[ -e "$MONGODB_HOME"/config/mongod.yml ]] || cp -f "$MINDBENDER_HOME"/depends/bundled/mongodb/prefix/*/config/mongod.yml "$MONGODB_HOME"/config/
+        terminate-local-mongodb() {
+            local pidfile="$MONGODB_HOME"/mongodb.pid
+            local pid=$(cat "$pidfile" 2>/dev/null)
+            # kill the mongod process
+            [[ -z "$pid" ]] || kill -TERM $pid ||
+                # or just clean up the stale PID file if can't kill
+                rm -f "$MONGODB_HOME"/mongodb.pid
+        }
+        # terminate if something's running locally but perhaps on a different port
+        if [[ -e "$MONGODB_HOME"/mongodb.pid ]]; then
+            mongodb-is-up || terminate-local-mongodb
+        fi
+        # if no instance is running here yet
+        if ! [[ -e "$MONGODB_HOME"/mongodb.pid ]]; then
+            if mongodb-is-up; then
+                # port may be occupied
+                error "$port: port is already used, try another one, e.g.: export MONGODB_BASEURL=http://localhost:270${RANDOM:0:2}"
+            else
+                # launch an isolated elasticsearch
+                msg "Launching Mongodb for $MONGODB_BASEURL from $MONGODB_HOME"
+                mOpts+=(
+                    #--fork
+                    # in background with a PID file
+                    --pidfilepath "$MONGODB_HOME"/mongodb.pid
+
+                    # some paths outside path.home
+                    --config "$MONGODB_HOME"/config/mongod.yml
+                    --dbpath "$MONGODB_HOME"/data/db
+                    --logpath "$MONGODB_HOME"/logs/log
+
+                    # override ports
+                    --port $port
+                )
+                mongod "${mOpts[@]:-}" &
+            fi
+        fi
+        # wait until the instance boots up
+        until mongodb-is-up; do sleep 0.$RANDOM; done
+        ;;
+
+    *)
+        # skip setup since MONGODB_BASEURL is not localhost
+        # make sure the mongodb instance is there
+        mongodb-is-up ||
+            error "$MONGODB_BASEURL: Mongodb not responding"
+esac
+
+# run given command
+export MONGODB_BASEURL MONGODB_HOME MONGODB_RUNNING=true

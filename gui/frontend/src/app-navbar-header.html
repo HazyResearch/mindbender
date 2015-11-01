@@ -7,11 +7,12 @@
 </button>
 
 <span class="navbar-brand dropdown" keyboard-nav>
-    <span class="dropdown-toggle" aria-haspopup="true" aria-expanded="false" style="cursor:pointer;">
+    <span class="dropdown-toggle" aria-haspopup="true" aria-expanded="false" style="cursor:pointer;"
+            ng-click="search.doNavigate('', '', true)">
         <i class="fa" ng-class="'fa-' + brandIcon"></i> {{brand}}
-        <span class="caret"></span></span>
+        <span class="caret hide"></span></span>
 
-    <ul class="dropdown-menu" role="menu">
+    <ul class="dropdown-menu hide" role="menu">
         <li><a href="#/search/"><i class="fa fa-search"></i> Search</a></li>
         <li><a href="#/dashboard"><i class="fa fa-dashboard"></i> Dashboard</a></li>
         <li><a href="#/mindtagger"><i class="fa fa-tags"></i> Mindtagger</a></li>

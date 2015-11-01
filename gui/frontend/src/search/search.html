@@ -3,6 +3,7 @@
 <nav class="navbar navbar-default navbar-fixed-top">
     <div class="container-fluid">
         <div class="navbar-header" ng-include="'app-navbar-header.html'"></div>
+        <div sign-in-out-menu style="float:right;height:50px;width:50px;margin-left:30px;"></div>
         <div deepdive-search-bar for="search"></div>
     </div>
 </nav>
@@ -10,19 +11,48 @@
 
 
 <!-- Search results -->
-<div class="container-fluid">
+<div>
     <div class="row">
         <div class="col-xs-2 col-md-3 affix sidebar">
             <!-- faceted search with aggregations -->
-            <div ng-repeat="(field, agg) in search.results.aggregations" ng-if="agg.buckets.length > 0">
+            <div ng-repeat="agg in search.results.facets" ng-if="agg.buckets.length > 0" ng-init="field=agg.field">
                 <h4 data-toggle="collapse" data-target="#facets-{{field | safeId}}"
-                    aria-expanded="true" aria-controls="facets-{{field | safeId}}">{{field}}</h4>
-                <div id="facets-{{field | safeId}}" class="collapse in">
+                    aria-expanded="true" aria-controls="facets-{{field | safeId}}"
+                    class='facet-header'
+                    ng-click="search.toggleFacetCollpase(field)">
+                    <i class="fa" ng-class="agg.collapsed ? 'fa-plus-square-o' : 'fa-minus-square-o'"></i>&nbsp;
+                    {{field}}
+                    <small class="muted">({{agg.count | number}})</small>
+                </h4>
+                <div id="facets-{{field | safeId}}" class="collapse" ng-class="agg.collapsed ? '' : 'in'">
+                <div class="row" ng-if="agg.is_range" style="margin-bottom:8px" data-field="{{field}}">
+                    <div class="col-sm-4">
+                        <input type='text' placeholder='Min' class="form-control input-sm min-box" my-date-picker ng-if="agg.is_date">
+                        <input type='text' placeholder='Min' class="form-control input-sm min-box" ng-if="!agg.is_date">
+                    </div>
+                    <div class="col-sm-4">
+                        <input type='text' placeholder='Max' class="form-control input-sm max-box" my-date-picker ng-if="agg.is_date">
+                        <input type='text' placeholder='Max' class="form-control input-sm max-box" ng-if="!agg.is_date">
+                    </div>
+                    <div class="col-sm-1"><button type="button" class="btn btn-default btn-small input-sm minmax-go">Go</button></div>
+                </div>
                 <table class="table table-hover table-condensed"
                     ng-init="fieldType = search.getFieldType(field)">
                     <tr ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate(field, bucket.key)">
-                        <td><a>{{bucket.key}}<em ng-if="bucket.key == ''">(empty)</em></a></td>
-                        <td class="text-right"><span class="badge badge-default">{{bucket.doc_count}}</span></td>
+                        <td>
+                            <a ng-if="field == 'domain_type'" class="label"
+                                style="cursor: pointer"
+                                ng-class="bucket.key == 'ads' ? 'label-info' : 'label-success'">
+                                {{bucket.key}}
+                            </a>
+                            <a ng-if="field !== 'domain_type'"
+                                style="cursor: pointer"
+                                ng-class="field == 'flags' ? 'label label-warning' : ''">
+                                {{bucket.key}}
+                            </a>
+                            <a ng-if="bucket.key == ''"><em>(empty)</em></a>
+                        </td>
+                        <td class="text-right"><span class="badge badge-default">{{bucket.doc_count | number}}</span></td>
                     </tr>
                     <tr ng-if="fieldType != 'string' && search.results.hits.total > search.countTotalDocCountOfBuckets(agg)">
                         <td><a><em>null</em></a></td>
@@ -35,10 +65,10 @@
         </div>
         <div class="col-xs-10 col-xs-offset-2 col-md-9 col-md-offset-3 main">
             <div class="pull-right">
-	        <button type="button" class="btn btn-default"
-	            ng-click='openModal({templateUrl:"search/search-debug-modal.html", size:"lg"})'
-	            data-toggle="modal" data-target="#search-debug-modal"><i class="fa fa-cogs"></i></button>
-	    </div>
+            <button type="button" class="btn btn-default hide"
+                ng-click='openModal({templateUrl:"search/search-debug-modal.html", size:"lg"})'
+                data-toggle="modal" data-target="#search-debug-modal"><i class="fa fa-cogs"></i></button>
+        </div>
 
             <!-- error and progress boxes -->
             <div class="alert alert-danger" ng-if="search.error">
@@ -46,7 +76,7 @@
                 <p ng-bind-html="search.error.body"></p>
             </div>
             <div ng-if="search.queryRunning">
-                <p class="lead">Searching <span ng-init="query = search.queryRunning" ng-include="'search/search-query.html'"></span></p>
+                <p class="lead">Searching <span ng-init="query = search.queryRunning; querystringRunning = search.querystringRunning" ng-include="'search/search-query.html'"></span></p>
                 <p>
                     <div class="progress">
                         <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%;">
@@ -58,64 +88,80 @@
 
             <div ng-if="!search.queryRunning">
                 <!-- search results summary -->
-                <p class="lead">
-                    <span ng-if="! search.results.hits.total > 0">No results</span>
-                    <span ng-if="search.results.hits.total > 0">
-                        {{
-                            search.query.body.from + 1                               | number
-                        }}-{{
-                            search.query.body.from + search.results.hits.hits.length | number
-                        }} of {{search.results.hits.total | number}} results
-                    </span>
-                    <span ng-init="query = search.query" ng-include="'search/search-query.html'"></span>
-                    <script type="text/ng-template" id="search/search-query.html">
-                        for
-                        <span ng-if="query._query_string">
-                            [ <strong>{{query._query_string}}</strong> ]
+                <div class="clearfix">
+                    <div class="pull-left">
+                        <span ng-if="! search.results.hits.total > 0">No results</span>
+                        <span ng-if="search.results.hits.total > 0 && search.query._query_string">
+                            {{
+                                search.query.body.from + 1                               | number
+                            }}-{{
+                                search.query.body.from + search.results.hits.hits.length | number
+                            }} of {{search.results.hits.total | number}} results
                         </span>
-                        <span ng-if="!query._query_string">everything</span>
-                        <span ng-if="query.type"> in <em>{{query.type}}</em></span>
+                        <span ng-init="query = search.query" ng-if="search.query._query_string" ng-include="'search/search-query.html'"></span>
+                    </div>
+                    <div ng-if="search.query._query_string" class="pull-right">
+                        <span style="vertical-align: middle;">
+                            <i class='fa fa-folder-open-o'></i>
+                        </span>
+                          <select class="selectpicker" query-dossier-picker multiple data-live-search="true"
+                                data-style="btn-default btn-sm" for="search"
+                                query-string="search.query._query_string" title="Bookmark this query...">
+                          </select>
+                    </div>
+                    <script type="text/ng-template" id="search/search-query.html">
+                        for <i class='fa fa-search'></i>
+                        <span>
+                            [ <strong>{{ (query._query_string || querystringRunning) || 'everything' }}</strong> ]
+                        </span>
                         <span ng-if="query._source_query_string">
                             from <em>{{query._source_type}}</em>
                             matching
                             [ <strong>{{query._source_query_string}}</strong> ]
                         </span>
                     </script>
-                </p>
+                </div>
+                <br>
+
+                <div ng-if="!search.query._query_string" class="jumbotron">
+                    <h1>{{search.results.hits.total | number}}</h1>
+                    <p>documents</p>
+                    <br>
+                </div>
 
                 <!-- individual search results -->
-                <ol start="{{search.query.body.from + 1}}">
-                    <li ng-repeat="hit in search.results.hits.hits track by $index" class="hit">
+                <!-- <ol start="{{search.query.body.from + 1}}"> -->
+                    <div ng-repeat="hit in search.results.hits.hits track by $index" class="hit">
                         <!-- provenance hyperlink -->
-                        <p>
+                        <p class='hide'>
                             <!-- TODO routing param -->
-                            <a ng-href="#/view/{{hit._index | urlEncode
+                            <span ng-href="#/view/{{hit._index | urlEncode
                                     }}/{{hit._type | urlEncode
                                     }}?{{hit.parent ? 'parent=' + (hit.parent._id | urlEncode) + '&' : ''
                                     }}id={{hit._id | urlEncode
                                     }}"
-                               class="text-muted">{{hit._type}}( {{hit._id}} ) in {{hit._index}}</a>
+                               class="text-muted">{{hit._id}}</span>
                         </p>
 
                         <!-- highlights, visualization -->
-                        <blockquote>
+
                             <!-- highlight to hint why this is a result -->
-                            <div ng-repeat="(field, highlight) in hit.highlight">
+                            <blockquote class="small" ng-repeat="(field, highlight) in hit.highlight">
                                 <strong class="text-muted">{{field}}:</strong>
-                                <div ng-repeat="h in highlight track by $index">
-                                    <div ng-if="$index > 0">...</div>
-                                    <p ng-bind-html="h"></p>
-                                </div>
-                            </div>
+                                <span ng-repeat="h in highlight track by $index">
+                                    <span ng-if="$index > 0">...</span>
+                                    <span ng-bind-html="h"></span>
+                                </span>
+                            </blockquote>
 
                             <!-- use custom per-type presentation templates -->
                             <p deepdive-visualized-data="hit" search-result="hit"></p>
 
                             <!-- raw data -->
-                            <p show-raw-data="hit"></p>
-                        </blockquote>
-                    </li>
-                </ol>
+                            <!-- <p show-raw-data="hit"></p> -->
+
+                    </div>
+                <!-- </ol> -->
             </div>
 
             <!-- debug info in a modal -->
@@ -140,11 +186,48 @@
         </div>
     </div>
 </div>
+
+<nav class="navbar navbar-default navbar-fixed-bottom container-fluid clearfix">
+    <div class="pull-left" style="margin: 5px 0;">
+        <span style="font-size:20px; vertical-align: middle;">
+            <i class='fa fa-folder-open-o'></i>
+        </span>
+        <select class="selectpicker" global-dossier-picker data-live-search="true"
+            for="search" title="Select Bookmark Folder...">
+        </select>
+
+        <span class="fa-stack fa-sm" style="vertical-align: middle; margin-left:20px;">
+            <i class='fa fa-file-o fa-stack-2x'></i>
+            <i class='fa fa-search fa-stack-1x'></i>
+        </span>
+        <select class="selectpicker" dossier-query-picker data-live-search="true"
+            for="search" title="Select Query or Doc...">
+        </select>
+    </div>
+    <div class="pull-right" ng-if="search.query._query_string">
+        <pagination class="pagination-sm fa"
+        total-items="search.results ? search.results.hits.total
+                                    : search.params.p * search.params.n"
+                                        items-per-page="search.params.n"
+        ng-model="search.params.p"
+        ng-model-options="{ debounce: 200 }"
+        ng-change="search.doSearch(true)"
+        previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
+        max-size="9" boundary-links="true"></pagination>
+    </div>
+</nav>
+
+<link href='https://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
+<!-- <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'> -->
+
 <style>
+body, .VS-interface, .VS-search .dialog, .VS-search input {
+    font-family: Lato !important;
+}
 .sidebar {
     top: 70px;
-    bottom: 90px;
-    overflow-y: auto; 
+    bottom: 50px;
+    overflow-y: auto;
 }
 .sidebar h4, .sidebar a {
     word-break: break-all;
@@ -154,34 +237,270 @@
 .sidebar h4, .sidebar tr {
     cursor: pointer;
 }
+blockquote {
+    font-size: normal !important;
+}
+.hit .hlt1 { background-color: #ffc; }
+.hit .hlt2 { background-color: #cff; }
+.hit .hlt3 { background-color: #fcf; }
+.hit .hlt4 { background-color: #ccf; }
+.hit .hlt5 { background-color: #cfc; }
+.hit .hlt6 { background-color: #fcc; }
 
-.hit blockquote .hlt1 { background-color: #ffc; }
-.hit blockquote .hlt2 { background-color: #cff; }
-.hit blockquote .hlt3 { background-color: #fcf; }
-.hit blockquote .hlt4 { background-color: #ccf; }
-.hit blockquote .hlt5 { background-color: #cfc; }
-.hit blockquote .hlt6 { background-color: #fcc; }
+.pagination {
+    margin: 5px auto;
+}
+.navbar.navbar-fixed-bottom {
+    min-height: auto;
+}
+.panel-heading .breadcrumb {
+    margin-bottom: auto;
+    padding: 5px;
+}
+
+.hover-show {
+    visibility: hidden;
+}
+
+.hover-show-wrapper:hover .hover-show {
+    visibility: inherit;
+}
+
+.VS-search .search_input input {
+    box-sizing: initial;
+}
+
+h4.ter-juicy-header {
+    font-size: 14px;
+}
+
+div.ter-juicy-review {
+    color: gray;
+}
 
 [ng-hide=showJsonTree] {
     font-size: 13px;
     font-family: monospace;
 }
+
+.bootstrap-select.btn-group.show-tick .dropdown-menu li a span.create-mark {
+    position: absolute;
+    display: inline-block;
+    right: 15px;
+    margin-top: 5px;
+    color: orange;
+}
+
+body { padding-bottom: 70px; }
+
 </style>
 
+<script type="text/javascript" charset="utf-8">
 
-<nav class="navbar navbar-default navbar-fixed-bottom">
-    <div class="container">
-        <div class="text-center">
-            <pagination class="pagination-sm fa"
-            total-items="search.results ? search.results.hits.total
-                                        : search.params.p * search.params.n"
-                                            items-per-page="search.params.n"
-            ng-model="search.params.p"
-            ng-model-options="{ debounce: 200 }"
-            ng-change="search.doSearch(true)"
-            previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
-            max-size="9" boundary-links="true"></pagination>
-        </div>
-    </div>
-</nav>
-<style>body { padding-bottom: 70px; }</style>
+$.fn.bootstrapDP = $.fn.datepicker.noConflict();
+
+window.setupMySelectPicker = function($elem, options, change_callback) {
+    $elem.empty()
+    $elem.off('change.dossier_callback');
+    var all_values = {};
+    var old_values = [];
+    _.each(options, function(option) {
+        $elem.append($('<option/>', {
+            value: option.name,
+            text: option.name
+        }).prop('selected', option.selected));
+        all_values[option.name] = true;
+        if (option.selected) {
+            old_values.push(option.name);
+        }
+    });
+    var picker = $elem.selectpicker('refresh').data('selectpicker');
+    var $dropdown = picker.$newElement.find('ul.dropdown-menu');
+    var $new_item = $('<li class="hidden"><a><span class="text"></span>' +
+        '<span class="glyphicon glyphicon-plus create-mark"></span></a></li>');
+    $dropdown.prepend($new_item);
+    picker.$newElement.find('button').attr('title',
+        'Select existing bookmark folders or create a new one. Folders are shared by all users.').tooltip()
+    var $sbox = picker.$searchbox;
+    $sbox.attr('placeholder', 'Search or create');
+    $sbox.on('input propertychange', function() {
+        var val = $.trim($sbox.val());
+        if (val && !all_values[val]) {
+            $new_item.find('span.text').text(val);
+            $new_item.removeClass('hidden');
+        } else {
+            $new_item.addClass('hidden');
+        }
+    });
+    $new_item.on('click', function(){
+        var val = $new_item.find('span.text').text();
+        if (!val || all_values[val]) return;
+        all_values[val] = true;
+        $new_item.detach();
+        $elem.prepend($('<option/>', {
+            value: val,
+            text: val
+        }).prop('selected', true));
+        picker.$newElement.removeClass('open');
+        picker.refresh();
+        $dropdown.prepend($new_item);
+    });
+    $elem.on('change.dossier_callback', function(){
+        var vals = picker.val() || [];
+        change_callback(old_values, vals);
+        old_values = vals;
+    });
+};
+
+$(function(){
+
+    $('body').on('click', '.facet-header', function(){
+        $(this).find('i').toggleClass('fa-plus-square-o').toggleClass('fa-minus-square-o')
+    });
+
+    $('body').on('click', '.minmax-go', function(){
+        var $p = $(this).parent().parent();
+        var min = $.trim($p.find('.min-box').val()).replace("'", '"'),
+            max = $.trim($p.find('.max-box').val()).replace("'", '"'),
+            field = $p.data('field');
+        if (!min && !max) return;
+        if (!/^[a-zA-Z0-9-_]*$/.test(min)) {
+            min = '"' + min.replace(/"/g, '\\"') + '"';
+        }
+        if (!/^[a-zA-Z0-9-_]*$/.test(max)) {
+            max = '"' + max.replace(/"/g, '\\"') + '"';
+        }
+        var val = '[' + (min || '*') + ' TO ' + (max || '*') + ']';
+        if (val.indexOf('"') >= 0) {
+            val = "'" + val + "'";
+        }
+        window.visualSearch.SEARCH.doNavigate(field, val);
+    });
+
+    function setupSearchBar() {
+        var SEARCH = angular.element($('.navbar-fixed-top').find('[for=search]')[0]).scope().search;
+        var ELASTIC = SEARCH.elastic;
+        var searchable = SEARCH.getFieldsFor('searchable');
+        var navigable = SEARCH.getFieldsFor('navigable');
+        // Categories would break VS as it's not compatible with JqUI 1.11.4
+        // var facets = _.map(searchable, function(x) {
+        //     return {
+        //         label: x,
+        //         category: 'Content Fields'
+        //     };
+        // }).concat(_.map(navigable, function(x) {
+        //     return {
+        //         label: x,
+        //         category: 'Facet Fields'
+        //     };
+        // }));
+        var facets = searchable.concat(navigable);
+        window.visualSearch = VS.init({
+          container : $('.visual_search'),
+          query     : '',
+          callbacks : {
+            search       : function(query, searchCollection) {
+                SEARCH.params.s = query;
+                SEARCH.doSearch();
+            },
+            facetMatches : function(callback) {
+                var views = visualSearch.searchBox.inputViews;
+                var view = views[views.length - 1];
+                var val = view.value();
+                var cur = view.box[0].selectionStart;
+                if (cur != val.length) {
+                    callback([]);
+                } else {
+                    var matches = _.filter(facets, function(x) {
+                        return x.indexOf(val) === 0;
+                    });
+                    callback(matches);
+                }
+            },
+            valueMatches : function(facet, searchTerm, callback) {
+                if (!_.contains(navigable, facet)) return;
+                var request = {
+                    index:  '_all',
+                    type: SEARCH.params.t,
+                };
+                var promise;
+                if (!searchTerm) {
+                    // ES suggest API doesn't return results when query is empty.
+                    // We use the aggs API instead in that case.
+                    request.body = {
+                        aggs: {
+                            hist: {
+                                terms: {
+                                    size: 20,
+                                    field: facet
+                                }
+                            }
+                        }
+                    };
+                    promise = ELASTIC.search(request);
+                } else {
+                    var comp = {
+                        size: 20,
+                        field : facet + "__suggest"
+                    };
+                    if (facet != 'phones') {
+                        comp.fuzzy = {
+                            prefix_length: 3
+                        };
+                    }
+                    request.body = {
+                        suggest: {
+                            text: searchTerm,
+                            completion: comp
+                        }
+                    }
+                    promise = ELASTIC.suggest(request);
+                }
+                promise.then(function(data) {
+                    var results;
+                    if (data.suggest && data.suggest.length) {
+                        results = _.map(data.suggest[0].options, function(item) {
+                            return {
+                                value: item.text,
+                                // Although we do set weight=1 when indexing suggest fileds,
+                                // the final score is not the sum.
+                                label: item.text // + ' (' + item.score + ')'
+                            };
+                        });
+                    } else if (data.aggregations && data.aggregations.hist) {
+                        results = _.map(data.aggregations.hist.buckets, function(item) {
+                            return {
+                                value: item.key,
+                                label: item.key + ' (' + item.doc_count + ')'
+                            };
+                        });
+                    } else {
+                        return;
+                    }
+
+                    callback(results, {
+                        preserveMatches: true
+                    });
+                });
+            }
+          }
+        });
+        window.visualSearch.SEARCH = SEARCH;
+    }
+
+    function setupSearchBarWhenSchemaJsonIsFetched() {
+        var SEARCH = angular.element($('.navbar-fixed-top').find('[for=search]')[0]).scope().search;
+        if(!SEARCH || !SEARCH.types) {
+            window.setTimeout(setupSearchBarWhenSchemaJsonIsFetched, 100);
+        } else {
+            setupSearchBar();
+        }
+    }
+    setupSearchBarWhenSchemaJsonIsFetched();
+
+});
+
+</script>
+
+<script src="bower_components/jquery.lazyload/jquery.lazyload.js"></script>
+<script src="bower_components/jquery-colorbox/jquery.colorbox.js"></script>
