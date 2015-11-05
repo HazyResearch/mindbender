@@ -72,7 +72,7 @@ var TextWithAnnotations = (function() {
        var keys = Object.keys(spans)
        var str = html.substring(start, end)
        for (var k=0; k < keys.length; k++) {
-         str = '<span style="background-color:#ff0000;opacity:.5;color:white" '+
+         str = '<span style="background-color:#FFEE99;padding-left:2px;padding-right:2px" '+
                ' data-toggle="tooltip" ' +
                ' data-placement="bottom" ' +
                ' data-original-title="' + extractions[keys[k]].extractor + '">' + str + '</span>'
