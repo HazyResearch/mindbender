@@ -512,7 +512,7 @@ angular.module "mindbender.search", [
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
                 facets = []
-                best_facets = ['domain_type', 'flags', 'domain', 'locations', 'phones', 'post_date']
+                best_facets = ['domain_type', 'flags', 'yelp', 'domain', 'locations', 'phones', 'post_date']
                 range_facets = ['ages', 'post_date', 'phones', 'ages']
                 date_facets = ['post_date']
                 for f in best_facets
