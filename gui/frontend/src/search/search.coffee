@@ -3,6 +3,8 @@ angular.module "mindbender.search", [
     'json-tree'
     'ngSanitize'
     'mindbender.auth'
+    'ngHandsontable'
+    'ui.bootstrap'
 ]
 
 .config ($routeProvider) ->
@@ -259,8 +261,8 @@ angular.module "mindbender.search", [
 
         $scope.finishLoadingCustomTemplate = () ->
             if $scope.searchResult?
-                $element.find(".panel-body").append(
-                    TextWithAnnotations.create($scope.searchResult))
+                #$element.find(".panel-body").append(
+                #    TextWithAnnotations.create($scope.searchResult))
                 if $scope.searchResult._source.images?
                     images = []
                     _.each $scope.searchResult._source.images, (item) ->
@@ -669,3 +671,227 @@ angular.module "mindbender.search", [
 .filter "safeId", () ->
     (text) ->
         text?.replace /[^A-Za-z0-9_-]/g, "_"
+
+
+#.controller "ScoresCtrl", ($scope) ->
+#    @db = {
+#      items: [ { 'phone_number':'34343' }]
+#    }
+#    @settings = { colHeaders: true }
+
+.directive "scoresTable", ($q, $timeout, $http, hotRegisterer, $compile) ->
+    template: """
+        <hot-table
+          hot-id="myTable"
+          settings="db.settings"
+          datarows="db.items">
+        </hot-table>
+        """
+    controller: ($scope) ->
+
+        $scope.phoneRenderer = (hotInstance, td, row, col, prop, value, cellProperties) =>
+            Handsontable.renderers.TextRenderer.apply(this, arguments);
+            td.innerHTML = "<a style='cursor:pointer; margin-right: 4px;'
+                        data-toggile='tooltip' title='New search with this filter'
+                        ng-click=\"search.doNavigate('phones', '" +value+"', true)\">" + 
+                        value + "</a>"
+            $compile(angular.element(td))($scope)
+
+        $scope.locRenderer = (hotInstance, td, row, col, prop, value, cellProperties) =>
+            Handsontable.renderers.TextRenderer.apply(this, arguments);
+            if value == 'Unknown'
+                value = ''
+            if value.length > 50
+                value = value.substring(0,50)
+            td.innerHTML = value
+
+        $scope.columns = [
+          {
+           data:'phone_number'
+           title:'Phone Number'
+           renderer:$scope.phoneRenderer
+           readOnly:true 
+          },
+          { data:'ads_count', title:'#Ads', readOnly:true, type:'numeric' },
+          { data:'reviews_count', title:'#Reviews', readOnly:true, type:'numeric' },
+          { data:'organization_score', title:'Organization', readOnly:true, type:'numeric', format: '0,0.00' },
+          { data:'control_score', title:'Control', readOnly:true, type:'numeric', format: '0,0.00' },
+          { data:'underage_score', title:'Underage', readOnly:true, type:'numeric', format: '0,0.00' },
+          { data:'movement_score', title:'Movement', readOnly:true, type:'numeric', format: '0,0.00' },
+          { data:'overall_score', title:'Overall', readOnly:true, type:'numeric', format: '0,0.00' },
+          { data:'city', title:'City', readOnly:true, renderer:$scope.locRenderer },
+          { data:'state', title:'State', readOnly:true, renderer:$scope.locRenderer }
+        ]
+        #$scope.colHeaders = (column) =>
+        #    console.log column
+        #    switch column
+        #        when 0 then return '<span>#Ads</span>'
+        #    return column
+
+        $scope.db = {
+           settings : {colHeaders: true, rowHeaders:true, contextMenu: true, columns:$scope.columns, afterGetColHeader: (col, TH) => 
+                   if col > 0 && col < 8 
+                      TH.innerHTML = '<span ng-click="sortByColumn(' + col + ')" style="cursor:pointer;padding-left:5px;padding-right:5px">' + 
+                          $scope.columns[col].title + '</span>'
+                      $compile(angular.element(TH.firstChild))($scope)
+           }
+           items : []
+        }
+
+        $scope.sortByColumn = (col) =>
+            field = $scope.columns[col].data
+            if field.endsWith('_score') || field.endsWith('_count')
+                field = field + ' DESC'
+            $scope.fetch_scores(field)
+
+    link: ($scope, $element) ->
+
+        $scope.fetch_scores = (sort_order) =>
+            $http.get "/api/scores", { params: {sort_order:sort_order} }
+                  .success (data) =>
+                      $scope.db.items = data
+                  .error (err) =>
+                      console.error err.message
+
+        $scope.fetch_scores('overall_score DESC')
+
+.filter 'unsafe', ($sce) ->
+    return (val) -> 
+        return $sce.trustAsHtml(val)
+
+.directive "annotation", ($timeout, $document, $uibPosition, $sce) ->
+    transclude:true
+    scope:
+        k: "="
+    template: """<span uib-popover-template="'myPopoverTemplate.html'" popover-trigger="manual" style="background-color:#FFEE99;padding-left:2px;padding-right:2px;cursor:pointer"
+           popover-placement="bottom"
+           popover-is-open="isOpen"
+           ng-click="isOpen = true"
+           ng-transclude></span>"""
+
+    controller: ($scope) ->
+        $scope.isOpen = false
+        $scope.tag = {
+            is_correct : undefined
+        }
+
+        $scope.commit = () =>
+            console.log 'writing feedback'
+            value = 'undefined'
+            if $scope.tag.is_correct == true
+                value = 'true'
+            if $scope.tag.is_correct == false
+                value = 'false'
+            $scope.$parent.write_feedback $scope.extraction.doc_id, $scope.extraction.mention_id, value 
+
+        $scope.tagHandler = (f) =>
+            if !f
+                return
+            if !$scope.extraction
+                return
+
+            cur = f[$scope.extraction.doc_id + ',' + $scope.extraction.mention_id]
+            if !cur
+               console.log 'not cur'
+               return
+            console.log('cur')
+            console.log cur
+            val = undefined
+            if cur.value == 'true'
+               val = true
+            if cur.value == 'false'
+               val = false
+
+            if val != $scope.tag.is_correct
+               $scope.tag.is_correct = val
+
+        #console.log 'calling the first time'
+        #console.log $scope.feedback
+        #console.log $scope.$parent.feedback
+        $scope.tagHandler($scope.$parent.feedback)
+
+        $scope.$watch 'feedback', $scope.tagHandler, true
+
+    link: ($scope, $element, attrs) ->
+        $scope.extraction = JSON.parse($scope.$parent.searchResult._source.extractions[parseInt(attrs.k)])
+        $scope.extractor = $scope.extraction.extractor
+            
+        #console.log 'creating tagHandler'
+        #$scope.tagHandler = (f) =>
+        #    if !f
+        #        console.log 'not f'
+        #        return
+        #    #if !$scope.extraction
+                
+        #    cur = f[$scope.extraction.doc_id + ',' + $scope.extraction.mention_id]
+        #    if !cur
+        #       console.log 'not cur'
+        #       return
+        #    console.log('cur')
+        #    console.log cur
+        #    val = undefined
+        #    if cur.value == 'true'
+        #       val = true
+        #    if cur.value == 'false'
+        #       val = false
+            
+        #    if val != $scope.tag.is_correct
+        #       $scope.tag.is_correct = val
+
+        #$scope.$watch 'feedback', $scope.tagHandler, true
+
+        # call the first time
+        #console.log 'call tagHandler'
+        #tagHandler($scope.feedback)
+
+        # hide popover on click away
+        handler = (e) ->
+            if $scope.isOpen && !$element[0].contains(e.target)
+                $scope.$apply () ->
+                    $scope.isOpen = false
+
+        $document.on 'click', handler
+
+        $scope.$on '$destroy', () =>
+            $document.off('click', handler)
+
+.directive "textWithAnnotations", ($q, $timeout, $http, $compile) ->
+    scope:
+        searchResult: "="
+    template: """
+        <div></div>
+        """
+    controller: ($scope) ->
+        # map from doc_id,mention_id -> feedback
+        $scope.feedback = {}
+
+        $scope.fetch_feedback = () =>
+            doc_id = $scope.searchResult._source.doc_id
+            $http.get "/api/feedback/" + doc_id 
+                  .success (data) =>
+                      data.forEach (d) ->
+                          $scope.feedback[d.doc_id + ',' + d.mention_id] = d.value
+                      console.log $scope.feedback 
+                      console.log data
+                      #$scope.db.items = data
+                  .error (err) =>
+                      console.error err.message
+
+        $scope.write_feedback = (doc_id, mention_id, value) =>
+            $http.post "/api/feedback", { doc_id:doc_id, mention_id:mention_id, value:value }
+                .success () =>
+                    # update model
+                    $scope.feedback[doc_id + ',' + mention_id] = value
+                    console.log 'success'
+                .error (err) =>
+                    console.error err.message
+
+        $scope.fetch_feedback()
+
+    link: ($scope, $element) ->
+        el = TextWithAnnotations.create($scope.searchResult)
+        $element.append(el)
+
+        $compile(el)($scope)
+
+
