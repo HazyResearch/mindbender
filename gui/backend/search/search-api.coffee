@@ -8,12 +8,13 @@ _ = require "underscore"
 express = require "express"
 Sequelize = require "sequelize"
 
-sequelize = new Sequelize('evidently_dossier', process.env.DOSSIER_PG_USER || '', '', {
+sequelize = new Sequelize('evidently', process.env.DOSSIER_PG_USER || '', '', {
     dialect: 'postgres'
     host: process.env.DOSSIER_PG_USER || 'localhost'
     port: process.env.DOSSIER_PG_PORT || 5432
     # storage: process.env.ELASTICSEARCH_HOME + '/dossier.db'  # sqlite fails on concurrent writes
 })
+
 
 # Install Search API handlers to the given ExpressJS app
 exports.configureApp = (app, args) ->
@@ -242,6 +243,112 @@ exports.configureApp = (app, args) ->
                                     query_to_dossiers: query_to_dossiers
 
                                 res.send JSON.stringify(result)
+
+
+        Scores = sequelize.define('scores', {
+            phone_number:
+                type: Sequelize.TEXT
+                allowNull: false
+
+            ads_count:
+                type: Sequelize.BIGINT
+                allowNull: false
+
+            reviews_count:
+                type: Sequelize.BIGINT
+                allowNull: false
+
+            organization_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            control_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            underage_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            movement_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            overall_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            state:
+                type: Sequelize.TEXT
+
+            city:
+                type: Sequelize.TEXT
+        }, {
+            indexes: [
+                {
+                    unique: true
+                    fields: ['phone_number']
+                }
+            ]
+        })
+        Scores.sync()
+
+        app.get '/api/scores', (req, res, next) ->
+            Scores.findAll
+                order: req.query.sort_order 
+                limit: 200
+            .then (matches) ->
+                    #results = _.map matches, (item) ->
+                    #    phone_number: item.phone_number
+                    #    overall_score: item.overall_score                    
+                    results = matches
+                    res.send JSON.stringify(results)
+
+        Feedback = sequelize.define('feedback', {
+            doc_id:
+                type: Sequelize.TEXT
+                allowNull: false
+            mention_id:
+                type: Sequelize.TEXT
+            user_name:
+                type: Sequelize.TEXT
+            value:
+                type: Sequelize.TEXT
+        }, {
+            indexes: [
+                {
+                    unique: true
+                    fields: ['doc_id', 'mention_id']
+                }
+            ]
+        })
+
+        Feedback.sync()
+
+        app.get '/api/feedback/:doc_id', (req, res, next) ->
+            Feedback.findAll
+                where:
+                    doc_id: req.params.doc_id
+            .then (matches) ->
+                res.send JSON.stringify(matches)
+
+        app.post '/api/feedback', (req, res, next) ->
+            #if not req.user or not req.user.id
+            #    res
+            #        .status 400
+            #        .send 'You must log in to use the feedback service.'
+            #else
+                user_name = ''
+                if req.user
+                    user_name = req.user.name
+ 
+                Feedback.upsert({ 
+                    doc_id: req.body.doc_id
+                    mention_id: req.body.mention_id
+                    user_name: user_name
+                    value: req.body.value 
+                })
+                
 
     else
         app.all elasticsearchApiPath, (req, res) ->
