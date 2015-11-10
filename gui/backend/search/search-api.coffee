@@ -341,13 +341,17 @@ exports.configureApp = (app, args) ->
                 user_name = ''
                 if req.user
                     user_name = req.user.name
- 
-                Feedback.upsert({ 
+                obj = {
                     doc_id: req.body.doc_id
                     mention_id: req.body.mention_id
                     user_name: user_name
-                    value: req.body.value 
-                })
+                    value: req.body.value
+                } 
+
+
+                Feedback.upsert obj 
+                .then () ->
+                    res.send JSON.stringify(obj)
                 
 
     else
