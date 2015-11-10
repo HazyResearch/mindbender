@@ -1,14 +1,17 @@
 <!-- Search Page -->
 
     <script type="text/ng-template" id="myPopoverTemplate.html">
+      <div>
         <div>Does this indicate <em>{{extractor}}</em>?</div>
-        <div>NOTE: This feature is still under development.</div>
-        <span class="btn-group">
-          <label mindtagger-hotkey="1" title="Mark as correct"   uncheckable uib-btn-radio="true"      ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && tag.is_correct == true      ? 'btn-success' : 'btn-default'"><i class="fa fa-check"           ng-class="tag.is_correct == null || tag.is_correct != true      ? 'text-success' : ''"></i></label>
-          <label mindtagger-hotkey="2" title="Mark as incorrect" uncheckable uib-btn-radio="false"     ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && tag.is_correct == false     ? 'btn-danger'  : 'btn-default'"><i class="fa fa-remove"          ng-class="tag.is_correct == null || tag.is_correct != false     ? 'text-danger'  : ''"></i></label>
-          <label mindtagger-hotkey="3" title="Mark as unknown"   uncheckable uib-btn-radio="'UNKNOWN'" ng-model="tag.is_correct" ng-click="commit(item,tag)" class="btn" ng-class="tag.is_correct != null && tag.is_correct == 'UNKNOWN' ? 'btn-warning' : 'btn-default'"><i class="fa fa-question-circle" ng-class="tag.is_correct == null || tag.is_correct != 'UNKNOWN' ? 'text-warning' : ''"></i></label>
-        </span>
-
+        <div class="btn-group">
+          <label uib-btn-radio="'correct'" ng-model="tag.is_correct" ng-click="commit(tag.is_correct)" class="btn" ng-class="tag.is_correct == 'correct'? 'btn-success' : 'btn-default'"><i class="fa fa-check"></i></label>
+          <label uib-btn-radio="'incorrect'" ng-model="tag.is_correct" ng-click="commit(tag.is_correct)" class="btn" ng-class="tag.is_correct == 'incorrect'? 'btn-danger' : 'btn-default'"><i class="fa fa-remove"></i></label>
+          <label uib-btn-radio="'unknown'" ng-model="tag.is_correct" ng-click="commit(tag.is_correct)" class="btn" ng-class="tag.is_correct == 'unknown'? 'btn-warning' : 'btn-default'"><i class="fa fa-question-circle"></i></label>
+        </div>
+        <div ng-if="last_user_name != ''">
+          {{last_user_name}}
+        </div>
+      </div>
     </script>
 
 

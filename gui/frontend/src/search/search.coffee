@@ -260,15 +260,16 @@ angular.module "mindbender.search", [
     link: ($scope, $element) ->
 
         $scope.finishLoadingCustomTemplate = () ->
+            # parse json for images; with better json support in the database we may be able
+            # to avoid this step
             if $scope.searchResult?
-                #$element.find(".panel-body").append(
-                #    TextWithAnnotations.create($scope.searchResult))
                 if $scope.searchResult._source.images?
                     images = []
                     _.each $scope.searchResult._source.images, (item) ->
                         images.push(JSON.parse(item))
                     $scope.searchResult._source.images_j = images
 
+            # load tooltips, lazyload and colorbox
             $timeout () ->
                 $element.find('[data-toggle=tooltip]').tooltip()
                 $element.find('img').lazyload()
@@ -755,15 +756,15 @@ angular.module "mindbender.search", [
 
         $scope.fetch_scores('overall_score DESC')
 
-.filter 'unsafe', ($sce) ->
-    return (val) -> 
-        return $sce.trustAsHtml(val)
-
-.directive "annotation", ($timeout, $document, $uibPosition, $sce) ->
+.directive "annotation", ($timeout, $document, $uibPosition) ->
     transclude:true
     scope:
         k: "="
-    template: """<span uib-popover-template="'myPopoverTemplate.html'" popover-trigger="manual" style="background-color:#FFEE99;padding-left:2px;padding-right:2px;cursor:pointer"
+    template: """<span uib-popover-template="'myPopoverTemplate.html'" 
+           popover-trigger="manual" ng-class="{'highlight':true,
+            'highlight-correct': tag.is_correct == 'correct',
+            'highlight-incorrect': tag.is_correct == 'incorrect',
+            'highlight-unknown': tag.is_correct == 'unknown' }"
            popover-placement="bottom"
            popover-is-open="isOpen"
            ng-click="isOpen = true"
@@ -771,78 +772,47 @@ angular.module "mindbender.search", [
 
     controller: ($scope) ->
         $scope.isOpen = false
-        $scope.tag = {
-            is_correct : undefined
-        }
+        # the popover creates it's own scope which protoypically inherits from this scope;
+        # we thus wrap is_correct into an object, so that we don't need to synchronize state
+        $scope.tag = { is_correct : '' }
+        $scope.last_user_name = ''
 
-        $scope.commit = () =>
-            console.log 'writing feedback'
-            value = 'undefined'
-            if $scope.tag.is_correct == true
-                value = 'true'
-            if $scope.tag.is_correct == false
-                value = 'false'
-            $scope.$parent.write_feedback $scope.extraction.doc_id, $scope.extraction.mention_id, value 
+        $scope.commit = (val) =>
+            # if user clicks on active button, we reset the value
+            cur = $scope.curFeedback()
+            if cur && cur.value == val
+                $scope.tag.is_correct = val = ''
+            $timeout () =>
+                $scope.$parent.write_feedback $scope.extraction.doc_id, $scope.extraction.mention_id, val 
 
-        $scope.tagHandler = (f) =>
+        $scope.curFeedback = (f) =>
             if !f
-                return
-            if !$scope.extraction
-                return
-
+                f = $scope.$parent.feedback
+            if !f || !$scope.extraction
+                return false
             cur = f[$scope.extraction.doc_id + ',' + $scope.extraction.mention_id]
             if !cur
-               console.log 'not cur'
-               return
-            console.log('cur')
-            console.log cur
-            val = undefined
-            if cur.value == 'true'
-               val = true
-            if cur.value == 'false'
-               val = false
+               return false
+            return cur
 
-            if val != $scope.tag.is_correct
-               $scope.tag.is_correct = val
+        $scope.tagHandler = (f) =>
+            cur = $scope.curFeedback(f)
+            if cur && cur.value != $scope.tag.is_correct
+               $scope.tag.is_correct = cur.value
+            if cur.user_name != $scope.last_user_name
+               if cur.value == ''
+                   $scope.last_user_name = ''
+               else
+                   $scope.last_user_name = cur.user_name
 
-        #console.log 'calling the first time'
-        #console.log $scope.feedback
-        #console.log $scope.$parent.feedback
-        $scope.tagHandler($scope.$parent.feedback)
-
-        $scope.$watch 'feedback', $scope.tagHandler, true
+        # we set initial state by listening to broadcast from parent
+        $scope.$on 'update_feedback', (event, feedback) =>
+            $scope.tagHandler feedback
 
     link: ($scope, $element, attrs) ->
-        $scope.extraction = JSON.parse($scope.$parent.searchResult._source.extractions[parseInt(attrs.k)])
+        k = parseInt(attrs.k)
+        $scope.extraction = JSON.parse($scope.$parent.searchResult._source.extractions[k])
         $scope.extractor = $scope.extraction.extractor
-            
-        #console.log 'creating tagHandler'
-        #$scope.tagHandler = (f) =>
-        #    if !f
-        #        console.log 'not f'
-        #        return
-        #    #if !$scope.extraction
-                
-        #    cur = f[$scope.extraction.doc_id + ',' + $scope.extraction.mention_id]
-        #    if !cur
-        #       console.log 'not cur'
-        #       return
-        #    console.log('cur')
-        #    console.log cur
-        #    val = undefined
-        #    if cur.value == 'true'
-        #       val = true
-        #    if cur.value == 'false'
-        #       val = false
-            
-        #    if val != $scope.tag.is_correct
-        #       $scope.tag.is_correct = val
-
-        #$scope.$watch 'feedback', $scope.tagHandler, true
-
-        # call the first time
-        #console.log 'call tagHandler'
-        #tagHandler($scope.feedback)
 
         # hide popover on click away
         handler = (e) ->
@@ -870,19 +840,17 @@ angular.module "mindbender.search", [
             $http.get "/api/feedback/" + doc_id 
                   .success (data) =>
                       data.forEach (d) ->
-                          $scope.feedback[d.doc_id + ',' + d.mention_id] = d.value
-                      console.log $scope.feedback 
-                      console.log data
-                      #$scope.db.items = data
+                          $scope.feedback[d.doc_id + ',' + d.mention_id] = d
+                      $scope.$broadcast('update_feedback', $scope.feedback)
                   .error (err) =>
                       console.error err.message
 
         $scope.write_feedback = (doc_id, mention_id, value) =>
             $http.post "/api/feedback", { doc_id:doc_id, mention_id:mention_id, value:value }
-                .success () =>
+                .success (data) =>
                     # update model
-                    $scope.feedback[doc_id + ',' + mention_id] = value
-                    console.log 'success'
+                    $scope.feedback[doc_id + ',' + mention_id] = data
+                    $scope.$broadcast('update_feedback', $scope.feedback)
                 .error (err) =>
                     console.error err.message
 
