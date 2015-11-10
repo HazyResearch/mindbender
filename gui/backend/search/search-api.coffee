@@ -339,8 +339,8 @@ exports.configureApp = (app, args) ->
             #        .send 'You must log in to use the feedback service.'
             #else
                 user_name = ''
-                if req.user
-                    user_name = req.user.name
+                if req.user && req.user.id
+                    user_name = req.user.displayName
                 obj = {
                     doc_id: req.body.doc_id
                     mention_id: req.body.mention_id
