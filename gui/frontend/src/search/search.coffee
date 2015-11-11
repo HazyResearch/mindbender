@@ -371,7 +371,20 @@ angular.module "mindbender.search", [
             @types = null
             @indexes = null
             @elastic = elasticsearch
-            @collapsed_facets = {}
+            @collapsed_facets = { 
+                'domain': true
+                'locations': true
+                'phones': true 
+                'post_date': true
+                'screening': true
+                'ethnicity': true
+                'emails': true
+                'rates': true
+                'names': true
+                'service': true
+                'ages':true
+                'username':true
+            }
 
             @all_dossiers = null
             @active_dossier = null
@@ -485,6 +498,12 @@ angular.module "mindbender.search", [
                             else # TODO any better default for unknown types?
                                 terms:
                                     field: navigable
+                                    size: 
+                                        switch navigable
+                                            when "flags"
+                                                100
+                                            else
+                                                100
                     aggs[navigable + '__count'] =
                         value_count:
                             field: navigable
@@ -691,7 +710,7 @@ angular.module "mindbender.search", [
     controller: ($scope) ->
 
         $scope.phoneRenderer = (hotInstance, td, row, col, prop, value, cellProperties) =>
-            Handsontable.renderers.TextRenderer.apply(this, arguments);
+            Handsontable.renderers.TextRenderer.apply(this, arguments)
             td.innerHTML = "<a style='cursor:pointer; margin-right: 4px;'
                         data-toggile='tooltip' title='New search with this filter'
                         ng-click=\"search.doNavigate('phones', '" +value+"', true)\">" + 
@@ -699,12 +718,16 @@ angular.module "mindbender.search", [
             $compile(angular.element(td))($scope)
 
         $scope.locRenderer = (hotInstance, td, row, col, prop, value, cellProperties) =>
-            Handsontable.renderers.TextRenderer.apply(this, arguments);
+            Handsontable.renderers.TextRenderer.apply(this, arguments)
             if value == 'Unknown'
                 value = ''
             if value.length > 50
                 value = value.substring(0,50)
             td.innerHTML = value
+
+        $scope.scoreRenderer = (hotInstance, td, row, col, prop, value, cellProperties) =>
+            Handsontable.renderers.TextRenderer.apply(this, arguments)
+            td.innerHTML = '<div style="height:15px;width:' + Math.round(parseFloat(value) * 50.0) + 'px;background-color:#f0ad4e"></div>'
 
         $scope.columns = [
           {
@@ -715,11 +738,11 @@ angular.module "mindbender.search", [
           },
           { data:'ads_count', title:'#Ads', readOnly:true, type:'numeric' },
           { data:'reviews_count', title:'#Reviews', readOnly:true, type:'numeric' },
-          { data:'organization_score', title:'Organization', readOnly:true, type:'numeric', format: '0,0.00' },
-          { data:'control_score', title:'Control', readOnly:true, type:'numeric', format: '0,0.00' },
-          { data:'underage_score', title:'Underage', readOnly:true, type:'numeric', format: '0,0.00' },
-          { data:'movement_score', title:'Movement', readOnly:true, type:'numeric', format: '0,0.00' },
-          { data:'overall_score', title:'Overall', readOnly:true, type:'numeric', format: '0,0.00' },
+          { data:'organization_score', title:'Organization', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
+          { data:'control_score', title:'Control', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
+          { data:'underage_score', title:'Underage', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
+          { data:'movement_score', title:'Movement', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
+          { data:'overall_score', title:'Overall', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
           { data:'city', title:'City', readOnly:true, renderer:$scope.locRenderer },
           { data:'state', title:'State', readOnly:true, renderer:$scope.locRenderer }
         ]
