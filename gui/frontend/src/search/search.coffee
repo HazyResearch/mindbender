@@ -274,6 +274,8 @@ angular.module "mindbender.search", [
                 $element.find('[data-toggle=tooltip]').tooltip()
                 $element.find('img').lazyload()
                 $element.find('a.img-link').colorbox({rel:'imggroup-' + $scope.searchResult.idx })
+
+                ann = new Annotator $element[0]
             return false
 
         $scope.search = DeepDiveSearch.init()
