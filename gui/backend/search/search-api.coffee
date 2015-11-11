@@ -288,6 +288,21 @@ exports.configureApp = (app, args) ->
                 {
                     unique: true
                     fields: ['phone_number']
+                },
+                {
+                    fields: ['overall_score']
+                },
+                {
+                    fields: ['movement_score']
+                },
+                {
+                    fields: ['underage_score']
+                },
+                {
+                    fields: ['control_score']
+                },
+                {
+                    fields: ['organization_score']
                 }
             ]
         })
