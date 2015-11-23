@@ -72,7 +72,7 @@ var TextWithAnnotations = (function() {
        var keys = Object.keys(spans)
        var str = html.substring(start, end)
        for (var k=0; k < keys.length; k++) {
-         str = "<span annotation k=" + keys[k] + 
+         str = "<span label-popover k=" + keys[k] + 
              ' data-toggle="tooltip" ' +
              ' data-placement="top" ' +
              ' data-original-title="' + extractions[keys[k]].extractor + '"' +

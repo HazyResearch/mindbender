@@ -8,10 +8,10 @@ _ = require "underscore"
 express = require "express"
 Sequelize = require "sequelize"
 
-sequelize = new Sequelize('evidently', process.env.DOSSIER_PG_USER || '', '', {
+sequelize = new Sequelize('evidently', process.env.EVIDENTLY_PG_USER || '', '', {
     dialect: 'postgres'
-    host: process.env.DOSSIER_PG_USER || 'localhost'
-    port: process.env.DOSSIER_PG_PORT || 5432
+    host: process.env.EVIDENTLY_PG_HOST || 'localhost'
+    port: process.env.EVIDENTLY_PG_PORT || 5432
     # storage: process.env.ELASTICSEARCH_HOME + '/dossier.db'  # sqlite fails on concurrent writes
 })
 
@@ -362,12 +362,111 @@ exports.configureApp = (app, args) ->
                     user_name: user_name
                     value: req.body.value
                 } 
-
-
                 Feedback.upsert obj 
                 .then () ->
                     res.send JSON.stringify(obj)
-                
+
+        Annotation = sequelize.define('annotation', {
+            doc_id:
+                type: Sequelize.TEXT
+                allowNull: false
+            mention_id:
+                type: Sequelize.TEXT
+            user_name:
+                type: Sequelize.TEXT
+            value:
+                type: Sequelize.TEXT
+        }, {
+            indexes: [
+                {
+                    unique: true
+                    fields: ['doc_id', 'mention_id']
+                }
+            ]
+        })
+
+        Annotation.sync()
+
+        app.get '/api/annotation/:doc_id', (req, res, next) ->
+            console.log 'getting annotations ' + req.params.doc_id
+            Annotation.findAll
+                where:
+                    doc_id: req.params.doc_id
+            .then (matches) ->
+                _.each matches, (m) ->
+                    m.value = JSON.parse(m.value)
+                    #console.log m.mention_id
+                    #console.log m.value
+                    #console.log JSON.parse(m.value)
+                #nm = _.each matches, (m) ->
+                #    m[value] = JSON.parse(m[value])
+                #console.log nm
+                res.send JSON.stringify(matches)
+
+        app.delete '/api/annotation/:doc_id/:mention_id', (req, res, next) ->
+            Annotation.destroy
+                where:
+                    doc_id: req.params.doc_id
+                    mention_id: req.params.mention_id
+            .then () ->
+                res.send 'Ok' 
+
+        app.post '/api/annotation', (req, res, next) ->
+            #if not req.user or not req.user.id
+            #    res
+            #        .status 400
+            #        .send 'You must log in to use the feedback service.'
+            #else
+                user_name = ''
+                if req.user && req.user.id
+                    user_name = req.user.displayName
+                obj = {
+                    doc_id: req.body.doc_id
+                    mention_id: req.body.mention_id
+                    user_name: user_name
+                    value: JSON.stringify(req.body.value)
+                }
+
+                Annotation.upsert obj
+                .then () ->
+                    res.send JSON.stringify(obj)
+
+        Tags = sequelize.define('tags', {
+            value:
+                type: Sequelize.TEXT
+                allowNull: false
+
+            is_flag:
+                type: Sequelize.BOOLEAN
+                allowNull: false
+        }, {
+            indexes: []
+        })
+
+        Tags.sync()
+
+        app.get '/api/tags', (req, res, next) ->
+            Tags.findAll
+                order: 'value'
+            .then (matches) ->
+                res.send JSON.stringify(matches)
+
+        app.post '/api/tags', (req, res, next) ->
+            obj = {
+                value: req.body.value
+                is_flag: false
+            }
+            Tags.upsert obj
+            .then () ->
+                res.sent JSON.stringify(obj)
+
+        app.delete '/api/tags/:value', (req, res, next) ->
+            Tags.destroy
+                where:
+                    value: req.params.value
+                    is_flag: false
+            .then () ->
+                res.send 'Ok'
 
     else
         app.all elasticsearchApiPath, (req, res) ->

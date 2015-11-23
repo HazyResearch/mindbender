@@ -266,7 +266,8 @@ angular.module "mindbender.search", [
                 if $scope.searchResult._source.images?
                     images = []
                     _.each $scope.searchResult._source.images, (item) ->
-                        images.push(JSON.parse(item))
+                        #images.push(JSON.parse(item))
+                        images.push({ hash: item })
                     $scope.searchResult._source.images_j = images
 
             # load tooltips, lazyload and colorbox
@@ -275,7 +276,6 @@ angular.module "mindbender.search", [
                 $element.find('img').lazyload()
                 $element.find('a.img-link').colorbox({rel:'imggroup-' + $scope.searchResult.idx })
 
-                ann = new Annotator $element[0]
             return false
 
         $scope.search = DeepDiveSearch.init()
@@ -357,6 +357,7 @@ angular.module "mindbender.search", [
         console.error "elasticsearch cluster is down", err if err
     # return the instance
     elasticsearch
+
 
 .service "DeepDiveSearch", (elasticsearch, $http, $q) ->
     MULTIKEY_SEPARATOR = "@"
@@ -689,17 +690,12 @@ angular.module "mindbender.search", [
 
     new DeepDiveSearch
 
+
 # a handy filter for generating safe id strings for HTML
 .filter "safeId", () ->
     (text) ->
         text?.replace /[^A-Za-z0-9_-]/g, "_"
 
-
-#.controller "ScoresCtrl", ($scope) ->
-#    @db = {
-#      items: [ { 'phone_number':'34343' }]
-#    }
-#    @settings = { colHeaders: true }
 
 .directive "scoresTable", ($q, $timeout, $http, hotRegisterer, $compile) ->
     template: """
@@ -740,24 +736,25 @@ angular.module "mindbender.search", [
           },
           { data:'ads_count', title:'#Ads', readOnly:true, type:'numeric' },
           { data:'reviews_count', title:'#Reviews', readOnly:true, type:'numeric' },
-          { data:'organization_score', title:'Organization', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
-          { data:'control_score', title:'Control', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
-          { data:'underage_score', title:'Underage', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
-          { data:'movement_score', title:'Movement', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
-          { data:'overall_score', title:'Overall', readOnly:true, type:'numeric', format: '0,0.00', renderer:$scope.scoreRenderer },
+          { data:'organization_score', title:'Organization', readOnly:true, renderer:$scope.scoreRenderer },
+          { data:'control_score', title:'Control', readOnly:true, renderer:$scope.scoreRenderer },
+          { data:'underage_score', title:'Underage', readOnly:true, renderer:$scope.scoreRenderer },
+          { data:'movement_score', title:'Movement', readOnly:true, renderer:$scope.scoreRenderer },
+          { data:'overall_score', title:'Overall', readOnly:true, renderer:$scope.scoreRenderer },
           { data:'city', title:'City', readOnly:true, renderer:$scope.locRenderer },
           { data:'state', title:'State', readOnly:true, renderer:$scope.locRenderer }
         ]
-        #$scope.colHeaders = (column) =>
-        #    console.log column
-        #    switch column
-        #        when 0 then return '<span>#Ads</span>'
-        #    return column
 
         $scope.db = {
-           settings : {colHeaders: true, rowHeaders:true, contextMenu: true, columns:$scope.columns, afterGetColHeader: (col, TH) => 
+           settings : {
+               colHeaders: true
+               rowHeaders: true
+               contextMenu: true
+               columns: $scope.columns
+               afterGetColHeader: (col, TH) => 
                    if col > 0 && col < 8 
-                      TH.innerHTML = '<span ng-click="sortByColumn(' + col + ')" style="cursor:pointer;padding-left:5px;padding-right:5px">' + 
+                      TH.innerHTML = '<span ng-click="sortByColumn(' + col + 
+                          ')" style="cursor:pointer;padding-left:5px;padding-right:5px">' + 
                           $scope.columns[col].title + '</span>'
                       $compile(angular.element(TH.firstChild))($scope)
            }
@@ -768,24 +765,25 @@ angular.module "mindbender.search", [
             field = $scope.columns[col].data
             if field.endsWith('_score') || field.endsWith('_count')
                 field = field + ' DESC'
-            $scope.fetch_scores(field)
+            $scope.fetchScores(field)
 
     link: ($scope, $element) ->
 
-        $scope.fetch_scores = (sort_order) =>
+        $scope.fetchScores = (sort_order) =>
             $http.get "/api/scores", { params: {sort_order:sort_order} }
                   .success (data) =>
                       $scope.db.items = data
                   .error (err) =>
                       console.error err.message
 
-        $scope.fetch_scores('overall_score DESC')
+        $scope.fetchScores('overall_score DESC')
 
-.directive "annotation", ($timeout, $document, $uibPosition) ->
+
+.directive "labelPopover", ($timeout, $document, $uibPosition) ->
     transclude:true
     scope:
         k: "="
-    template: """<span uib-popover-template="'myPopoverTemplate.html'" 
+    template: """<span uib-popover-template="'labelPopoverTemplate.html'" 
            popover-trigger="manual" ng-class="{'highlight':true,
             'highlight-correct': tag.is_correct == 'correct',
             'highlight-incorrect': tag.is_correct == 'incorrect',
@@ -808,7 +806,7 @@ angular.module "mindbender.search", [
             if cur && cur.value == val
                 $scope.tag.is_correct = val = ''
             $timeout () =>
-                $scope.$parent.write_feedback $scope.extraction.doc_id, $scope.extraction.mention_id, val 
+                $scope.$parent.writeFeedback $scope.extraction.doc_id, $scope.extraction.mention_id, val 
 
         $scope.curFeedback = (f) =>
             if !f
@@ -850,6 +848,7 @@ angular.module "mindbender.search", [
         $scope.$on '$destroy', () =>
             $document.off('click', handler)
 
+
 .directive "textWithAnnotations", ($q, $timeout, $http, $compile) ->
     scope:
         searchResult: "="
@@ -860,7 +859,7 @@ angular.module "mindbender.search", [
         # map from doc_id,mention_id -> feedback
         $scope.feedback = {}
 
-        $scope.fetch_feedback = () =>
+        $scope.fetchFeedback = () =>
             doc_id = $scope.searchResult._source.doc_id
             $http.get "/api/feedback/" + doc_id 
                   .success (data) =>
@@ -870,7 +869,7 @@ angular.module "mindbender.search", [
                   .error (err) =>
                       console.error err.message
 
-        $scope.write_feedback = (doc_id, mention_id, value) =>
+        $scope.writeFeedback = (doc_id, mention_id, value) =>
             $http.post "/api/feedback", { doc_id:doc_id, mention_id:mention_id, value:value }
                 .success (data) =>
                     # update model
@@ -879,7 +878,70 @@ angular.module "mindbender.search", [
                 .error (err) =>
                     console.error err.message
 
-        $scope.fetch_feedback()
+        $scope.fetchFeedback()
+
+        $scope.annotations = {}
+
+        $scope.fetchAnnotations = () =>
+            doc_id = $scope.searchResult._source.doc_id
+            $http.get "/api/annotation/" + doc_id
+                .success (data) =>
+                    data.forEach (d) ->
+                        $scope.showAnnotation(d.value, false)
+                .error (err) =>
+                    console.error err.message
+
+        $scope.writeAnnotation = (doc_id, mention_id, value) =>
+            $http.post "/api/annotation", { doc_id:doc_id, mention_id:mention_id, value:value }
+                .success (data) =>
+                    console.log 'success'
+                    # update model
+                    #$scope.annotations[doc_id + ',' + mention_id] = data
+                    #$scope.$broadcast('update_feedback', $scope.feedback)
+                .error (err) =>
+                    console.error err.message
+
+        $scope.removeAnnotation = (doc_id, mention_id) =>
+            $http.delete '/api/annotation/' + doc_id + '/' + mention_id, { }
+                .success (data) =>
+                    #$scope.hideAnnotation doc_id, mention_id
+                    console.log 'success'
+                .error (err) =>
+                    console.log err.message
+
+        $scope.fetchAnnotations()
+
+        $scope.onSelection = (ranges, event) =>
+            if ranges.length > 0
+                doc_id = $scope.searchResult._source.doc_id
+                mention_id = Object.keys($scope.annotations).length
+                annotation = $scope.makeAnnotation(ranges)
+                obj = { doc_id:doc_id, mention_id:mention_id, value:annotation, tag:'' }
+                #$scope.writeAnnotation(doc_id, mention_id, obj)
+                $scope.showAnnotation(obj, true)
+                document.getSelection().removeAllRanges()
+
+        $scope.showAnnotation = (ann, openPopup = false) =>
+            highlightSpans = $scope.hl.draw(ann.value)
+            key = ann.doc_id + ',' + ann.mention_id
+            $scope.annotations[key] = ann
+            for i in highlightSpans
+                el = angular.element(i)
+                el.attr('annotation-popover', '')
+                el.attr('doc-id', ann.doc_id)
+                el.attr('mention-id', ann.mention_id)
+                el.attr('annotation-open', openPopup)
+            $compile(el)($scope)
+
+        $scope.hideAnnotation = (doc_id, mention_id) =>
+            key = doc_id + ',' + mention_id
+            ann = $scope.annotations[key]
+            $scope.hl.undraw(ann.value)
+            delete $scope.annotations[key]
+
+        $scope.getAnnotation = (doc_id, mention_id) =>
+            key = doc_id + ',' + mention_id
+            return $scope.annotations[key]
 
     link: ($scope, $element) ->
         el = TextWithAnnotations.create($scope.searchResult)
@@ -887,4 +949,121 @@ angular.module "mindbender.search", [
 
         $compile(el)($scope)
 
+        # enable annotations
+        $scope.hl = new annotator.ui.highlighter.Highlighter $element[0], {}
+        $scope.ts = new annotator.ui.textselector.TextSelector $element[0], { 
+            onSelection: $scope.onSelection }
 
+        # trims whitespace, usually in native code but not ie8
+        trim = (s) =>
+            if typeof String.prototype.trim == 'function'
+                String.prototype.trim.call s
+            else
+                s.replace(/^[\s\xA0]+|[\s\xA0]+$/g, '')
+
+        # construct annotation from list of ranges
+        annotationFactory = (contextel, ignoreSelector) =>
+            return (ranges) =>
+                text = []
+                serializedRanges = []
+                for i in [0...ranges.length]
+                    r = ranges[i]
+                    text.push trim(r.text())
+                    serializedRanges.push(r.serialize(contextel, ignoreSelector))
+                return {
+                    quote: text.join(' / ')
+                    ranges: serializedRanges
+                }
+
+        $scope.makeAnnotation = annotationFactory($element[0], '.annotator-hl')
+
+
+.directive "annotationPopover", ($http, $compile, $document, $timeout, tags) ->
+    scope: {}
+    controller: ($scope) ->
+        $scope.tags = tags
+        $scope.togglePopup = () =>
+            $scope.isOpen = !$scope.isOpen 
+
+        $scope.cancel = () =>
+            $scope.isOpen = false
+            $scope.$parent.removeAnnotation($scope.docId, $scope.mentionId)
+            $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
+
+        $scope.commit = (st) =>
+            $scope.annotation.tag = st
+            $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
+                $scope.annotation)
+
+
+    link: ($scope, $element, attrs) ->
+        $scope.isOpen = attrs['annotationOpen'] == 'true'
+        $scope.docId = attrs['docId']
+        $scope.mentionId = attrs['mentionId']
+
+        $scope.annotation = $scope.$parent.getAnnotation $scope.docId, $scope.mentionId
+
+        # remove self to avoid infinite loop
+        $element.removeAttr('annotation-popover')
+
+        # add popover
+        $element.attr('uib-popover-template', "'annotationPopoverTemplate.html'")
+        $element.attr('popover-trigger', 'manual')
+        $element.attr('popover-placement', 'bottom')
+        $element.attr('popover-is-open', 'isOpen')
+
+        # add tooltip
+        $element.attr('data-toggle', 'tooltip')
+        $element.attr('data-placement', 'top')
+        $element.attr('data-original-title', '{{annotation.tag}}')
+
+        $element.attr('ng-click', 'togglePopup()')
+
+        $compile($element)($scope)
+
+        $timeout () =>
+          $element.tooltip()
+
+        # hide popover on click away
+        handler = (e) ->
+            if $scope.isOpen && !$(e.target).parents('.popover').length && 
+                !$element[0].contains(e.target) 
+                    $scope.$apply () ->
+                        $scope.isOpen = false
+                        console.log $scope.annotation.tag
+                        if $scope.annotation.tag == ''
+                            $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
+
+        $timeout () =>
+            $document.on 'click', handler
+
+        $scope.$on '$destroy', () =>
+            $document.off('click', handler)
+
+
+.service "tags", ($http) ->
+    tags = {
+        tags: []
+        createTag: (value) ->
+            $http.post "/api/tags", { value:value }
+                .success (data) =>
+                    console.log 'success'
+                    # update model
+                    #$scope.annotations[doc_id + ',' + mention_id] = data
+                    #$scope.$broadcast('update_feedback', $scope.feedback)
+                .error (err) =>
+                    console.error err.message
+        removeTag: (value) -> 
+            $http.delete "/api/tags/" + value
+        fetchTags: () ->
+            $http.get "/api/tags", {}
+                .success (data) =>
+                    tags.tags = data
+                    console.log 'success'
+                .error (err) =>
+                    console.err err
+    }
+
+    tags.fetchTags()
+
+    return tags

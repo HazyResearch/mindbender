@@ -1,6 +1,6 @@
 <!-- Search Page -->
 
-    <script type="text/ng-template" id="myPopoverTemplate.html">
+    <script type="text/ng-template" id="labelPopoverTemplate.html">
       <div class="feedback-box">
         <div>Does this indicate <em>{{extractor}}</em>?</div>
         <div class="btn-group">
@@ -13,6 +13,26 @@
         </div>
       </div>
     </script>
+
+    <script type="text/ng-template" id="annotationPopoverTemplate.html">
+      <div class="feedback-box">
+        <div>This indicates:</div>
+        <div>
+        </div>
+        <div class="btn-group-vertical">
+          <label ng-repeat='tag in tags.tags' uib-btn-radio="tag.value" ng-model="annotation.tag" ng-click="commit(tag.value)" class="btn" ng-class="annotation.tag == tag.value? 'btn-success' : 'btn-default'" style="padding:3px 3px">{{tag.value}}</label>
+        </div>
+        <div ng-click="cancel()" style="cursor:pointer">
+          Remove
+        </div>
+        <div ng-if="last_user_name && last_user_name !== ''" style="color:#999999">
+          reported by {{last_user_name}}
+        </div>
+      </div>
+    </script>
+
+
+
 
 
 <nav class="navbar navbar-default navbar-fixed-top">
