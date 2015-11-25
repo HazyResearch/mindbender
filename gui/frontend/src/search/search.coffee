@@ -849,7 +849,7 @@ angular.module "mindbender.search", [
             $document.off('click', handler)
 
 
-.directive "textWithAnnotations", ($q, $timeout, $http, $compile) ->
+.directive "textWithAnnotations", ($q, $timeout, $http, $compile, tags) ->
     scope:
         searchResult: "="
     template: """
@@ -895,16 +895,21 @@ angular.module "mindbender.search", [
             $http.post "/api/annotation", { doc_id:doc_id, mention_id:mention_id, value:value }
                 .success (data) =>
                     console.log 'success'
+                    console.log 'GETTING USERNAME'
+                    console.log data
+                    value.user_name = data.user_name
                     # update model
                     #$scope.annotations[doc_id + ',' + mention_id] = data
                     #$scope.$broadcast('update_feedback', $scope.feedback)
                 .error (err) =>
                     console.error err.message
 
-        $scope.removeAnnotation = (doc_id, mention_id) =>
+        $scope.removeAnnotation = (doc_id, mention_id, callback) =>
             $http.delete '/api/annotation/' + doc_id + '/' + mention_id, { }
                 .success (data) =>
                     #$scope.hideAnnotation doc_id, mention_id
+                    if callback
+                        callback()
                     console.log 'success'
                 .error (err) =>
                     console.log err.message
@@ -987,14 +992,23 @@ angular.module "mindbender.search", [
 
         $scope.cancel = () =>
             $scope.isOpen = false
-            $scope.$parent.removeAnnotation($scope.docId, $scope.mentionId)
+            $scope.annotation.tag = $scope.annotation.tag.trim()
+            $scope.$parent.removeAnnotation $scope.docId, $scope.mentionId, () -> 
+                if $scope.annotation.tag.length > 0
+                    $scope.tags.maybeRemove $scope.annotation.tag
             $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
 
         $scope.commit = (st) =>
+            st = st.trim()
             $scope.annotation.tag = st
-            $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
-                $scope.annotation)
+            if st.length > 0
+                $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
+                    $scope.annotation)
+                $scope.tags.maybeCreate(st)
+                $scope.isOpen = false
 
+        $scope.onSelect = ($item, $model, $label) ->
+            $scope.commit($item)
 
     link: ($scope, $element, attrs) ->
         $scope.isOpen = attrs['annotationOpen'] == 'true'
@@ -1030,7 +1044,7 @@ angular.module "mindbender.search", [
                 !$element[0].contains(e.target) 
                     $scope.$apply () ->
                         $scope.isOpen = false
-                        console.log $scope.annotation.tag
+                        $scope.annotation.tag = $scope.annotation.tag.trim()
                         if $scope.annotation.tag == ''
                             $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
 
@@ -1040,28 +1054,80 @@ angular.module "mindbender.search", [
         $scope.$on '$destroy', () =>
             $document.off('click', handler)
 
+.directive "typeaheadCustomEvents", ($parse, $timeout) ->
+      restrict: 'A'
+      require: 'ngModel'
+      scope:
+          commit:'=commit'
+      link: ($scope, elem, attrs) ->
+          # opens typeahead drawer if no value has been set
+          triggerFunc = (evt) ->
+              ctrl = elem.controller('ngModel')
+              prev = ctrl.$modelValue || ''
+              if !prev
+                  # hack to force open drawer
+                  ctrl.$setViewValue ' '
+                  $timeout () ->
+                      ctrl.$setViewValue ''
+
+          elem.bind('click', triggerFunc)
+          elem.bind('focus', triggerFunc)
+
+          # when the input value changes, commit an update
+          changeFunc = (evt) ->
+              ctrl = elem.controller('ngModel')
+              val = ctrl.$modelValue.trim()
+              if val.length > 0
+                  $scope.commit(val)
+
+          elem.bind('change', changeFunc)
+
+# focuses element when condition is satisfied
+.directive "focusOn", ($timeout) ->
+    restrict: 'A'
+    link: ($scope,$element,$attr) ->
+        $scope.$watch $attr.focusOn, (_focusVal) ->
+            $timeout () ->
+                if _focusVal
+                    $element.focus() 
+                else
+                    $element.blur()
+
 
 .service "tags", ($http) ->
+    cmp = (a,b) ->
+        a.toUpperCase().localeCompare(b.toUpperCase())
+
     tags = {
+        # array of tags used shown in the annotation typeahead
         tags: []
-        createTag: (value) ->
-            $http.post "/api/tags", { value:value }
-                .success (data) =>
-                    console.log 'success'
-                    # update model
-                    #$scope.annotations[doc_id + ',' + mention_id] = data
-                    #$scope.$broadcast('update_feedback', $scope.feedback)
-                .error (err) =>
-                    console.error err.message
-        removeTag: (value) -> 
-            $http.delete "/api/tags/" + value
+        maybeCreate: (value) ->
+            # creates tag if it does not exist
+            if $.inArray(value, tags.tags) == -1
+                $http.post "/api/tags", { value:value }
+                    .success (data) =>
+                        tags.tags.push value
+                        tags.tags.sort cmp
+                    .error (err) =>
+                        console.error err.message
+        maybeRemove: (value) ->
+            # checks if tag is used by any annotation and if not, removes tag
+            $http.get "/api/tags/maybeRemove/" + encodeURIComponent(value), {}
+                 .success (data) =>
+                    console.log 'this is what I got back ' + data
+                    if parseInt(data) > 0
+                        index = tags.tags.indexOf(value)
+                        if index > -1
+                            tags.tags.splice index, 1
+                 .error (err) =>
+                    console.error err
         fetchTags: () ->
             $http.get "/api/tags", {}
                 .success (data) =>
-                    tags.tags = data
-                    console.log 'success'
+                    tags.tags = $.map data, (t) -> t.value
+                    tags.tags.sort cmp
                 .error (err) =>
-                    console.err err
+                    console.error err.message
     }
 
     tags.fetchTags()

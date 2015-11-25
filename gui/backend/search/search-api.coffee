@@ -458,7 +458,7 @@ exports.configureApp = (app, args) ->
             }
             Tags.upsert obj
             .then () ->
-                res.sent JSON.stringify(obj)
+                res.send JSON.stringify(obj)
 
         app.delete '/api/tags/:value', (req, res, next) ->
             Tags.destroy
@@ -466,7 +466,24 @@ exports.configureApp = (app, args) ->
                     value: req.params.value
                     is_flag: false
             .then () ->
-                res.send 'Ok'
+                res.send 'OK'
+        app.get '/api/tags/maybeRemove/:value', (req, res, next) ->
+            value = req.params.value
+            # check if tag is still used by an annotation; delete if it is not used
+            sequelize.query("SELECT count(*) FROM annotations where value::json->>'tag' = '" + 
+                value + "'", { type: sequelize.QueryTypes.SELECT})
+                .then (data) =>
+                    if data[0].count == '0'
+                        # this tag is not being used anymore, if it's not a flag remove it       
+                        Tags.destroy
+                            where:
+                                value: value
+                                is_flag: false
+                        .then (data) -> 
+                            res.status(200).send(String(data))
+                    else
+                        return res.status(200).send('0')
+
 
     else
         app.all elasticsearchApiPath, (req, res) ->
