@@ -1,3 +1,17 @@
+#
+# NOTE: THERE IS A PROBLEM WITH ONE OF THE IMPORTED LIBRARIES; YOU HAVE TO COMMENT
+# OUT ONE LINE, BEFORE YOU CAN RUN EVIDENTLY.
+# AFTER INSTALLATION, EDIT
+#  gui/frontend/bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.js
+# AND COMMENT OUT LINE 164
+# // self.$input.typeahead('val', '');
+#
+#
+# Maybe a similar problem:
+# https://github.com/bassjobsen/Bootstrap-3-Typeahead/issues/145
+#
+#
+
 angular.module "mindbender.search", [
     'elasticsearch'
     'json-tree'
@@ -849,7 +863,7 @@ angular.module "mindbender.search", [
             $document.off('click', handler)
 
 
-.directive "textWithAnnotations", ($q, $timeout, $http, $compile, tags) ->
+.directive "textWithAnnotations", ($q, $timeout, $http, $compile, tagsService) ->
     scope:
         searchResult: "="
     template: """
@@ -891,28 +905,22 @@ angular.module "mindbender.search", [
                 .error (err) =>
                     console.error err.message
 
-        $scope.writeAnnotation = (doc_id, mention_id, value) =>
+        $scope.writeAnnotation = (doc_id, mention_id, value, callback) =>
             $http.post "/api/annotation", { doc_id:doc_id, mention_id:mention_id, value:value }
                 .success (data) =>
-                    console.log 'success'
-                    console.log 'GETTING USERNAME'
-                    console.log data
                     value.user_name = data.user_name
-                    # update model
-                    #$scope.annotations[doc_id + ',' + mention_id] = data
-                    #$scope.$broadcast('update_feedback', $scope.feedback)
+                    if callback
+                        callback()
                 .error (err) =>
                     console.error err.message
 
         $scope.removeAnnotation = (doc_id, mention_id, callback) =>
             $http.delete '/api/annotation/' + doc_id + '/' + mention_id, { }
                 .success (data) =>
-                    #$scope.hideAnnotation doc_id, mention_id
                     if callback
                         callback()
-                    console.log 'success'
                 .error (err) =>
-                    console.log err.message
+                    console.error err.message
 
         $scope.fetchAnnotations()
 
@@ -921,8 +929,7 @@ angular.module "mindbender.search", [
                 doc_id = $scope.searchResult._source.doc_id
                 mention_id = Object.keys($scope.annotations).length
                 annotation = $scope.makeAnnotation(ranges)
-                obj = { doc_id:doc_id, mention_id:mention_id, value:annotation, tag:'' }
-                #$scope.writeAnnotation(doc_id, mention_id, obj)
+                obj = { doc_id:doc_id, mention_id:mention_id, value:annotation, tags:[] }
                 $scope.showAnnotation(obj, true)
                 document.getSelection().removeAllRanges()
 
@@ -983,29 +990,34 @@ angular.module "mindbender.search", [
         $scope.makeAnnotation = annotationFactory($element[0], '.annotator-hl')
 
 
-.directive "annotationPopover", ($http, $compile, $document, $timeout, tags) ->
+.directive "annotationPopover", ($http, $compile, $document, $timeout, tagsService) ->
     scope: {}
     controller: ($scope) ->
-        $scope.tags = tags
+        $scope.tags = tagsService
         $scope.togglePopup = () =>
-            $scope.isOpen = !$scope.isOpen 
+            $scope.isOpen = !$scope.isOpen
 
         $scope.cancel = () =>
             $scope.isOpen = false
-            $scope.annotation.tag = $scope.annotation.tag.trim()
+            tags = $scope.annotation.tags
             $scope.$parent.removeAnnotation $scope.docId, $scope.mentionId, () -> 
-                if $scope.annotation.tag.length > 0
-                    $scope.tags.maybeRemove $scope.annotation.tag
+                for t in $scope.annotation.tags
+                    tagsService.maybeRemove t
             $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
 
-        $scope.commit = (st) =>
-            st = st.trim()
-            $scope.annotation.tag = st
-            if st.length > 0
-                $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
-                    $scope.annotation)
-                $scope.tags.maybeCreate(st)
-                $scope.isOpen = false
+        $scope.add = (st) =>            
+            $scope.annotation.tags.push(st)
+            $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
+                $scope.annotation)
+            tagsService.maybeCreate(st)
+
+        $scope.remove = (st) =>
+            index = $scope.annotation.tags.indexOf(st)
+            if index > -1
+                $scope.annotation.tags.splice index, 1
+                $scope.$parent.writeAnnotation $scope.docId, $scope.mentionId,
+                    $scope.annotation, () ->
+                         tagsService.maybeRemove st
 
         $scope.onSelect = ($item, $model, $label) ->
             $scope.commit($item)
@@ -1029,7 +1041,7 @@ angular.module "mindbender.search", [
         # add tooltip
         $element.attr('data-toggle', 'tooltip')
         $element.attr('data-placement', 'top')
-        $element.attr('data-original-title', '{{annotation.tag}}')
+        $element.attr('data-original-title', '{{annotation.tags.join(", ")}}')
 
         $element.attr('ng-click', 'togglePopup()')
 
@@ -1041,11 +1053,11 @@ angular.module "mindbender.search", [
         # hide popover on click away
         handler = (e) ->
             if $scope.isOpen && !$(e.target).parents('.popover').length && 
-                !$element[0].contains(e.target) 
+                !$element[0].contains(e.target) && !$(e.target).parents('.bootstrap-tagsinput').length
                     $scope.$apply () ->
                         $scope.isOpen = false
-                        $scope.annotation.tag = $scope.annotation.tag.trim()
-                        if $scope.annotation.tag == ''
+                        if $scope.annotation.tags.length == 0
+                            $scope.$parent.removeAnnotation $scope.docId, $scope.mentionId
                             $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
 
         $timeout () =>
@@ -1054,47 +1066,51 @@ angular.module "mindbender.search", [
         $scope.$on '$destroy', () =>
             $document.off('click', handler)
 
-.directive "typeaheadCustomEvents", ($parse, $timeout) ->
-      restrict: 'A'
-      require: 'ngModel'
-      scope:
-          commit:'=commit'
-      link: ($scope, elem, attrs) ->
-          # opens typeahead drawer if no value has been set
-          triggerFunc = (evt) ->
-              ctrl = elem.controller('ngModel')
-              prev = ctrl.$modelValue || ''
-              if !prev
-                  # hack to force open drawer
-                  ctrl.$setViewValue ' '
-                  $timeout () ->
-                      ctrl.$setViewValue ''
-
-          elem.bind('click', triggerFunc)
-          elem.bind('focus', triggerFunc)
-
-          # when the input value changes, commit an update
-          changeFunc = (evt) ->
-              ctrl = elem.controller('ngModel')
-              val = ctrl.$modelValue.trim()
-              if val.length > 0
-                  $scope.commit(val)
-
-          elem.bind('change', changeFunc)
-
-# focuses element when condition is satisfied
-.directive "focusOn", ($timeout) ->
+.directive "tagsinputCustomEvents", ($parse, $timeout, tagsService) ->
     restrict: 'A'
-    link: ($scope,$element,$attr) ->
-        $scope.$watch $attr.focusOn, (_focusVal) ->
+    scope:
+        add:'=add'
+        remove:'=remove'
+        activeTags:'=tags'
+    link: ($scope, elem, attrs) ->
+        elem.tagsinput({
+            confirmKeys: [13]
+            trimValue: true
+            typeahead: {
+                source: tagsService.tags
+                minLength: 0
+                showHintOnFocus: false
+                matcher: 'case insensitive'
+                autoSelect: false
+            }
+        })
+
+        # add initial set of items
+        elem.tagsinput('removeAll')
+        for t in $scope.activeTags
+            elem.tagsinput('add', t)
+
+        elem.on 'itemAdded', (evt) ->
+            $scope.add evt.item
+            # fix bug where the input val does not clear
             $timeout () ->
-                if _focusVal
-                    $element.focus() 
-                else
-                    $element.blur()
+              elem.tagsinput('input').val('')
+        elem.on 'itemRemoved', (evt) ->
+            $scope.remove evt.item
 
+        triggerFunc = (evt) ->
+            if !$scope.activeTags || $scope.activeTags.length == 0
+                  # hack to force open drawer
+                  elem.tagsinput('input').typeahead('lookup', '')
 
-.service "tags", ($http) ->
+        elem.tagsinput('input').bind('focus', triggerFunc)
+
+        $timeout () ->
+            elem.tagsinput('findInputWrapper').css('min-width','200px')
+            elem.tagsinput('input').parent().css('width','100%')
+            elem.tagsinput('focus')
+
+.service "tagsService", ($http) ->
     cmp = (a,b) ->
         a.toUpperCase().localeCompare(b.toUpperCase())
 
@@ -1114,7 +1130,6 @@ angular.module "mindbender.search", [
             # checks if tag is used by any annotation and if not, removes tag
             $http.get "/api/tags/maybeRemove/" + encodeURIComponent(value), {}
                  .success (data) =>
-                    console.log 'this is what I got back ' + data
                     if parseInt(data) > 0
                         index = tags.tags.indexOf(value)
                         if index > -1

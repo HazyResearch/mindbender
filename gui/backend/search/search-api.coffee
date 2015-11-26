@@ -469,9 +469,9 @@ exports.configureApp = (app, args) ->
                 res.send 'OK'
         app.get '/api/tags/maybeRemove/:value', (req, res, next) ->
             value = req.params.value
+
             # check if tag is still used by an annotation; delete if it is not used
-            sequelize.query("SELECT count(*) FROM annotations where value::json->>'tag' = '" + 
-                value + "'", { type: sequelize.QueryTypes.SELECT})
+            sequelize.query("select count(*) from annotations where exists(select * from json_array_elements(json_extract_path(value::json, 'tags')) where value::text = '\"" + value + "\"')", { type: sequelize.QueryTypes.SELECT})
                 .then (data) =>
                     if data[0].count == '0'
                         # this tag is not being used anymore, if it's not a flag remove it       

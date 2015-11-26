@@ -14,33 +14,11 @@
       </div>
     </script>
 
-    <script type="text/ng-template" id="typeahead-match.html">
-      <a href tabindex="-1" ng-bind-html="match.label | uibTypeaheadHighlight:query"></a>
-    </script>
-
-    <script type="text/ng-template" id="annotationTypeaheadPopupTemplate.html">
-      <ul class="dropdown-menu" ng-show="isOpen() && !moveInProgress" ng-style="{top: position().top+'px', left: position().left+'px'}" style="display: block;" role="listbox" aria-hidden="{{!isOpen()}}">
-        <li ng-repeat="match in matches track by $index" ng-class="{active: isActive($index) }" ng-mouseenter="selectActive($index)" ng-click="selectMatch($index)" role="option" id="{{::match.id}}">
-          <div uib-typeahead-match index="$index" match="match" query="query" template-url="templateUrl"></div>
-        </li>
-      </ul>
-    </script>
-
     <script type="text/ng-template" id="annotationPopoverTemplate.html">
       <div class="feedback-box">
         <div>This indicates:</div>
-            <input placeholder="Select Tag" type="text" ng-model="annotation.tag" uib-typeahead="tag for tag in tags.tags | filter:$viewValue | limitTo:8" class="form-control"
-              typeahead-focus-first="false"
-              typeahead-editable="true"
-              typeahead-on-select="onSelect($item, $model, $label)"
-              typeahead-min-length="0"
-              typeahead-show-hint="true"
-              typeahead-is-open="typeaheadIsOpen"
-              typeahead-popup-template-url="annotationTypeaheadPopupTemplate.html" 
-              typeahead-custom-events
-              commit="commit"
-              focus-on="isOpen"
-              annotation-typeahead>
+            <input type="text" data-role="tagsinput" add="add" remove="remove" 
+                tags="annotation.tags" tagsinput-custom-events  />
         <button type="button" class='btn btn-default' ng-click="cancel()"
             style="width:100%;margin-top:10px">Remove highlighting</button>
         <div ng-if="annotation.user_name && annotation.user_name !== ''" style="color:#999999">
@@ -49,8 +27,6 @@
         </div>
       </div>
     </script>
-
-
 
 
 
