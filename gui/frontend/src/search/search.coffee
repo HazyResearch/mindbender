@@ -3,14 +3,18 @@
 # OUT ONE LINE, BEFORE YOU CAN RUN EVIDENTLY.
 # AFTER INSTALLATION, EDIT
 #  gui/frontend/bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.js
-# AND COMMENT OUT LINE 164
+# AND MAKE TWO CHANGES
+#
+# 1. COMMENT OUT LINE 164
 # // self.$input.typeahead('val', '');
-#
-#
 # Maybe a similar problem:
 # https://github.com/bassjobsen/Bootstrap-3-Typeahead/issues/145
 #
-#
+# 2. CHANGE LINE 331
+# matcher: function (text) {
+#            return (text.toLowerCase().indexOf(this.query.trim().toLowerCase()) == 0); // changed from !== -1 to == 0
+#          },
+# More info: https://github.com/bootstrap-tagsinput/bootstrap-tagsinput/issues/297
 
 angular.module "mindbender.search", [
     'elasticsearch'
@@ -997,13 +1001,13 @@ angular.module "mindbender.search", [
         $scope.togglePopup = () =>
             $scope.isOpen = !$scope.isOpen
 
-        $scope.cancel = () =>
-            $scope.isOpen = false
-            tags = $scope.annotation.tags
-            $scope.$parent.removeAnnotation $scope.docId, $scope.mentionId, () -> 
-                for t in $scope.annotation.tags
-                    tagsService.maybeRemove t
-            $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
+        #$scope.cancel = () =>
+        #    $scope.isOpen = false
+        #    tags = $scope.annotation.tags
+        #    $scope.$parent.removeAnnotation $scope.docId, $scope.mentionId, () -> 
+        #        for t in $scope.annotation.tags
+        #            tagsService.maybeRemove t
+        #    $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
 
         $scope.add = (st) =>            
             $scope.annotation.tags.push(st)
@@ -1052,8 +1056,8 @@ angular.module "mindbender.search", [
 
         # hide popover on click away
         handler = (e) ->
-            if $scope.isOpen && !$(e.target).parents('.popover').length && 
-                !$element[0].contains(e.target) && !$(e.target).parents('.bootstrap-tagsinput').length
+            if $scope.isOpen && !$(e.target).parents('.popover').length && !$element[0].contains(e.target) && 
+                document.body.contains(e.target)
                     $scope.$apply () ->
                         $scope.isOpen = false
                         if $scope.annotation.tags.length == 0
@@ -1080,7 +1084,9 @@ angular.module "mindbender.search", [
                 source: tagsService.tags
                 minLength: 0
                 showHintOnFocus: false
-                matcher: 'case insensitive'
+                #matcher: 'case insensitive'
+                matcher: (a) ->
+                   a.toUpperCase().indexOf(this.query.toUpperCase()) == 0
                 autoSelect: false
             }
         })
