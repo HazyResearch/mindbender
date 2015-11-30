@@ -1,5 +1,36 @@
 <!-- Search Page -->
 
+    <script type="text/ng-template" id="labelPopoverTemplate.html">
+      <div class="feedback-box">
+        <div>Does this indicate <em>{{extractor}}</em>?</div>
+        <div class="btn-group">
+          <label uib-btn-radio="'correct'" ng-model="tag.is_correct" ng-click="commit(tag.is_correct)" class="btn" ng-class="tag.is_correct == 'correct'? 'btn-success' : 'btn-default'"><i class="fa fa-check"></i></label>
+          <label uib-btn-radio="'incorrect'" ng-model="tag.is_correct" ng-click="commit(tag.is_correct)" class="btn" ng-class="tag.is_correct == 'incorrect'? 'btn-danger' : 'btn-default'"><i class="fa fa-remove"></i></label>
+          <label uib-btn-radio="'unknown'" ng-model="tag.is_correct" ng-click="commit(tag.is_correct)" class="btn" ng-class="tag.is_correct == 'unknown'? 'btn-warning' : 'btn-default'"><i class="fa fa-question-circle"></i></label>
+        </div>
+        <div ng-if="last_user_name && last_user_name !== ''" style="color:#999999">
+          reported by {{last_user_name}}
+        </div>
+      </div>
+    </script>
+
+    <script type="text/ng-template" id="annotationPopoverTemplate.html">
+      <div class="feedback-box">
+        <div>This indicates:</div>
+            <input type="text" data-role="tagsinput" add="add" remove="remove" 
+                tags="annotation.tags" tagsinput-custom-events  />
+        <!--
+        <button type="button" class='btn btn-default' ng-click="cancel()"
+            style="width:100%;margin-top:10px">Remove highlighting</button>-->
+        <div ng-if="annotation.user_name && annotation.user_name !== ''" style="color:#999999">
+          reported by {{annotation.user_name}}
+        </div>
+        </div>
+      </div>
+    </script>
+
+
+
 <nav class="navbar navbar-default navbar-fixed-top">
     <div class="container-fluid">
         <div class="navbar-header" ng-include="'app-navbar-header.html'"></div>
@@ -121,12 +152,32 @@
                         </span>
                     </script>
                 </div>
-                <br>
-
-                <div ng-if="!search.query._query_string" class="jumbotron">
+                <!--<br>-->
+                <!--
+                <div ng-if="!search.query._query_string" class="jumbotron" style="padding-top:20px">
                     <h1>{{search.results.hits.total | number}}</h1>
                     <p>documents</p>
+                    <h3 style="">Suspicious Entities</h3>
                     <br>
+                    <scores-table />
+                </div>-->
+
+                <div ng-if="!search.query._query_string" style="padding-top:0px;">
+                    <div style="float:right">
+                       {{search.results.hits.total | number}} documents
+                    </div>
+                    <h3 style="padding-top:0px;margin-top:0px">Suspicious Entities</h3>
+                    <br>
+                    Five metrics summarize extracted flags and structure, and surface the most suspicious entities.
+                      <ul>
+                      <li><em>Organization:</em> based on flags Organized, LE Cautious, Fake Photo, Poor English, New to Biz, and phone number match to Yelp.</li>
+                      <li><em>Control:</em> based on flags Physical Abuse, Drug Use, Coercion, and Bad Experience.</li>
+                      <li><em>Underage:</em> based on Underage flag and age stats in the ads.</li>
+                      <li><em>Movement:</em> based on Traveling flag and geographical statistics summarized from the ads.</li>
+                      <li><em>Overall:</em> an overall score based on all above and number of ads and reviews.
+                      </ul>
+                      All scores range from 1 (most suspicious) to 0 (least suspicious). Click headers to sort.<br>
+                    <scores-table />
                 </div>
 
                 <!-- individual search results -->
@@ -499,5 +550,6 @@ $(function(){
     setupSearchBarWhenSchemaJsonIsFetched();
 
 });
+
 
 </script>

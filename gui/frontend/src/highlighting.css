@@ -108,3 +108,25 @@
   -ms-filter: blur(0px);
 }
 
+.highlight {
+  background-color:#FFEE99;
+  padding-left:2px;
+  padding-right:2px;
+  cursor:pointer
+}
+
+.highlight-correct {
+  background-color:#BCFF7C !important;
+}
+
+.highlight-incorrect {
+  background-color:#DDDDDD !important;
+}
+
+.highlight-unknown {
+  background-color:#FFF6CC !important;
+}
+
+.feedback-box {
+  text-align:center
+}

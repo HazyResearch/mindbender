@@ -8,12 +8,13 @@ _ = require "underscore"
 express = require "express"
 Sequelize = require "sequelize"
 
-sequelize = new Sequelize('evidently_dossier', process.env.DOSSIER_PG_USER || '', '', {
+sequelize = new Sequelize('evidently', process.env.EVIDENTLY_PG_USER || '', '', {
     dialect: 'postgres'
-    host: process.env.DOSSIER_PG_USER || 'localhost'
-    port: process.env.DOSSIER_PG_PORT || 5432
+    host: process.env.EVIDENTLY_PG_HOST || 'localhost'
+    port: process.env.EVIDENTLY_PG_PORT || 5432
     # storage: process.env.ELASTICSEARCH_HOME + '/dossier.db'  # sqlite fails on concurrent writes
 })
+
 
 # Install Search API handlers to the given ExpressJS app
 exports.configureApp = (app, args) ->
@@ -242,6 +243,247 @@ exports.configureApp = (app, args) ->
                                     query_to_dossiers: query_to_dossiers
 
                                 res.send JSON.stringify(result)
+
+
+        Scores = sequelize.define('scores', {
+            phone_number:
+                type: Sequelize.TEXT
+                allowNull: false
+
+            ads_count:
+                type: Sequelize.BIGINT
+                allowNull: false
+
+            reviews_count:
+                type: Sequelize.BIGINT
+                allowNull: false
+
+            organization_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            control_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            underage_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            movement_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            overall_score:
+                type: Sequelize.DOUBLE
+                allowNull: false
+
+            state:
+                type: Sequelize.TEXT
+
+            city:
+                type: Sequelize.TEXT
+        }, {
+            indexes: [
+                {
+                    unique: true
+                    fields: ['phone_number']
+                },
+                {
+                    fields: ['overall_score']
+                },
+                {
+                    fields: ['movement_score']
+                },
+                {
+                    fields: ['underage_score']
+                },
+                {
+                    fields: ['control_score']
+                },
+                {
+                    fields: ['organization_score']
+                }
+            ]
+        })
+        Scores.sync()
+
+        app.get '/api/scores', (req, res, next) ->
+            Scores.findAll
+                order: req.query.sort_order 
+                limit: 200
+            .then (matches) ->
+                    #results = _.map matches, (item) ->
+                    #    phone_number: item.phone_number
+                    #    overall_score: item.overall_score                    
+                    results = matches
+                    res.send JSON.stringify(results)
+
+        Feedback = sequelize.define('feedback', {
+            doc_id:
+                type: Sequelize.TEXT
+                allowNull: false
+            mention_id:
+                type: Sequelize.TEXT
+            user_name:
+                type: Sequelize.TEXT
+            value:
+                type: Sequelize.TEXT
+        }, {
+            indexes: [
+                {
+                    unique: true
+                    fields: ['doc_id', 'mention_id']
+                }
+            ]
+        })
+
+        Feedback.sync()
+
+        app.get '/api/feedback/:doc_id', (req, res, next) ->
+            Feedback.findAll
+                where:
+                    doc_id: req.params.doc_id
+            .then (matches) ->
+                res.send JSON.stringify(matches)
+
+        app.post '/api/feedback', (req, res, next) ->
+            #if not req.user or not req.user.id
+            #    res
+            #        .status 400
+            #        .send 'You must log in to use the feedback service.'
+            #else
+                user_name = ''
+                if req.user && req.user.id
+                    user_name = req.user.displayName
+                obj = {
+                    doc_id: req.body.doc_id
+                    mention_id: req.body.mention_id
+                    user_name: user_name
+                    value: req.body.value
+                } 
+                Feedback.upsert obj 
+                .then () ->
+                    res.send JSON.stringify(obj)
+
+        Annotation = sequelize.define('annotation', {
+            doc_id:
+                type: Sequelize.TEXT
+                allowNull: false
+            mention_id:
+                type: Sequelize.TEXT
+            user_name:
+                type: Sequelize.TEXT
+            value:
+                type: Sequelize.TEXT
+        }, {
+            indexes: [
+                {
+                    unique: true
+                    fields: ['doc_id', 'mention_id']
+                }
+            ]
+        })
+
+        Annotation.sync()
+
+        app.get '/api/annotation/:doc_id', (req, res, next) ->
+            console.log 'getting annotations ' + req.params.doc_id
+            Annotation.findAll
+                where:
+                    doc_id: req.params.doc_id
+            .then (matches) ->
+                _.each matches, (m) ->
+                    m.value = JSON.parse(m.value)
+                    #console.log m.mention_id
+                    #console.log m.value
+                    #console.log JSON.parse(m.value)
+                #nm = _.each matches, (m) ->
+                #    m[value] = JSON.parse(m[value])
+                #console.log nm
+                res.send JSON.stringify(matches)
+
+        app.delete '/api/annotation/:doc_id/:mention_id', (req, res, next) ->
+            Annotation.destroy
+                where:
+                    doc_id: req.params.doc_id
+                    mention_id: req.params.mention_id
+            .then () ->
+                res.send 'Ok' 
+
+        app.post '/api/annotation', (req, res, next) ->
+            #if not req.user or not req.user.id
+            #    res
+            #        .status 400
+            #        .send 'You must log in to use the feedback service.'
+            #else
+                user_name = ''
+                if req.user && req.user.id
+                    user_name = req.user.displayName
+                obj = {
+                    doc_id: req.body.doc_id
+                    mention_id: req.body.mention_id
+                    user_name: user_name
+                    value: JSON.stringify(req.body.value)
+                }
+
+                Annotation.upsert obj
+                .then () ->
+                    res.send JSON.stringify(obj)
+
+        Tags = sequelize.define('tags', {
+            value:
+                type: Sequelize.TEXT
+                allowNull: false
+
+            is_flag:
+                type: Sequelize.BOOLEAN
+                allowNull: false
+        }, {
+            indexes: []
+        })
+
+        Tags.sync()
+
+        app.get '/api/tags', (req, res, next) ->
+            Tags.findAll
+                order: 'value'
+            .then (matches) ->
+                res.send JSON.stringify(matches)
+
+        app.post '/api/tags', (req, res, next) ->
+            obj = {
+                value: req.body.value
+                is_flag: false
+            }
+            Tags.upsert obj
+            .then () ->
+                res.send JSON.stringify(obj)
+
+        app.delete '/api/tags/:value', (req, res, next) ->
+            Tags.destroy
+                where:
+                    value: req.params.value
+                    is_flag: false
+            .then () ->
+                res.send 'OK'
+        app.get '/api/tags/maybeRemove/:value', (req, res, next) ->
+            value = req.params.value
+
+            # check if tag is still used by an annotation; delete if it is not used
+            sequelize.query("select count(*) from annotations where exists(select * from json_array_elements(json_extract_path(value::json, 'tags')) where value::text = '\"" + value + "\"')", { type: sequelize.QueryTypes.SELECT})
+                .then (data) =>
+                    if data[0].count == '0'
+                        # this tag is not being used anymore, if it's not a flag remove it       
+                        Tags.destroy
+                            where:
+                                value: value
+                                is_flag: false
+                        .then (data) -> 
+                            res.status(200).send(String(data))
+                    else
+                        return res.status(200).send('0')
+
 
     else
         app.all elasticsearchApiPath, (req, res) ->

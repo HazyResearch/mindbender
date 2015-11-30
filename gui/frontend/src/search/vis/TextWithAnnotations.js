@@ -72,10 +72,11 @@ var TextWithAnnotations = (function() {
        var keys = Object.keys(spans)
        var str = html.substring(start, end)
        for (var k=0; k < keys.length; k++) {
-         str = '<span style="background-color:#FFEE99;padding-left:2px;padding-right:2px" '+
-               ' data-toggle="tooltip" ' +
-               ' data-placement="bottom" ' +
-               ' data-original-title="' + extractions[keys[k]].extractor + '">' + str + '</span>'
+         str = "<span label-popover k=" + keys[k] + 
+             ' data-toggle="tooltip" ' +
+             ' data-placement="top" ' +
+             ' data-original-title="' + extractions[keys[k]].extractor + '"' +
+             ">" + str + "</span>"
        }
        html_hl += str
     }
@@ -98,6 +99,8 @@ var TextWithAnnotations = (function() {
     }
     // final segment
     write_segment(start, html.length, active_spans)
+
+    //console.log(html_hl)
 
     var content = html_hl
 
