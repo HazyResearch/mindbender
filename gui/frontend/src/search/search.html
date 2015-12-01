@@ -17,7 +17,7 @@
     <script type="text/ng-template" id="annotationPopoverTemplate.html">
       <div class="feedback-box">
         <div>This indicates:</div>
-            <input type="text" data-role="tagsinput" add="add" remove="remove" 
+            <input type="text" data-role="tagsinput" add="add" remove="remove"
                 tags="annotation.tags" tagsinput-custom-events  />
         <!--
         <button type="button" class='btn btn-default' ng-click="cancel()"
@@ -255,7 +255,7 @@
             for="search" title="Select Query or Doc...">
         </select>
     </div>
-    <div class="pull-right" ng-if="search.query._query_string">
+    <div class="pull-right" ng-if="search.query._query_string" style="margin-right:50px">
         <pagination class="pagination-sm fa"
         total-items="search.results ? search.results.hits.total
                                     : search.params.p * search.params.n"
@@ -371,7 +371,7 @@ window.setupMySelectPicker = function($elem, options, change_callback) {
         '<span class="glyphicon glyphicon-plus create-mark"></span></a></li>');
     $dropdown.prepend($new_item);
     picker.$newElement.find('button').attr('title',
-        'Select existing bookmark folders or create a new one. Folders are shared by all users.').tooltip()
+        'Select existing bookmark folder(s) or create a new one. Folders are shared by all users.').tooltip()
     var $sbox = picker.$searchbox;
     $sbox.attr('placeholder', 'Search or create');
     $sbox.on('input propertychange', function() {
