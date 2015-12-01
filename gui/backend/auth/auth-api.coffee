@@ -8,7 +8,6 @@
 
 # Set this to true if you want to require users to login
 REQUIRES_LOGIN = (process.env.REQUIRES_LOGIN == "true")
-REQUIRES_LOGIN = true
 
 # Set this to true if you only want to grant access to users which you have manually added using above commands
 ONLY_AUTHORIZED = (process.env.ONLY_AUTHORIZED == "true")
@@ -19,10 +18,6 @@ REQUEST_EMAIL = process.env.REQUEST_EMAIL or "email@email"
 GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID or "YOUR_CLIENT_ID"
 GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET or "YOUR_CLIENT_SECRET"
 GOOGLE_CALLBACK_ENDPOINT = process.env.GOOGLE_CALLBACK_ENDPOINT or "http://localhost:8001"
-
-GOOGLE_CLIENT_ID = '622010038558-f0gm1ir9de2s3rc95nmu06mp2nkhesjn.apps.googleusercontent.com'
-GOOGLE_CLIENT_SECRET = 'HoX_mUcXH8_b25fOzsRwRgfu'
-GOOGLE_CALLBACK_ENDPOINT = 'http://localhost:8000'
 
 fs = require "fs"
 util = require "util"

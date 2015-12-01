@@ -9,7 +9,7 @@ angular.module "mindbender.auth", [
 
 
 .service "Authentication", ($http, $q) ->
-    class Authentication 
+    class Authentication
         constructor: ->
             @user = {
                isSignedIn : false
@@ -21,6 +21,12 @@ angular.module "mindbender.auth", [
                     if data != ''
                         @user.isSignedIn = true
                         @user.name = data.displayName
+                        email = (data.emails && data.emails.length && data.emails[0].value) || null
+                        window.UserVoice.push(['identify', {
+                            email: email,
+                            name: data.displayName,
+                            id: email,
+                        }]);
                         if data.photos.length == 0
                             @user.thumb = ''
                         else
