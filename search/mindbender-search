@@ -20,11 +20,12 @@
 # To see internal schema mappings:
 # $ mindbender search show-frontend-schema
 # $ mindbender search show-elasticsearch-mappings
-#
+# 
 # Remark: the default heap size of Elastic search (1GB) may be insufficient for the application, resulting in error "Data too large, data for [type] would be larger than limit of [622775500/593.9mb]".
 # To modifiy it, run:
-# export ES_HEAP_SIZE=10g
+# $ export ES_HEAP_SIZE=10g
 # before mindbender search gui. Pick a value adapted for your machine but lower than 30.5GB. More info: https://www.elastic.co/guide/en/elasticsearch/guide/current/heap-sizing.html
+#
 ##
 # Author: Jaeho Shin <netj@cs.stanford.edu>
 # Created: 2015-07-31
@@ -162,6 +163,7 @@ case $Action in
             local sqlToUnload=$1; shift
             local jqToFormat=$1; shift
             local length_relation="$(deepdive sql eval "SELECT COUNT(*) FROM $relation")"
+            local number_files_split=$(($length_relation / $ELASTICSEARCH_BULK_BATCHSIZE +1))
             echo >&2 "Indexing relation $relation"
             # unload data from database in json lines
             deepdive sql eval "$sqlToUnload" format=json |
@@ -169,7 +171,7 @@ case $Action in
             pv --line-mode --size=$length_relation |
             # split records into multiple batches
             # TODO parallelize
-            split --lines=$ELASTICSEARCH_BULK_BATCHSIZE --numeric-suffixes --suffix-length=$(expr $(($length_relation / $ELASTICSEARCH_BULK_BATCHSIZE +1)) : '.*') --filter="$(escape-args-for-shell sh -euc '
+            split --lines=$ELASTICSEARCH_BULK_BATCHSIZE --numeric-suffixes --suffix-length=${#number_files_split} --filter="$(escape-args-for-shell sh -euc '
                 jqToFormat=$1 indexURL=$2
                 # produce elasticsearch bulk load action for each JSON record
                 jq -c "$jqToFormat" |
