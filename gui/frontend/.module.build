@@ -48,10 +48,10 @@ cd ..
 
 # Copy annotatorjs files (we are using buildkit since annotatorjs does not
 # have current npm/bower packages)
-mkdir -p build/annotatorjs
-cp ../../depends/.build/bundled/annotatorjs/prefix/annotator-1.2.10/pkg/annotator.min.js build/annotatorjs
-cp ../../depends/.build/bundled/annotatorjs/prefix/annotator-1.2.10/pkg/annotator.min.css build/annotatorjs
-cp ../../depends/.build/bundled/annotatorjs/prefix/annotator-1.2.10/pkg/annotator.min.map build/annotatorjs
+#mkdir -p build/annotatorjs
+#cp ../../depends/.build/bundled/annotatorjs/prefix/annotator-1.2.10/pkg/annotator.min.js build/annotatorjs
+#cp ../../depends/.build/bundled/annotatorjs/prefix/annotator-1.2.10/pkg/annotator.min.css build/annotatorjs
+#cp ../../depends/.build/bundled/annotatorjs/prefix/annotator-1.2.10/pkg/annotator.min.map build/annotatorjs
 
 # remove all dangling symlinks
 find build -type l ! -exec [ -e {} ] \; -exec rm -fv {} +
