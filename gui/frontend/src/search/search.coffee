@@ -1154,3 +1154,21 @@ angular.module "mindbender.search", [
     tags.fetchTags()
 
     return tags
+
+.directive "helpVideo", ($timeout, $templateCache) -> 
+
+    link: ($scope, elem, attrs) ->
+       elem.tooltip({
+           title:'Demo Video'
+           placement:'bottom'
+       })
+       videoHtml = $templateCache.get('helpVideo.html')
+       elem.colorbox({
+           html:videoHtml
+           innerWidth:'800px'
+           onComplete:() ->
+               colorbox = $(document.getElementById('colorbox'))
+               video = colorbox.find('video')
+               video[0].play()
+       })
+        

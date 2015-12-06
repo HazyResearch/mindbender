@@ -29,12 +29,29 @@
       </div>
     </script>
 
+    <script type="text/ng-template" id="helpVideo.html">
+       <div style="overflow:hidden;background-color:white">
+         <video width="800" height="500" controls autoplay style="background-color:white !important;display:block">
+           <source src="search/template/__VIDEO__.MP4" type="video/mp4" /><!-- WebKit video    -->
+         </video>
+       </div>
+    </script>
+
 
 
 <nav class="navbar navbar-default navbar-fixed-top">
     <div class="container-fluid">
         <div class="navbar-header" ng-include="'app-navbar-header.html'"></div>
         <div sign-in-out-menu style="float:right;height:50px;width:50px;margin-left:30px;"></div>
+        <div class="pull-right" style="text-align:center;color:#999999;margin-left:30px;padding-top:10px;font-size:11px">
+                <div help-video style="cursor:pointer">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-television fa-stack-2x" style="padding-top:3px"></i>
+                    <i class="fa fa-question fa-stack-1x"></i>
+                  </span>
+                </div>
+        </div>
+
         <div deepdive-search-bar for="search"></div>
     </div>
 </nav>
