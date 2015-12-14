@@ -1174,9 +1174,10 @@ angular.module "mindbender.search", [
 
 .directive "flagHelp", ($document, $templateCache, $http) ->
     template: """<div uib-popover-template="'flagHelp' + key + '.html'"
-           popover-trigger="manual"
+           popover-trigger="mouseenter"
            popover-placement="right"
            popover-is-open="isOpen"
+           popover-append-to-body="true"
            ng-click="toggle($event)" class="flag-help-icon">?</div>"""
     controller: ($scope) ->
         $scope.close = (evt) ->
@@ -1190,7 +1191,6 @@ angular.module "mindbender.search", [
     link: ($scope, $element, attrs) ->        
         $scope.isOpen = false
         k = encodeURIComponent(attrs['key'])
-        #console.log $templateCache.get('flagHelp' + $scope.key + '.html')
         if $templateCache.get('flagHelp' + k + '.html')?
             $scope.key = k
         else
