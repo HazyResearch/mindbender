@@ -1171,4 +1171,42 @@ angular.module "mindbender.search", [
                video = colorbox.find('video')
                video[0].play()
        })
-        
+
+.directive "flagHelp", ($document, $templateCache, $http) ->
+    template: """<div uib-popover-template="'flagHelp' + key + '.html'"
+           popover-trigger="manual"
+           popover-placement="right"
+           popover-is-open="isOpen"
+           ng-click="toggle($event)" class="flag-help-icon">?</div>"""
+    controller: ($scope) ->
+        $scope.close = (evt) ->
+           $scope.isOpen = false
+           evt.stopPropagation()
+           return false
+        $scope.toggle = (evt) ->
+           $scope.isOpen = !$scope.isOpen
+           evt.stopPropagation()
+           return false
+    link: ($scope, $element, attrs) ->        
+        $scope.isOpen = false
+        k = encodeURIComponent(attrs['key'])
+        #console.log $templateCache.get('flagHelp' + $scope.key + '.html')
+        if $templateCache.get('flagHelp' + k + '.html')?
+            $scope.key = k
+        else
+            $scope.key = 'Missing'        
+
+        # hide popover on click away
+        handler = (e) ->
+            if $scope.isOpen #&& !$element[0].contains(e.target)
+                $scope.$apply () ->
+                    $scope.isOpen = false
+            e.stopPropagation()
+            return false
+
+        $document.on 'click', handler
+
+        $scope.$on '$destroy', () =>
+            $document.off('click', handler)
+
+

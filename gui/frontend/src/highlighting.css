@@ -130,3 +130,21 @@
 .feedback-box {
   text-align:center
 }
+
+.flag-help-icon {
+  margin-top:5px;
+  margin-left:10px;
+  background-color:#CCC;
+  color:white;
+  border-radius:8px;
+  display:inline-block;
+  text-align:center;
+  height:16px;
+  width:16px;
+  font-size:12px;
+}
+
+.flag-help-icon:hover {
+  background-color:#000
+}
+
