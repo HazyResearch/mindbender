@@ -89,9 +89,10 @@ exports.configureApp = (app, args) ->
             wl = proxyWhitelist.filter (v) -> 
                 req.method == v.method && req.url == v.url
             if wl.length == 0
+                console.log "WARN: ES proxy request forbidden: " + req.method + ' ' + req.url
                 return res
-                    .status 503
-                    .send "Elasticsearch proxy forbids this request: " + req.method + ' ' + req.url
+                    .status 500
+                    .send "There's an error. That's all we know."
 
             # rewrite pathname if any rules were specified
             if rewrites?
