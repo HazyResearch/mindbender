@@ -69,8 +69,31 @@ exports.configureApp = (app, args) ->
         }
         return JSON.stringify(fields)
 
+    proxyWhitelist = [ 
+      {
+        url: '/api/elasticsearch/_all'
+        method: 'GET'
+      },
+      {
+        url: '/api/elasticsearch/_all/everything/_search' 
+        method: 'POST'
+      },
+      {
+        url: '/api/elasticsearch/'
+        method: 'HEAD'
+      }
+    ]
+
     apiProxyMiddlewareFor = (path, target, rewrites) -> (req, res, next) ->
         if req.url.match path
+            wl = proxyWhitelist.filter (v) -> 
+                req.method == v.method && req.url == v.url
+            if wl.length == 0
+                console.log "WARN: ES proxy request forbidden: " + req.method + ' ' + req.url
+                return res
+                    .status 500
+                    .send "There's an error. That's all we know."
+
             # rewrite pathname if any rules were specified
             if rewrites?
                 newUrl = url.parse req.url
