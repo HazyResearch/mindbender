@@ -15,6 +15,11 @@ sequelize = new Sequelize('evidently', process.env.EVIDENTLY_PG_USER || '', '', 
     # storage: process.env.ELASTICSEARCH_HOME + '/dossier.db'  # sqlite fails on concurrent writes
 })
 
+Elasticsearch = require('elasticsearch')
+elasticsearch = new Elasticsearch.Client {
+  host: process.env.ELASTICSEARCH_BASEURL
+  log: 'error'
+}
 
 # Install Search API handlers to the given ExpressJS app
 exports.configureApp = (app, args) ->
@@ -420,16 +425,35 @@ exports.configureApp = (app, args) ->
                 user_name = ''
                 if req.user && req.user.id
                     user_name = req.user.displayName
+
+                # we store the user_name in the value object
+                value = req.body.value
+                value.user_name = user_name
                 obj = {
                     doc_id: req.body.doc_id
                     mention_id: req.body.mention_id
                     user_name: user_name
-                    value: JSON.stringify(req.body.value)
+                    value: JSON.stringify(value)
                 }
 
+                # update database
                 Annotation.upsert obj
                 .then () ->
                     res.send JSON.stringify(obj)
+
+                # update ES index
+                elasticsearch.update {
+                  index: req.body._index
+                  type: req.body._type
+                  id: req.body.doc_id
+                  body: {
+                    doc: {
+                      annotated_flags: req.body.annotated_flags
+                    }
+                  }
+                }, (err, response) ->
+                  if err
+                    console.error err
 
         Tags = sequelize.define('tags', {
             value:

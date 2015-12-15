@@ -46,8 +46,9 @@ angular.module "mindbender.search", [
         redirectTo: "/search/"
 
 ## for searching extraction/source data
-.controller "SearchResultCtrl", ($scope, $routeParams, $location, DeepDiveSearch, $modal) ->
+.controller "SearchResultCtrl", ($scope, $routeParams, $location, DeepDiveSearch, $modal, tagsService) ->
     $scope.search = DeepDiveSearch.init $routeParams.index
+    $scope.tags = tagsService
     $scope.openModal = (options) ->
         $modal.open _.extend {
             scope: $scope
@@ -405,6 +406,7 @@ angular.module "mindbender.search", [
                 'service': true
                 'ages':true
                 'username':true
+                'annotated_flags':true
             }
 
             @all_dossiers = null
@@ -521,7 +523,7 @@ angular.module "mindbender.search", [
                                     field: navigable
                                     size: 
                                         switch navigable
-                                            when "flags"
+                                            when "flags" || "annotated_flags"
                                                 100
                                             else
                                                 100
@@ -555,7 +557,7 @@ angular.module "mindbender.search", [
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
                 facets = []
-                best_facets = ['domain_type', 'flags', 'yelp', 'domain', 'locations', 'phones', 'post_date']
+                best_facets = ['domain_type', 'flags', 'annotated_flags', 'yelp', 'domain', 'locations', 'phones', 'post_date']
                 range_facets = ['ages', 'post_date', 'phones', 'ages']
                 date_facets = ['post_date']
                 for f in best_facets
@@ -910,12 +912,28 @@ angular.module "mindbender.search", [
                     console.error err.message
 
         $scope.writeAnnotation = (doc_id, mention_id, value, callback) =>
-            $http.post "/api/annotation", { doc_id:doc_id, mention_id:mention_id, value:value }
-                .success (data) =>
+            # compute sets of tags used in this document, after new annotation
+            annotated_flags = {}
+            for k,v of $scope.annotations
+              for s,t of v.tags
+                annotated_flags[t] = true
+            for s,t of v.tags
+              annotated_flags[t] = true
+            annotated_flags_arr = [k for k,v of annotated_flags]
+
+            $http.post "/api/annotation", { 
+                doc_id:doc_id
+                mention_id:mention_id
+                value:value,
+                _index:$scope.searchResult._index
+                _type:$scope.searchResult._type
+                annotated_flags:annotated_flags_arr 
+              }
+              .success (data) =>
                     value.user_name = data.user_name
                     if callback
                         callback()
-                .error (err) =>
+              .error (err) =>
                     console.error err.message
 
         $scope.removeAnnotation = (doc_id, mention_id, callback) =>
@@ -1009,7 +1027,7 @@ angular.module "mindbender.search", [
         #            tagsService.maybeRemove t
         #    $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
 
-        $scope.add = (st) =>            
+        $scope.add = (st) =>
             $scope.annotation.tags.push(st)
             $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
                 $scope.annotation)
@@ -1123,6 +1141,7 @@ angular.module "mindbender.search", [
     tags = {
         # array of tags used shown in the annotation typeahead
         tags: []
+        flags: {} # existing flag extractors
         maybeCreate: (value) ->
             # creates tag if it does not exist
             if $.inArray(value, tags.tags) == -1
@@ -1145,8 +1164,15 @@ angular.module "mindbender.search", [
         fetchTags: () ->
             $http.get "/api/tags", {}
                 .success (data) =>
+                    # sorted array for annotation typeahead
                     tags.tags = $.map data, (t) -> t.value
                     tags.tags.sort cmp
+                    # set of extractor flags
+                    f = {}
+                    for k,t of data
+                      if t.is_flag
+                        f[t.value] = true
+                    tags.flags = f
                 .error (err) =>
                     console.error err.message
     }

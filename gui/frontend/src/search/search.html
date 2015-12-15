@@ -158,7 +158,6 @@
   </div>
 </script>
 
-
 <script type="text/ng-template" id="flagHelpMissing.html">
   <div ng-click="close($event)">
     <b>Missing description</b><br>
@@ -223,11 +222,12 @@
                             </a>
                             <a ng-if="field !== 'domain_type'"
                                 style="cursor: pointer"
-                                ng-class="field == 'flags' ? 'label label-warning' : ''">
+                                ng-class="{ 'label': field == 'flags' || field == 'annotated_flags', 'label-warning': field == 'flags', 'label-annotation' : field == 'annotated_flags'}">
                                 {{bucket.key}}
                             </a>
                             <a ng-if="bucket.key == ''"><em>(empty)</em></a>
-                            <span ng-if="field == 'flags'" flag-help key="{{bucket.key}}"></span>
+                            <span ng-if="field == 'flags' || field == 'annotated_flags' && tags.flags && tags.flags[bucket.key]" flag-help key="{{bucket.key}}"></span>
+                            <span ng-if="field == 'annotated_flags' && tags.flags && !tags.flags[bucket.key]" class="label label-default" style="margin-left:5px">new</span>
                         </td>
                         <td class="text-right"><span class="badge badge-default">{{bucket.doc_count | number}}</span></td>
                     </tr>
