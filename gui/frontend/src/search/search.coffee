@@ -531,6 +531,7 @@ angular.module "mindbender.search", [
                             else # TODO any better default for unknown types?
                                 terms:
                                     field: navigable
+                                    shard_size: 1000
                                     size: 
                                         switch navigable
                                             when "flags" || "annotated_flags"
