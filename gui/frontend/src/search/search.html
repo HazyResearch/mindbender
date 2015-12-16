@@ -151,9 +151,9 @@
   </div>
 </script>
 
-<script type="text/ng-template" id="flagHelpForeign%20Provider.html">
+<script type="text/ng-template" id="flagHelpForeign%20Providers.html">
   <div ng-click="close($event)">
-    <b>Foreign Provider</b><br>
+    <b>Foreign Providers</b><br>
     From <span class="label label-info">ads</span> &mdash; Likely indications that the provider came from a foreign country. Signals include ethnicity mentions and phrases like "exotic girls from Russia."
   </div>
 </script>
@@ -415,6 +415,10 @@
         <select class="selectpicker" dossier-query-picker data-live-search="true"
             for="search" title="Select Query or Doc...">
         </select>
+        <button class="btn btn-default" ng-click="search.doNavigateActiveDossier()"
+         uib-tooltip="Show all documents from all queries in folder '{{search.active_dossier}}'." tooltip-placement="top"
+         ng-disabled="!search.active_dossier">
+         Show all</button>
     </div>
     <div class="pull-right" ng-if="search.query._query_string" style="margin-right:50px">
         <pagination class="pagination-sm fa"

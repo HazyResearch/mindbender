@@ -258,6 +258,7 @@ angular.module "mindbender.search", [
                 $element.on 'change', ->
                     $scope.search.params.s = picker.val()
                     $scope.search.doSearch()
+                console.log $scope.search.active_dossier_queries
 
         $scope.$watch 'search.active_dossier', handler
         $scope.$watch 'search.active_dossier_force_updates', handler
@@ -387,7 +388,7 @@ angular.module "mindbender.search", [
     elasticsearch
 
 
-.service "DeepDiveSearch", (elasticsearch, $http, $q) ->
+.service "DeepDiveSearch", (elasticsearch, $http, $q, $timeout) ->
     MULTIKEY_SEPARATOR = "@"
     class DeepDiveSearch
         constructor: (@elasticsearchIndexName = "_all") ->
@@ -423,6 +424,7 @@ angular.module "mindbender.search", [
             @active_dossier = null
             @active_dossier_force_updates = 0
             @query_to_dossiers = null
+            @read_only_query = false
 
             @initialized = $q.all [
                 # load the search schema
@@ -463,7 +465,8 @@ angular.module "mindbender.search", [
             else
                 @collapsed_facets[field] = true
 
-        doSearch: (isContinuing = no) => @initialized.then =>
+        doSearch: (isContinuing = no, isReadOnly = no) => @initialized.then =>
+            @read_only_query = isReadOnly
             @params.p = 1 unless isContinuing
             fieldsSearchable = @getFieldsFor "searchable", @params.t
             @error = null
@@ -478,7 +481,7 @@ angular.module "mindbender.search", [
                 qs = @params.s
 
             qs = qs || ''
-            if window.visualSearch
+            if window.visualSearch && !isReadOnly
                 window.visualSearch.searchBox.value(qs)
             q =
                 if qs?.length > 0
@@ -640,6 +643,9 @@ angular.module "mindbender.search", [
             , reject
 
         doNavigate: (field, value, newSearch = false) =>
+            # if current query is read only, then always do a new search
+            if @read_only_query
+                newSearch = true
             qsExtra =
                 if field and value
                     # use field-specific search for navigable fields
@@ -665,7 +671,28 @@ angular.module "mindbender.search", [
                     "#{@params[qs]} #{qsExtra}"
                 else
                     @params[qs]
-            @doSearch no
+            @doSearch no, no
+
+        doNavigateActiveDossier: () =>
+            #@read_only_query = true
+            #console.log '@active_dossier_queries'
+            #console.log @active_dossier_queries
+            union = ''
+            for q of @active_dossier_queries
+                if union.length > 0
+                    union = union + ' OR ' 
+                union = union + q #'(' + q + ')'
+            qs = if (@getSourceFor @params.t)? then "q" else "s"
+            @params[qs] = union
+            @doSearch no, true
+
+        doClearReadOnly: () =>
+            @read_only_query = false
+            #console.log window.visualSearch.searchBox 
+            $timeout () ->
+                #$(window.visualSearch.searchBox.el).find('input').focus()
+                #window.visualSearch.searchBox.focusSearch()
+                $(window.visualSearch.searchBox.el).find('input').focus()
 
         splitQueryString: (query_string) =>
             # TODO be sensitive to "phrase with spaces"
