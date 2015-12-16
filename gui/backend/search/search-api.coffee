@@ -82,6 +82,10 @@ exports.configureApp = (app, args) ->
       {
         url: '/api/elasticsearch/'
         method: 'HEAD'
+      },
+      {
+        url: '/api/elasticsearch/_all/_suggest?type=everything'
+        method: 'POST'
       }
     ]
 
