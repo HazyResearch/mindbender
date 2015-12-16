@@ -108,6 +108,19 @@
   -ms-filter: blur(0px);
 }
 
+.img-nav {
+  position: relative;
+}
+
+.img-nav:hover input {
+  display:block;
+}
+
+.img-nav input {
+  position:absolute;
+  display:none;
+}
+
 .highlight {
   background-color:#FFEE99;
   padding-left:2px;
