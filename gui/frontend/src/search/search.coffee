@@ -46,7 +46,7 @@ angular.module "mindbender.search", [
         redirectTo: "/search/"
 
 ## for searching extraction/source data
-.controller "SearchResultCtrl", ($scope, $routeParams, $location, DeepDiveSearch, $modal, tagsService) ->
+.controller "SearchResultCtrl", ($scope, $routeParams, $location, DeepDiveSearch, $modal, tagsService, $http) ->
     $scope.search = DeepDiveSearch.init $routeParams.index
     $scope.tags = tagsService
     $scope.openModal = (options) ->
@@ -57,6 +57,15 @@ angular.module "mindbender.search", [
     # make sure we show search results at first visit (when no parameters are there yet)
     if (_.size $location.search()) == 0
         do $scope.search.doSearch
+
+    $scope.organization = ''
+    $http({
+        method: 'GET'
+        url: "/api/organization"
+    }).success (data) ->
+            $scope.organization = data
+      
+
 
 .directive "deepdiveSearchBar", ->
     scope:
@@ -407,6 +416,7 @@ angular.module "mindbender.search", [
                 'ages':true
                 'username':true
                 'annotated_flags':true
+                'images': true
             }
 
             @all_dossiers = null
@@ -525,8 +535,10 @@ angular.module "mindbender.search", [
                                         switch navigable
                                             when "flags" || "annotated_flags"
                                                 100
+                                            when "images"
+                                                10
                                             else
-                                                100
+                                                50
                     aggs[navigable + '__count'] =
                         value_count:
                             field: navigable
@@ -557,7 +569,7 @@ angular.module "mindbender.search", [
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
                 facets = []
-                best_facets = ['domain_type', 'flags', 'annotated_flags', 'yelp', 'domain', 'locations', 'phones', 'post_date']
+                best_facets = ['domain_type', 'flags', 'annotated_flags', 'yelp', 'domain', 'locations', 'phones', 'post_date', 'images']
                 range_facets = ['ages', 'post_date', 'phones', 'ages']
                 date_facets = ['post_date']
                 for f in best_facets
@@ -1234,5 +1246,4 @@ angular.module "mindbender.search", [
 
         $scope.$on '$destroy', () =>
             $document.off('click', handler)
-
 

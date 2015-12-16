@@ -8,18 +8,19 @@ _ = require "underscore"
 express = require "express"
 Sequelize = require "sequelize"
 
-sequelize = new Sequelize('evidently', process.env.EVIDENTLY_PG_USER || '', '', {
+sequelize = new Sequelize process.env.EVIDENTLY_DB_NAME || 'evidently', process.env.EVIDENTLY_PG_USER || '', '', {
     dialect: 'postgres'
     host: process.env.EVIDENTLY_PG_HOST || 'localhost'
     port: process.env.EVIDENTLY_PG_PORT || 5432
     # storage: process.env.ELASTICSEARCH_HOME + '/dossier.db'  # sqlite fails on concurrent writes
-})
+}
 
 Elasticsearch = require('elasticsearch')
 elasticsearch = new Elasticsearch.Client {
   host: process.env.ELASTICSEARCH_BASEURL
   log: 'error'
 }
+
 
 # Install Search API handlers to the given ExpressJS app
 exports.configureApp = (app, args) ->
@@ -148,8 +149,21 @@ exports.configureApp = (app, args) ->
             [/// ^/api/elasticsearch ///, "/"]
         ]
 
+        get_http_user = (req) ->
+            auth_header = req.headers.authorization
+            b64 = auth_header.substring('Basic '.length)
+            new Buffer(b64, 'base64').toString("ascii").split(':')[0]; 
+
+        app.get '/api/organization', (req, res, next) ->
+            http_user = get_http_user req
+            res.send http_user
+
         Dossier = sequelize.define('dossier', {
             dossier_name:
+                type: Sequelize.TEXT
+                allowNull: false
+
+            organization:
                 type: Sequelize.TEXT
                 allowNull: false
 
@@ -176,38 +190,53 @@ exports.configureApp = (app, args) ->
         }, {
             indexes: [
                 {
-                    fields: ['dossier_name']
+                    fields: ['organization', 'dossier_name']
                 },
                 {
-                    fields: ['query_string']
+                    fields: ['organization', 'query_string']
                 },
                 {
                     unique: true
-                    fields: ['dossier_name', 'query_string']
+                    fields: ['organization', 'dossier_name', 'query_string']
                 }
             ]
         })
         Dossier.sync()
 
         app.get '/api/dossier/', (req, res, next) ->
-            if not req.user or not req.user.id
+            http_user = get_http_user req
+            if not http_user
+               res
+                   .status 400
+                   .send 'HTTP auth required'
+            else if not req.user or not req.user.id
                 res
                     .status 400
                     .send 'You must log in to use the dossier service.'
             else
-                Dossier.aggregate 'dossier_name', 'DISTINCT', {plain: false}
+                Dossier.aggregate 'dossier_name', 'DISTINCT', {
+                        where:
+                            organization: http_user
+                        plain: false
+                    }
                     .then (dnames) ->
                         names = _.pluck dnames, 'DISTINCT'
                         res.send JSON.stringify(names)
 
         app.get '/api/dossier/by_dossier/', (req, res, next) ->
-            if not req.user or not req.user.id
+            http_user = get_http_user req
+            if not http_user
+               res
+                   .status 400
+                   .send 'HTTP auth required'
+            else if not req.user or not req.user.id
                 res
                     .status 400
                     .send 'You must log in to use the dossier service.'
             else
                 Dossier.findAll
                     where:
+                        organization: http_user
                         dossier_name: req.query.dossier_name
                     order: 'query_string'
                 .then (matches) ->
@@ -220,7 +249,12 @@ exports.configureApp = (app, args) ->
                     res.send JSON.stringify(results)
 
         app.all '/api/dossier/by_query/', (req, res, next) ->
-            if not req.user or not req.user.id
+            http_user = get_http_user req
+            if not http_user
+               res
+                   .status 400
+                   .send 'HTTP auth required'
+            else if not req.user or not req.user.id
                 res
                     .status 400
                     .send 'You must log in to use the dossier service.'
@@ -234,6 +268,7 @@ exports.configureApp = (app, args) ->
                     _.each selected, (nm) ->
                         Dossier.findOrCreate
                             where:
+                                organization: http_user
                                 dossier_name: nm
                                 query_string: query
                             defaults:
@@ -245,6 +280,7 @@ exports.configureApp = (app, args) ->
                     if unselected and unselected.length
                         Dossier.destroy
                             where:
+                                organization: http_user
                                 dossier_name: unselected
                                 query_string: query
 
@@ -253,6 +289,7 @@ exports.configureApp = (app, args) ->
                     queries = JSON.parse(req.query.queries || '[]') || []
                     Dossier.findAll
                         where:
+                            organization: http_user
                             query_string: queries
                         order: 'dossier_name'
                     .then (matches) ->
@@ -263,7 +300,11 @@ exports.configureApp = (app, args) ->
                             else
                                 query_to_dossiers[m.query_string] = [m.dossier_name]
 
-                        Dossier.aggregate 'dossier_name', 'DISTINCT', {plain: false}
+                        Dossier.aggregate 'dossier_name', 'DISTINCT', {
+                                where:
+                                    organization: http_user
+                                plain: false
+                            }
                             .then (dnames) ->
                                 all_dossiers = _.pluck dnames, 'DISTINCT'
                                 result =
