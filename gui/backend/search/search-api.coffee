@@ -99,6 +99,10 @@ exports.configureApp = (app, args) ->
                     .status 500
                     .send "There's an error. That's all we know."
 
+            # limit indexes if EVIDENTLY_INDEXES is specified 
+            if process.env.EVIDENTLY_INDEXES
+                req.url = req.url.replace '_all', process.env.EVIDENTLY_INDEXES
+
             # rewrite pathname if any rules were specified
             if rewrites?
                 newUrl = url.parse req.url
