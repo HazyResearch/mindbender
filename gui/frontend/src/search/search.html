@@ -19,9 +19,12 @@
         <div>This indicates:</div>
             <input type="text" data-role="tagsinput" add="add" remove="remove"
                 tags="annotation.tags" tagsinput-custom-events  />
-        <!--
-        <button type="button" class='btn btn-default' ng-click="cancel()"
-            style="width:100%;margin-top:10px">Remove highlighting</button>-->
+        <div ng-if="annotation.tags.length">
+          <div>Comment (optional):</div>
+          <textarea type="text" ng-model="annotation.comment" ng-trim="true" 
+            style="white-space:pre-wrap;resize:none" class="form-control" 
+            ng-blur="onCommentBlur()" ng-change="onCommentChange()"></textarea>
+        </div>
         <div ng-if="annotation.user_name && annotation.user_name !== ''" style="color:#999999">
           reported by {{annotation.user_name}}
         </div>
