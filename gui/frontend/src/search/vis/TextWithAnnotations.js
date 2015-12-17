@@ -100,14 +100,21 @@ var TextWithAnnotations = (function() {
     // final segment
     write_segment(start, html.length, active_spans)
 
-    //console.log(html_hl)
-
     var content = html_hl
 
     var el = $('<div></div>')
         .append($('<span></span>'))
             .attr({'style':'white-space:pre-wrap'})
             .append(jQuery.parseHTML(content))
+
+    /* Sometimes, the raw content contains substrings that are interpreted by
+       the angularjs compiler. For example, the text might contain '{{...}}'.
+       This will throw an error in the browser. One can turn off angularjs
+       compilation by adding 
+            .attr({'ng-non-bindable':true})
+       to above expression. However, this will also disable compilation of
+       the highlighting tags. */
+
 
     /*
     var extractions = obj._source.extractions
