@@ -101,7 +101,7 @@ exports.configureApp = (app, args) ->
 
             # limit indexes if EVIDENTLY_INDEXES is specified 
             if process.env.EVIDENTLY_INDEXES
-                req.url = req.url.replace '_all', process.env.EVIDENTLY_INDEXES
+                req.url = req.url.replace '/api/elasticsearch/_all', '/api/elasticsearch/' + process.env.EVIDENTLY_INDEXES
 
             # rewrite pathname if any rules were specified
             if rewrites?
