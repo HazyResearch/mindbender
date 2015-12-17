@@ -1,5 +1,5 @@
 <form class="navbar-form navbar-right" role="search" style="width:75%;">
-    <div ng-class="{ 'hidden':search.read_only_query}" class="form-group input-group" style="width:100%;">
+    <div ng-class="{ 'hidden': search.params.ro === 'true' }" class="form-group input-group" style="width:100%;">
         <!-- type dropdown -->
         <div class="input-group-btn dropdown hide" style="width:1%;" ng-if="search.types">
             <button type="button" class="btn dropdown-toggle"
@@ -53,7 +53,7 @@
                 <i class="fa fa-search"></i><span class="sr-only"> Search</span></button>
         </span>
     </div>
-    <div ng-class="{ 'hidden':!search.read_only_query }" class="VS-search" style="padding-top:10px">
+    <div ng-class="{ 'hidden': search.params.ro === 'false' }" class="VS-search" style="padding-top:10px">
         <div class="VS-icon VS-icon-cancel" style="display:inline-block;position:inherit" ng-click="search.doClearReadOnly()"></div>
         <div style="display:inline-block">Showing all documents in the '{{ search.active_dossier }}' folder.</div>
     </div>

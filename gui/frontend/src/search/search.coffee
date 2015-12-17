@@ -399,6 +399,7 @@ angular.module "mindbender.search", [
                 t: 'everything' # type to search
                 n: 10   # number of items in a page
                 p: 1    # page number (starts from 1)
+                ro: 'false'  # is it read-only
             @params = _.extend {}, @paramsDefault
             @types = null
             @indexes = null
@@ -465,8 +466,7 @@ angular.module "mindbender.search", [
             else
                 @collapsed_facets[field] = true
 
-        doSearch: (isContinuing = no, isReadOnly = no) => @initialized.then =>
-            @read_only_query = isReadOnly
+        doSearch: (isContinuing = no) => @initialized.then =>
             @params.p = 1 unless isContinuing
             fieldsSearchable = @getFieldsFor "searchable", @params.t
             @error = null
@@ -481,7 +481,7 @@ angular.module "mindbender.search", [
                 qs = @params.s
 
             qs = qs || ''
-            if window.visualSearch && !isReadOnly
+            if window.visualSearch && @params.ro == 'false'
                 window.visualSearch.searchBox.value(qs)
             q =
                 if qs?.length > 0
@@ -644,7 +644,8 @@ angular.module "mindbender.search", [
 
         doNavigate: (field, value, newSearch = false) =>
             # if current query is read only, then always do a new search
-            if @read_only_query
+            if @params.ro == 'true'
+                @params.ro = 'false'
                 newSearch = true
             qsExtra =
                 if field and value
@@ -674,24 +675,22 @@ angular.module "mindbender.search", [
             @doSearch no, no
 
         doNavigateActiveDossier: () =>
-            #@read_only_query = true
-            #console.log '@active_dossier_queries'
-            #console.log @active_dossier_queries
             union = ''
             for q of @active_dossier_queries
                 if union.length > 0
                     union = union + ' OR ' 
-                union = union + q #'(' + q + ')'
+                union = union + '(' + q + ')'
+
             qs = if (@getSourceFor @params.t)? then "q" else "s"
             @params[qs] = union
+            @params['ro'] = 'true'
             @doSearch no, true
 
         doClearReadOnly: () =>
-            @read_only_query = false
-            #console.log window.visualSearch.searchBox 
+            @params.ro = 'false'
+            qs = if (@getSourceFor @params.t)? then "q" else "s"
+            @params[qs] = ''
             $timeout () ->
-                #$(window.visualSearch.searchBox.el).find('input').focus()
-                #window.visualSearch.searchBox.focusSearch()
                 $(window.visualSearch.searchBox.el).find('input').focus()
 
         splitQueryString: (query_string) =>
@@ -991,7 +990,7 @@ angular.module "mindbender.search", [
                 doc_id = $scope.searchResult._source.doc_id
                 mention_id = Object.keys($scope.annotations).length
                 annotation = $scope.makeAnnotation(ranges)
-                obj = { doc_id:doc_id, mention_id:mention_id, value:annotation, tags:[] }
+                obj = { doc_id:doc_id, mention_id:mention_id, value:annotation, tags:[], comment:'' }
                 $scope.showAnnotation(obj, true)
                 document.getSelection().removeAllRanges()
 
@@ -1059,14 +1058,6 @@ angular.module "mindbender.search", [
         $scope.togglePopup = () =>
             $scope.isOpen = !$scope.isOpen
 
-        #$scope.cancel = () =>
-        #    $scope.isOpen = false
-        #    tags = $scope.annotation.tags
-        #    $scope.$parent.removeAnnotation $scope.docId, $scope.mentionId, () -> 
-        #        for t in $scope.annotation.tags
-        #            tagsService.maybeRemove t
-        #    $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
-
         $scope.add = (st) =>
             $scope.annotation.tags.push(st)
             $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
@@ -1083,6 +1074,17 @@ angular.module "mindbender.search", [
 
         $scope.onSelect = ($item, $model, $label) ->
             $scope.commit($item)
+
+        $scope.onCommentBlur = () ->
+            if $scope.commentChanged
+                $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
+                    $scope.annotation)
+
+        $scope.commentChanged = false
+
+        $scope.onCommentChange = () ->
+            $scope.commentChanged = true
+
 
     link: ($scope, $element, attrs) ->
         $scope.isOpen = attrs['annotationOpen'] == 'true'
