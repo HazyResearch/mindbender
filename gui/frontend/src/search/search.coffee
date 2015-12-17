@@ -258,6 +258,7 @@ angular.module "mindbender.search", [
                 $element.on 'change', ->
                     $scope.search.params.s = picker.val()
                     $scope.search.doSearch()
+                console.log $scope.search.active_dossier_queries
 
         $scope.$watch 'search.active_dossier', handler
         $scope.$watch 'search.active_dossier_force_updates', handler
@@ -387,7 +388,7 @@ angular.module "mindbender.search", [
     elasticsearch
 
 
-.service "DeepDiveSearch", (elasticsearch, $http, $q) ->
+.service "DeepDiveSearch", (elasticsearch, $http, $q, $timeout) ->
     MULTIKEY_SEPARATOR = "@"
     class DeepDiveSearch
         constructor: (@elasticsearchIndexName = "_all") ->
@@ -398,6 +399,7 @@ angular.module "mindbender.search", [
                 t: 'everything' # type to search
                 n: 10   # number of items in a page
                 p: 1    # page number (starts from 1)
+                ro: 'false'  # is it read-only
             @params = _.extend {}, @paramsDefault
             @types = null
             @indexes = null
@@ -423,6 +425,7 @@ angular.module "mindbender.search", [
             @active_dossier = null
             @active_dossier_force_updates = 0
             @query_to_dossiers = null
+            @read_only_query = false
 
             @initialized = $q.all [
                 # load the search schema
@@ -478,7 +481,7 @@ angular.module "mindbender.search", [
                 qs = @params.s
 
             qs = qs || ''
-            if window.visualSearch
+            if window.visualSearch && @params.ro == 'false'
                 window.visualSearch.searchBox.value(qs)
             q =
                 if qs?.length > 0
@@ -640,6 +643,10 @@ angular.module "mindbender.search", [
             , reject
 
         doNavigate: (field, value, newSearch = false) =>
+            # if current query is read only, then always do a new search
+            if @params.ro == 'true'
+                @params.ro = 'false'
+                newSearch = true
             qsExtra =
                 if field and value
                     # use field-specific search for navigable fields
@@ -665,7 +672,26 @@ angular.module "mindbender.search", [
                     "#{@params[qs]} #{qsExtra}"
                 else
                     @params[qs]
-            @doSearch no
+            @doSearch no, no
+
+        doNavigateActiveDossier: () =>
+            union = ''
+            for q of @active_dossier_queries
+                if union.length > 0
+                    union = union + ' OR ' 
+                union = union + '(' + q + ')'
+
+            qs = if (@getSourceFor @params.t)? then "q" else "s"
+            @params[qs] = union
+            @params['ro'] = 'true'
+            @doSearch no, true
+
+        doClearReadOnly: () =>
+            @params.ro = 'false'
+            qs = if (@getSourceFor @params.t)? then "q" else "s"
+            @params[qs] = ''
+            $timeout () ->
+                $(window.visualSearch.searchBox.el).find('input').focus()
 
         splitQueryString: (query_string) =>
             # TODO be sensitive to "phrase with spaces"
@@ -964,7 +990,7 @@ angular.module "mindbender.search", [
                 doc_id = $scope.searchResult._source.doc_id
                 mention_id = Object.keys($scope.annotations).length
                 annotation = $scope.makeAnnotation(ranges)
-                obj = { doc_id:doc_id, mention_id:mention_id, value:annotation, tags:[] }
+                obj = { doc_id:doc_id, mention_id:mention_id, value:annotation, tags:[], comment:'' }
                 $scope.showAnnotation(obj, true)
                 document.getSelection().removeAllRanges()
 
@@ -1032,14 +1058,6 @@ angular.module "mindbender.search", [
         $scope.togglePopup = () =>
             $scope.isOpen = !$scope.isOpen
 
-        #$scope.cancel = () =>
-        #    $scope.isOpen = false
-        #    tags = $scope.annotation.tags
-        #    $scope.$parent.removeAnnotation $scope.docId, $scope.mentionId, () -> 
-        #        for t in $scope.annotation.tags
-        #            tagsService.maybeRemove t
-        #    $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
-
         $scope.add = (st) =>
             $scope.annotation.tags.push(st)
             $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
@@ -1056,6 +1074,17 @@ angular.module "mindbender.search", [
 
         $scope.onSelect = ($item, $model, $label) ->
             $scope.commit($item)
+
+        $scope.onCommentBlur = () ->
+            if $scope.commentChanged
+                $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
+                    $scope.annotation)
+
+        $scope.commentChanged = false
+
+        $scope.onCommentChange = () ->
+            $scope.commentChanged = true
+
 
     link: ($scope, $element, attrs) ->
         $scope.isOpen = attrs['annotationOpen'] == 'true'

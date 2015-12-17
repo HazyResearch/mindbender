@@ -82,6 +82,10 @@ exports.configureApp = (app, args) ->
       {
         url: '/api/elasticsearch/'
         method: 'HEAD'
+      },
+      {
+        url: '/api/elasticsearch/_all/_suggest?type=everything'
+        method: 'POST'
       }
     ]
 
@@ -94,6 +98,10 @@ exports.configureApp = (app, args) ->
                 return res
                     .status 500
                     .send "There's an error. That's all we know."
+
+            # limit indexes if EVIDENTLY_INDEXES is specified 
+            if process.env.EVIDENTLY_INDEXES
+                req.url = req.url.replace '/api/elasticsearch/_all', '/api/elasticsearch/' + process.env.EVIDENTLY_INDEXES
 
             # rewrite pathname if any rules were specified
             if rewrites?
