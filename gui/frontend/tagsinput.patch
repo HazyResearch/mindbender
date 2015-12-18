@@ -1,0 +1,52 @@
+--- bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.js	2015-11-30 02:15:45.000000000 +0000
++++ bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.patched.js	2015-12-18 01:16:53.977491000 +0000
+@@ -5,7 +5,6 @@
+     tagClass: function(item) {
+       return 'label label-info';
+     },
+-    focusClass: 'focus',
+     itemValue: function(item) {
+       return item ? item.toString() : item;
+     },
+@@ -157,14 +156,12 @@
+         self.pushVal();
+ 
+       // Add class when reached maxTags
+-      if (self.options.maxTags === self.itemsArray.length || self.items().toString().length === self.options.maxInputLength) {
++      if (self.options.maxTags === self.itemsArray.length || self.items().toString().length === self.options.maxInputLength)
+         self.$container.addClass('bootstrap-tagsinput-max');
+-        self.$element.trigger($.Event('maxItemsReached', { item: item, options: options }));
+-    }
+ 
+       // If using typeahead, once the tag has been added, clear the typeahead value so it does not stick around in the input.
+       if ($('.typeahead, .twitter-typeahead', self.$container).length) {
+-        self.$input.typeahead('val', '');
++        //self.$input.typeahead('val', '');
+       }
+ 
+       if (this.isInit) {
+@@ -329,7 +326,7 @@
+             return this.map[text];
+           },
+           matcher: function (text) {
+-            return (text.toLowerCase().indexOf(this.query.trim().toLowerCase()) !== -1);
++            return (text.toLowerCase().indexOf(this.query.trim().toLowerCase()) == 0);
+           },
+           sorter: function (texts) {
+             return texts.sort();
+@@ -382,15 +379,6 @@
+           }, self));
+         }
+ 
+-      // Toggle the 'focus' css class on the container when it has focus
+-      self.$container.on({
+-        focusin: function() {
+-          self.$container.addClass(self.options.focusClass);
+-        },
+-        focusout: function() {
+-          self.$container.removeClass(self.options.focusClass);
+-        },
+-      });
+ 
+       self.$container.on('keydown', 'input', $.proxy(function(event) {
+         var $input = $(event.target),

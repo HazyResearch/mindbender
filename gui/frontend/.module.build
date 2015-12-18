@@ -34,6 +34,10 @@ if grep -q '//# sourceMappingURL=' $s; then
     } | ed $s >/dev/null
 fi
 
+# patch tagsinput
+patch bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.js tagsinput.patch -o \
+      bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.patched.js
+
 # Compile all CoffeeScript files with source map, LESS to CSS, symlink HTMLs
 cd src
 compile from=.coffee to=.js   with=compile-coffee src=../build/src/%s out=../build/%s **/*.coffee
