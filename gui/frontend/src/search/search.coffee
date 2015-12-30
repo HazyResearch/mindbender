@@ -27,7 +27,7 @@ angular.module "mindbender.search", [
 
 .config ($routeProvider) ->
     $routeProvider.when "/search/:index*?",
-        brand: "Evidently LE", brandIcon: "search"
+        brand: "Evidently", brandIcon: "search"
         title: 'Search {{
                 q ? "for [" + q + "] " : (s ? "for [" + s + "] " : "everything ")}}{{
                 t ? "in " + t + " " : ""}}{{
@@ -38,7 +38,7 @@ angular.module "mindbender.search", [
         controller: "SearchResultCtrl"
         reloadOnSearch: no
     $routeProvider.when "/view/:index/:type",
-        brand: "Evidently LE", brandIcon: "search"
+        brand: "Evidently", brandIcon: "search"
         title: """{{type}}( {{id}} ) in {{index}} - DeepDive"""
         templateUrl: "search/view.html"
         controller: "SearchViewCtrl"
