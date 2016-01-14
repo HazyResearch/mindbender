@@ -1,0 +1,4 @@
+mindbender-auth                         bin/mindbender.d/
+start-mongodb                           bin/mindbender.d/
+stop-mongodb                            bin/mindbender.d/
+

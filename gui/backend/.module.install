@@ -3,6 +3,7 @@ mindbender-utils.coffee                 gui/
 mindtagger/                             gui/
 dashboard/                              gui/
 search/                                 gui/
+auth/                                   gui/
 
 extensions.js                           gui/files/mindbender/
 extensions.coffee                       gui/files/mindbender/
