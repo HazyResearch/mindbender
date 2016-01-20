@@ -238,7 +238,8 @@
                 </div>
                 <table ng-if="field !== 'images'" class="table table-hover table-condensed"
                     ng-init="fieldType = search.getFieldType(field)">
-                    <tr ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate(field, bucket.key)">
+                    <!--<tr ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate($event, field, bucket.key)">-->
+                    <tr ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate($event, field, bucket.key)">
                         <td>
                             <a ng-if="field == 'domain_type'" class="label"
                                 style="cursor: pointer"
@@ -262,7 +263,7 @@
                     </tr>
                 </table>
                 <div ng-if="field === 'images'" style="display:block">
-                  <div style="cursor:pointer;display:inline-block;position:relative;" ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate(field, bucket.key)">
+                  <div style="cursor:pointer;display:inline-block;position:relative;" ng-repeat="bucket in agg.buckets track by $index" ng-click="search.doNavigate($event, field, bucket.key)">
                     <img class="lazy image-blur" ng-src="https://s3.amazonaws.com/roxyimages/{{bucket.key}}.jpg" style="max-height:50px;border:0px" />
                     <div style="position:absolute;bottom:2px;right:2px">
                       <span class="badge badge-default">~{{bucket.doc_count | number}}</span>
@@ -592,7 +593,7 @@ $(function(){
         $(this).find('i').toggleClass('fa-plus-square-o').toggleClass('fa-minus-square-o')
     });
 
-    $('body').on('click', '.minmax-go', function(){
+    $('body').on('click', '.minmax-go', function(evt){
         var $p = $(this).parent().parent();
         var min = $.trim($p.find('.min-box').val()).replace("'", '"'),
             max = $.trim($p.find('.max-box').val()).replace("'", '"'),
@@ -608,7 +609,7 @@ $(function(){
         if (val.indexOf('"') >= 0) {
             val = "'" + val + "'";
         }
-        window.visualSearch.SEARCH.doNavigate(field, val);
+        window.visualSearch.SEARCH.doNavigate(evt, field, val);
     });
 
     function setupSearchBar() {

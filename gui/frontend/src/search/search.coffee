@@ -388,7 +388,7 @@ angular.module "mindbender.search", [
     elasticsearch
 
 
-.service "DeepDiveSearch", (elasticsearch, $http, $q, $timeout) ->
+.service "DeepDiveSearch", (elasticsearch, $http, $q, $timeout, $location) ->
     MULTIKEY_SEPARATOR = "@"
     class DeepDiveSearch
         constructor: (@elasticsearchIndexName = "_all") ->
@@ -642,10 +642,11 @@ angular.module "mindbender.search", [
                 , reject
             , reject
 
-        doNavigate: (field, value, newSearch = false) =>
+
+        doNavigate: (event, field, value, newSearch = false) =>
             # if current query is read only, then always do a new search
             if @params.ro == 'true'
-                @params.ro = 'false'
+                #@params.ro = 'false'
                 newSearch = true
             qsExtra =
                 if field and value
@@ -665,14 +666,35 @@ angular.module "mindbender.search", [
             qsExtra = qsExtra || ''
             # TODO check if qsExtra is already there in @params.q
             qs = if (@getSourceFor @params.t)? then "q" else "s"
-            @params[qs] =
+            params_qs =
                 if newSearch or not @params[qs]
                     qsExtra
                 else if qsExtra and @params[qs].indexOf(qsExtra) == -1
                     "#{@params[qs]} #{qsExtra}"
                 else
                     @params[qs]
-            @doSearch no, no
+
+            # open in new tab?
+            if (event.shiftKey || event.ctrlKey || event.metaKey)
+                # clone params object
+                newParams = {}
+                for k,v of @params
+                    newParams[k] = v
+                # update params 
+                newParams[qs] = params_qs
+                if @params.ro == 'true'
+                    newParams['ro'] = 'false'
+                arr = []
+                for k,v of newParams
+                    if v != null
+                        arr.push k + '=' + encodeURIComponent(v)
+                url = $location.protocol() + '://' + location.host + '/#' + $location.path() + '?' + arr.join('&')
+                window.open(url, '_blank')
+            else
+                if @params.ro == 'true'
+                    @params.ro = 'false'
+                @params[qs] = params_qs
+                @doSearch no, no
 
         doNavigateActiveDossier: () =>
             union = ''
