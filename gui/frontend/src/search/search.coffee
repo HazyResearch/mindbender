@@ -786,7 +786,7 @@ angular.module "mindbender.search", [
         $scope.phoneRenderer = (hotInstance, td, row, col, prop, value, cellProperties) =>
             Handsontable.renderers.TextRenderer.apply(this, arguments)
             td.innerHTML = "<a style='cursor:pointer; margin-right: 4px;'
-                        data-toggile='tooltip' title='New search with this filter'
+                        data-toggle='tooltip' title='New search with this filter'
                         ng-click=\"search.doNavigate('phones', '" +value+"', true)\">" + 
                         value + "</a>"
             $compile(angular.element(td))($scope)
@@ -929,9 +929,18 @@ angular.module "mindbender.search", [
     scope:
         searchResult: "="
     template: """
+        <div ng-click="toggleEditMode()" ng-class="{'sq-btn': true, 'sq-btn-active':editMode}"
+          data-toggle="tooltip" data-placement="bottom" data-original-title="Switch to annotation mode"
+          ><i class="fa fa-pencil"></i></div>
         <div></div>
         """
     controller: ($scope) ->
+        $scope.editMode = false
+
+        $scope.toggleEditMode = () =>
+            $scope.editMode = !$scope.editMode
+
+
         # map from doc_id,mention_id -> feedback
         $scope.feedback = {}
 
@@ -1003,6 +1012,8 @@ angular.module "mindbender.search", [
         $scope.fetchAnnotations()
 
         $scope.onSelection = (ranges, event) =>
+            if !$scope.editMode
+                return
             if ranges.length > 0
                 doc_id = $scope.searchResult._source.doc_id
                 mention_id = Object.keys($scope.annotations).length
@@ -1035,13 +1046,16 @@ angular.module "mindbender.search", [
 
     link: ($scope, $element) ->
         el = TextWithAnnotations.create($scope.searchResult)
-        $element.append(el)
+        second = $element.children().eq(1)
+        second.prepend(el)
 
         $compile(el)($scope)
 
+        txtEl = second[0]
+
         # enable annotations
-        $scope.hl = new annotator.ui.highlighter.Highlighter $element[0], {}
-        $scope.ts = new annotator.ui.textselector.TextSelector $element[0], { 
+        $scope.hl = new annotator.ui.highlighter.Highlighter txtEl, {}
+        $scope.ts = new annotator.ui.textselector.TextSelector txtEl, { 
             onSelection: $scope.onSelection }
 
         # trims whitespace, usually in native code but not ie8
@@ -1065,7 +1079,7 @@ angular.module "mindbender.search", [
                     ranges: serializedRanges
                 }
 
-        $scope.makeAnnotation = annotationFactory($element[0], '.annotator-hl')
+        $scope.makeAnnotation = annotationFactory(txtEl, '.annotator-hl')
 
 
 .directive "annotationPopover", ($http, $compile, $document, $timeout, tagsService) ->

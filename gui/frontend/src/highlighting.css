@@ -165,3 +165,19 @@
   background-color:#FFF6CC;
   color:black !important;
 }
+
+.sq-btn {
+  width:20px;
+  height:20px;
+  text-align:center;
+  cursor:pointer;
+  float:right;
+  clear:right;
+}
+
+.sq-btn-active {
+  background-color:black;
+  border-radius:2px;
+  color:white;
+}
+
