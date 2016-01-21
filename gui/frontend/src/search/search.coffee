@@ -646,7 +646,6 @@ angular.module "mindbender.search", [
         doNavigate: (event, field, value, newSearch = false) =>
             # if current query is read only, then always do a new search
             if @params.ro == 'true'
-                #@params.ro = 'false'
                 newSearch = true
             qsExtra =
                 if field and value
@@ -683,16 +682,12 @@ angular.module "mindbender.search", [
                 # update params 
                 newParams[qs] = params_qs
                 if @params.ro == 'true'
-                    newParams['ro'] = 'false'
-                arr = []
-                for k,v of newParams
-                    if v != null
-                        arr.push k + '=' + encodeURIComponent(v)
-                url = $location.protocol() + '://' + location.host + '/#' + $location.path() + '?' + arr.join('&')
+                    delete newParams['ro']
+                url = '/#' + $location.path() + '?' + $.param(newParams)
                 window.open(url, '_blank')
             else
                 if @params.ro == 'true'
-                    @params.ro = 'false'
+                    delete @params['ro']
                 @params[qs] = params_qs
                 @doSearch no, no
 
