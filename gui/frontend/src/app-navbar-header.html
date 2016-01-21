@@ -1,6 +1,6 @@
 <span style="display:inline-block" class="navbar-brand dropdown" keyboard-nav>
     <span style="cursor:pointer;"
-            ng-click="search.doNavigate('', '', true)">
+            ng-click="search.doNavigate($event, '', '', true)">
         <i class="fa" ng-class="'fa-' + brandIcon"></i> {{brand}} / 
         <div style="display:inline-block" uib-tooltip="This is your organization. Your bookmarks are only visible to users within this organization." tooltip-placement="bottom" tooltip-append-to-body=true>{{organization}}</div>
         <span class="caret hide"></span>
