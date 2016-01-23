@@ -420,6 +420,27 @@ angular.module "mindbender.search", [
                 'annotated_flags':true
                 'images': true
             }
+            @flag_infos = {
+                'Foreign Providers': { 'ads':true }
+                'Traveling': { 'ads':true }
+                'Organized': { 'ads':true, 'reviews':true }
+                'Risky Services': { 'ads':true }
+                'Derogatory Descriptions': { 'ads':true }
+                'Bad Experience': { 'reviews':true }
+                'Porn / Cam Services': { 'ads':true }
+                'LE Cautious': { 'reviews':true }
+                'New to Biz': { 'reviews':true }
+                'Fake Photo': { 'reviews':true }
+                'Poor English': { 'reviews':true }
+                'Underage': { 'reviews':true }
+                'Educated': { 'reviews':true }
+                'Drug Use': { 'reviews':true }
+                'Coercion': { 'reviews':true }
+                'Physical Abuse': { 'reviews':true }
+                'Theft / Robbery': { 'reviews':true }
+                'Incompletion': { 'reviews':true }
+                'Armed & Dangerous': { 'reviews':true }
+            }
 
             @all_dossiers = null
             @active_dossier = null
@@ -643,33 +664,38 @@ angular.module "mindbender.search", [
             , reject
 
 
-        doNavigate: (event, field, value, newSearch = false) =>
+        doNavigateMultiple: (event, field_value_pairs, newSearch = false) =>
             # if current query is read only, then always do a new search
             if @params.ro == 'true'
                 newSearch = true
-            qsExtra =
-                if field and value
-                    # use field-specific search for navigable fields
-                    # VisualSearch may have added the quotes already
-                    if value.indexOf("'") == 0 or value.indexOf('"') == 0
-                        "#{field}: #{value}"
+            for field, value of field_value_pairs
+                qsExtra =
+                    if field and value
+                        # use field-specific search for navigable fields
+                        # VisualSearch may have added the quotes already
+                        if value.indexOf("'") == 0 or value.indexOf('"') == 0
+                            "#{field}: #{value}"
+                        else
+                            "#{field}: \"#{value}\""
+                    else if value?
+                        "#{value}"
+                    else if field?
+                        # filtering down null has a special query_string syntax
+                        "_missing_:#{field}"
                     else
-                        "#{field}: \"#{value}\""
-                else if value?
-                    "#{value}"
-                else if field?
-                    # filtering down null has a special query_string syntax
-                    "_missing_:#{field}"
+                        ""
+                if qsExtras?
+                   qsExtras = qsExtras + ' '
                 else
-                    ""
-            qsExtra = qsExtra || ''
-            # TODO check if qsExtra is already there in @params.q
+                   qsExtras = ''
+                qsExtras = qsExtras + qsExtra
+            #qsExtra = qsExtra || ''
             qs = if (@getSourceFor @params.t)? then "q" else "s"
             params_qs =
-                if newSearch or not @params[qs]
-                    qsExtra
-                else if qsExtra and @params[qs].indexOf(qsExtra) == -1
-                    "#{@params[qs]} #{qsExtra}"
+                if newSearch or not @params[qs]    # replace query string
+                    qsExtras
+                else if qsExtras and @params[qs].indexOf(qsExtras) == -1
+                    "#{@params[qs]} #{qsExtras}"   # concat query strings
                 else
                     @params[qs]
 
@@ -679,17 +705,23 @@ angular.module "mindbender.search", [
                 newParams = {}
                 for k,v of @params
                     newParams[k] = v
-                # update params 
+                # update params
                 newParams[qs] = params_qs
                 if @params.ro == 'true'
                     delete newParams['ro']
                 url = '/#' + $location.path() + '?' + $.param(newParams)
                 window.open(url, '_blank')
+                return true
             else
                 if @params.ro == 'true'
                     delete @params['ro']
                 @params[qs] = params_qs
                 @doSearch no, no
+
+        doNavigate: (event, field, value, newSearch = false) =>
+            params = {}
+            params[field] = value
+            @doNavigateMultiple event, params, newSearch
 
         doNavigateActiveDossier: () =>
             union = ''
@@ -787,7 +819,7 @@ angular.module "mindbender.search", [
             Handsontable.renderers.TextRenderer.apply(this, arguments)
             td.innerHTML = "<a style='cursor:pointer; margin-right: 4px;'
                         data-toggle='tooltip' title='New search with this filter'
-                        ng-click=\"search.doNavigate('phones', '" +value+"', true)\">" + 
+                        ng-click=\"search.doNavigate($event, 'phones', '" +value+"', true)\">" + 
                         value + "</a>"
             $compile(angular.element(td))($scope)
 
