@@ -108,7 +108,7 @@
 <script type="text/ng-template" id="flagHelpJuvenile.html">
   <div ng-click="close($event)">
     <b>Juvenile</b><br>
-    From <span class="label label-info">ads</span> and <span class="label label-success">reviews</span> &mdash; Likely indications that the provider was plausibly juvenile (e.g.,descriptions like "very young" and "barely legal").
+    From <span class="label label-info">ads</span> and <span class="label label-success">reviews</span> &mdash; Likely indications that the provider was plausibly juvenile (e.g., stated age is 20 or younger, or review contains descriptions like "very young" and "barely legal").
   </div>
 </script>
 
@@ -206,7 +206,7 @@
 <script type="text/ng-template" id="flagHelpURL%20Embedding.html">
   <div ng-click="close($event)">
     <b>URL Embedding</b><br>
-    From <span class="label label-info">ads</span> &mdash; Likely indications that website URLs are embedded in the ads.
+    From <span class="label label-info">ads</span> &mdash; Links to external websites are embedded in the ads.
   </div>
 </script>
 
@@ -300,11 +300,12 @@
                                 {{bucket.key}}
                             </a>
                             <span ng-if="field == 'flags'">&nbsp;
-                               <span ng-if="search.flag_infos[bucket.key]['ads']" class="label label-info"
+                               <span ng-if="search.flag_infos[bucket.key]['ads']" class="label label-info label-hover"
                                   ng-click="search.doNavigateMultiple($event, { 'flags' : bucket.key, 'domain_type':'ads' }, true);
-                                            $event.stopPropagation()">ads</span>
-                               <span ng-if="search.flag_infos[bucket.key]['reviews']" class="label label-success"
-                                  ng-click="search.doNavigateMultiple($event, { 'flags' : bucket.key, 'domain_type':'reviews' }, true); $event.stopPropagation()">reviews</span>
+                                            $event.stopPropagation()"
+                                            uib-tooltip="New search on ads only." tooltip-placement="top">ads</span>
+                               <span ng-if="search.flag_infos[bucket.key]['reviews']" class="label label-success label-hover"
+                                  ng-click="search.doNavigateMultiple($event, { 'flags' : bucket.key, 'domain_type':'reviews' }, true); $event.stopPropagation()" uib-tooltip="New search on reviews only." tooltip-placement="top">reviews</span>
                             </span>
                             <a ng-if="bucket.key == ''"><em>(empty)</em></a>
                             <span ng-if="field == 'flags' || field == 'annotated_flags' && tags.flags && tags.flags[bucket.key]" flag-help key="{{bucket.key}}"></span>

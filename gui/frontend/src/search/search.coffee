@@ -414,6 +414,7 @@ angular.module "mindbender.search", [
                 n: 10   # number of items in a page
                 p: 1    # page number (starts from 1)
                 ro: 'false'  # is it read-only
+                #advanced: 'false'
             @params = _.extend {}, @paramsDefault
             @types = null
             @indexes = null
