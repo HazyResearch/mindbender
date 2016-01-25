@@ -181,3 +181,45 @@
   color:white;
 }
 
+.label-default {
+  background-color: #999;
+}
+.label-hover.label-default:hover,
+.label-hover.label-default:focus {
+  background-color: #808080;
+}
+.label-primary {
+  background-color: #428bca;
+}
+.label-hover.label-primary:hover,
+.label-hover.label-primary:focus {
+  background-color: #3071a9;
+}
+.label-success {
+  background-color: #5cb85c;
+}
+.label-hover.label-success:hover,
+.label-hover.label-success:focus {
+  background-color: #449d44;
+}
+.label-info {
+  background-color: #5bc0de;
+}
+.label-hover.label-info:hover,
+.label-hover.label-info:focus {
+  background-color: #31b0d5;
+}
+.label-warning {
+  background-color: #f0ad4e;
+}
+.label-hover.label-warning:hover,
+.label-hover.label-warning:focus {
+  background-color: #ec971f;
+}
+.label-danger {
+  background-color: #d9534f;
+}
+.label-hover.label-danger:hover,
+.label-hover.label-danger:focus {
+  background-color: #c9302c;
+}
