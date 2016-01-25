@@ -302,9 +302,10 @@
                             <span ng-if="field == 'flags'">&nbsp;
                                <span ng-if="search.flag_infos[bucket.key]['ads']" class="label label-info label-hover"
                                   ng-click="search.doNavigateMultiple($event, { 'flags' : bucket.key, 'domain_type':'ads' }, true);
-                                            $event.stopPropagation()">ads</span>
+                                            $event.stopPropagation()"
+                                            uib-tooltip="New search on ads only." tooltip-placement="top">ads</span>
                                <span ng-if="search.flag_infos[bucket.key]['reviews']" class="label label-success label-hover"
-                                  ng-click="search.doNavigateMultiple($event, { 'flags' : bucket.key, 'domain_type':'reviews' }, true); $event.stopPropagation()">reviews</span>
+                                  ng-click="search.doNavigateMultiple($event, { 'flags' : bucket.key, 'domain_type':'reviews' }, true); $event.stopPropagation()" uib-tooltip="New search on reviews only." tooltip-placement="top">reviews</span>
                             </span>
                             <a ng-if="bucket.key == ''"><em>(empty)</em></a>
                             <span ng-if="field == 'flags' || field == 'annotated_flags' && tags.flags && tags.flags[bucket.key]" flag-help key="{{bucket.key}}"></span>
