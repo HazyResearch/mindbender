@@ -288,6 +288,20 @@ angular.module "mindbender.search", [
         """
     link: ($scope, $element) ->
 
+        $scope.getMassagePlaces = () ->
+            urls_a = $scope.extraction['massage_places_urls']
+            sites = $scope.extraction['massage_places_sites']
+            titles = $scope.extraction['massage_places'] 
+            values = []
+            for val, i in titles
+                a = { 
+                    'url':urls_a[i],
+                    'title':titles[i],
+                    'site':sites[i]
+                }
+                values.push a
+            return values
+
         $scope.finishLoadingCustomTemplate = () ->
             # parse json for images; with better json support in the database we may be able
             # to avoid this step
@@ -406,7 +420,7 @@ angular.module "mindbender.search", [
             @elastic = elasticsearch
             @collapsed_facets = { 
                 'domain': true
-                'locations': true
+                'locations_raw': true
                 'phones': true 
                 'post_date': true
                 'screening': true
@@ -419,6 +433,16 @@ angular.module "mindbender.search", [
                 'username':true
                 'annotated_flags':true
                 'images': true
+                'locations': true
+                'cities': true
+                'states': true
+                'countries': true
+                'metropolitan_areas': true
+                'embedded_websites': true
+                'massage_places': true
+                'massage_places_sites': true
+                'homology': true
+                'language': true
             }
             @flag_infos = {
                 'Foreign Providers': { 'ads':true }
@@ -432,7 +456,7 @@ angular.module "mindbender.search", [
                 'New to Biz': { 'reviews':true }
                 'Fake Photo': { 'reviews':true }
                 'Poor English': { 'reviews':true }
-                'Underage': { 'reviews':true }
+                'Juvenile': { 'reviews':true, 'ads':true }
                 'Educated': { 'reviews':true }
                 'Drug Use': { 'reviews':true }
                 'Coercion': { 'reviews':true }
@@ -440,6 +464,12 @@ angular.module "mindbender.search", [
                 'Theft / Robbery': { 'reviews':true }
                 'Incompletion': { 'reviews':true }
                 'Armed & Dangerous': { 'reviews':true }
+                'Massage Parlor': { 'ads': true }
+                'URL Embedding': { 'ads': true }
+                'Hotel': { 'ads': true }
+                'Agency': { 'ads': true }
+                'Accepts Credit Cards': { 'ads': true }
+                'Multiple Girls': { 'ads': true }
             }
 
             @all_dossiers = null
@@ -594,7 +624,7 @@ angular.module "mindbender.search", [
                 @results = data
                 @fetchSourcesAsParents @results.hits.hits
                 facets = []
-                best_facets = ['domain_type', 'flags', 'annotated_flags', 'yelp', 'domain', 'locations', 'phones', 'post_date', 'images']
+                best_facets = ['domain_type', 'flags', 'annotated_flags', 'massage_places', 'massage_places_sites', 'domain', 'phones', 'post_date', 'images', 'locations_raw', 'locations', 'cities', 'states', 'countries', 'metropolitan_areas', 'embedded_websites', 'homology' ]
                 range_facets = ['ages', 'post_date', 'phones', 'ages']
                 date_facets = ['post_date']
                 for f in best_facets
@@ -962,7 +992,7 @@ angular.module "mindbender.search", [
         searchResult: "="
     template: """
         <div ng-click="toggleEditMode()" ng-class="{'sq-btn': true, 'sq-btn-active':editMode}"
-          data-toggle="tooltip" data-placement="bottom" data-original-title="Switch to annotation mode"
+          data-toggle="tooltip" data-placement="left" data-original-title="Switch to annotation mode"
           ><i class="fa fa-pencil"></i></div>
         <div></div>
         """
