@@ -58,10 +58,10 @@
         <div class="VS-icon VS-icon-cancel" style="display:inline-block;position:inherit" ng-click="search.doClearReadOnly()"></div>
         <div style="display:inline-block">Showing all documents in the '{{ search.active_dossier }}' folder.</div>
     </div>
-    <!--
     <div ng-class="{ 'hidden': search.params.advanced === 'false' }" style="width:100%;">
         <input type="search" class="form-control" style="width:100%"
+            uib-typeahead="suggestion for suggestion in search.getSearchSuggestions($viewValue)" 
+            typeahead-loading="loadingLocations" typeahead-no-results="noResults"
             ng-model="search.params.s" />    
     </div>
-    -->
 </form>

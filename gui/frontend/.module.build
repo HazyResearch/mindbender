@@ -11,6 +11,7 @@ shouldUglify=${shouldUglify:-false}
 mkdir -p build
 ln -sfn ../node_modules     build/
 ln -sfn ../bower_components build/
+ln -sfn ../ext build/
 
 # Install all dependencies if necessary
 if [[ node_modules -ot package.json ||
@@ -47,7 +48,9 @@ compile from=.css    to=.css  with=:              src=../build/%s     out=../bui
 compile from=.png    to=.png  with=:              src=../build/%s     out=../build/%s **/*.png
 compile from=.gif    to=.gif  with=:              src=../build/%s     out=../build/%s **/*.gif
 compile from=.json   to=.json with=:              src=../build/%s     out=../build/%s **/*.json
-compile from=.js     to=.js   with=:              src=../build/%s     out=../build/%s **/*.js
+#compile from=.js     to=.js   with=:              src=../build/%s     out=../build/%s **/*.js
+compile from=.js     to=.js   with=:              src=../build/src/%s     out=../build/%s **/*.js
+compile from=.js     to=.js   with=:              src=../build/bower_components/%s     out=../build/%s **/*.js
 cd ..
 
 # Copy annotatorjs files (we are using buildkit since annotatorjs does not
@@ -56,6 +59,10 @@ cd ..
 #cp ../../depends/.build/bundled/annotatorjs/prefix/annotator-1.2.10/pkg/annotator.min.js build/annotatorjs
 #cp ../../depends/.build/bundled/annotatorjs/prefix/annotator-1.2.10/pkg/annotator.min.css build/annotatorjs
 #cp ../../depends/.build/bundled/annotatorjs/prefix/annotator-1.2.10/pkg/annotator.min.map build/annotatorjs
+
+# Copy
+#mkdir -p build/qp
+#cp ext/qp/lucene-query-parser.js build/qp
 
 # remove all dangling symlinks
 find build -type l ! -exec [ -e {} ] \; -exec rm -fv {} +
@@ -66,7 +73,7 @@ shopt -s nullglob
 files=(
 $(sed 's/#.*//' <../js-include.paths)
 
-{!(bower_components|node_modules|src)/**/,}!(*_test|${appName}|${appName}.*).js
+{!(bower_components|node_modules|ext|src)/**/,}!(*_test|${appName}|${appName}.*).js
 )
 shopt -u nullglob
 
@@ -124,11 +131,12 @@ dest=../app
 mkdir -p $dest
 rsync -aH --omit-dir-times --delete \
     . $dest/ \
-    --exclude=/{bower_components,node_modules,src} \
+    --exclude=/{bower_components,node_modules,ext,src} \
     --include=/${appName}.{js,js.map} \
     --exclude=*.{js,js.map} \
     -v
 relsymlink  bower_components      $dest/
+relsymlink  ext      $dest/
 
 cd ..
 

@@ -1,3 +1,19 @@
+  <script type="text/javascript">
+    
+    function parse_query(query_text) {
+      require(['/ext/qp/lucene-query-parser.js'], function(parser) {
+        var results = parser.parse(query_text);
+        console.log(results)
+        return results
+      });
+    }
+    //parse_query('A AND (B OR hey:bbb)');
+    window.parse_query = parse_query;    
+
+  </script>
+
+
+
 <!-- Search Page -->
 
     <script type="text/ng-template" id="labelPopoverTemplate.html">
@@ -404,14 +420,14 @@
                     </div>
                     <h3 style="padding-top:0px;margin-top:0px">Suspicious Entities</h3>
                     <br>
-                    Five metrics summarize extracted flags and structure, and surface the most suspicious entities.
+                      Two metrics summarize extracted flags and structure, and surface the most suspicious entities.
                       <ul>
-                      <li><em>Organization:</em> based on flags Organized, LE Cautious, Fake Photo, Poor English, New to Biz, and phone number match to Yelp.</li>
-                      <li><em>Control:</em> based on flags Physical Abuse, Drug Use, Coercion, and Bad Experience.</li>
-                      <li><em>Underage:</em> based on Underage flag and age stats in the ads.</li>
-                      <li><em>Movement:</em> based on Traveling flag and geographical statistics summarized from the ads.</li>
-                      <li><em>Overall:</em> an overall score based on all above and number of ads and reviews.
+                      <li><em>bad ass:</em> signals moving of lots of product.
+                      <li><em>dumb ass:</em> signals lots of overt selectors and traceability.
                       </ul>
+                      For bad ass the scoring takes into account flags Foreign Providers, Traveling, Massage Parlor, 
+                      URL Embedding, Multiple Girls, Hotel, Agency, Accepts Credit Cards, Porn / Cam Services, LE Cautious, New to Biz, as well as Movement based on normalized locations. For dumb ass the scoring takes into account flags Juvenile, Risky Services, Bad Experience, Derogatory Descriptions, Fake Photo, Poor English, Coercion, Physical Abuse, Theft / Robbery, Incompletion, Drug Use, and Armed &amp; Dangerous.
+                      <br>
                       All scores range from 1 (most suspicious) to 0 (least suspicious). Click headers to sort.<br>
                     <scores-table />
                 </div>

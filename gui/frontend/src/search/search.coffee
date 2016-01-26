@@ -414,7 +414,7 @@ angular.module "mindbender.search", [
                 n: 10   # number of items in a page
                 p: 1    # page number (starts from 1)
                 ro: 'false'  # is it read-only
-                #advanced: 'false'
+                advanced: 'false'
             @params = _.extend {}, @paramsDefault
             @types = null
             @indexes = null
@@ -517,6 +517,39 @@ angular.module "mindbender.search", [
                 delete @collapsed_facets[field]
             else
                 @collapsed_facets[field] = true
+
+        
+
+        getSearchSuggestions: (viewValue) =>
+            console.log viewValue
+            #t = viewValue.split('
+            console.log window.parse_query(viewValue)
+            pq = window.parse_query(viewValue) 
+            if !pq
+                return []
+            while 'right' in pq
+                pq = pq['right']
+            pq = pq['left']
+            field = pq['field']
+            term = pq['term']
+            console.log 'Field: ' + field
+            console.log 'Term: ' + term
+
+            return [ 'Term : ' + term ]
+
+            #return $http.get('//maps.googleapis.com/maps/api/geocode/json', {
+            #  params: {
+            #    address: val,
+            #    sensor: false
+            #  }
+            #}).then(function(response){
+            #  return response.data.results.map(function(item){
+            #    return item.formatted_address;
+            #  });
+            #});
+            
+
+
 
         doSearch: (isContinuing = no) => @initialized.then =>
             @params.p = 1 unless isContinuing
@@ -875,13 +908,12 @@ angular.module "mindbender.search", [
           },
           { data:'ads_count', title:'#Ads', readOnly:true, type:'numeric' },
           { data:'reviews_count', title:'#Reviews', readOnly:true, type:'numeric' },
-          { data:'organization_score', title:'Organization', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'control_score', title:'Control', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'underage_score', title:'Underage', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'movement_score', title:'Movement', readOnly:true, renderer:$scope.scoreRenderer },
           { data:'overall_score', title:'Overall', readOnly:true, renderer:$scope.scoreRenderer },
+          { data:'badass_score', title:'Bad Ass', readOnly:true, renderer:$scope.scoreRenderer },
+          { data:'dumbass_score', title:'Dumb Ass', readOnly:true, renderer:$scope.scoreRenderer },
           { data:'city', title:'City', readOnly:true, renderer:$scope.locRenderer },
           { data:'state', title:'State', readOnly:true, renderer:$scope.locRenderer }
+          { data:'country', title:'Country', readOnly:true, renderer:$scope.locRenderer }
         ]
 
         $scope.db = {
