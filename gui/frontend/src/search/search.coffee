@@ -911,9 +911,9 @@ angular.module "mindbender.search", [
           { data:'overall_score', title:'Overall', readOnly:true, renderer:$scope.scoreRenderer },
           { data:'badass_score', title:'Bad Ass', readOnly:true, renderer:$scope.scoreRenderer },
           { data:'dumbass_score', title:'Dumb Ass', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'city', title:'City', readOnly:true, renderer:$scope.locRenderer },
-          { data:'state', title:'State', readOnly:true, renderer:$scope.locRenderer }
-          { data:'country', title:'Country', readOnly:true, renderer:$scope.locRenderer }
+          { data:'city', title:'City', readOnly:true, renderer:$scope.locRenderer }
+          #{ data:'state', title:'State', readOnly:true, renderer:$scope.locRenderer }
+          #{ data:'country', title:'Country', readOnly:true, renderer:$scope.locRenderer }
         ]
 
         $scope.db = {
