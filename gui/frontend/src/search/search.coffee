@@ -79,7 +79,8 @@ angular.module "mindbender.search", [
         <span ng-include="'search/template/' + data._type + '.html'"></span>
         <span class="alert alert-danger" ng-if="error">{{error}}</span>
         """
-    link: ($scope) ->
+    link: ($scope) -> $scope.$watch "data", ->
+        $scope.error = null
         showError = (err) ->
             msg = err?.message ? err
             console.error msg

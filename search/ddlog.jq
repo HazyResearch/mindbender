@@ -137,6 +137,10 @@ def sourceRelations:
     relationsReferenced[] |
     select(.relation | relationByName | isAnnotated(.name == "source"))
 ;
+def sourceRelationsFixWIP:
+    relationSubgraphForSearchFromRelation |
+    { graph: . } | recurse(.graph | .references[]; .graph) |
+    select(.graph | .relation | relationByName | isAnnotated(.name == "source"))
 
 # SQL query for unloading a relation from PostgreSQL database with associated relations nested
 def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
@@ -165,9 +169,10 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
         .this | columns |
         # TODO should we limit to @searchable/@navigable columns only?
         .name
-    ]
-        # columns for referencing other relations should be dropped
-        - [.references[] | .byColumn[] | .name] |
+    ] |
+        # XXX removing these break jqForBulkLoadingRelationIntoElasticsearch below
+        # # columns for referencing other relations should be dropped
+        # - [.references[] | .byColumn[] | .name] |
 
     # derive join conditions
     (
@@ -304,12 +309,12 @@ def jqForBulkLoadingRelationIntoElasticsearch:
     (
         # taking the first group of columns referencing a @source relation
         [ sourceRelations |
-          .byColumn | map(.name)
+          .byColumn | map(.name) | sort
         ][0]
     ) as $columnsForParent |
     "
     # index action/metadata
-    {index:{ _id: \(keyColumns | map(.name) | jqExprForColumns)\(
+    {index:{ _id: \(keyColumns | map(.name) | sort | jqExprForColumns)\(
           if $columnsForParent == null then "" else
       ", _parent: \($columnsForParent | jqExprForColumns
        )" end) }},
