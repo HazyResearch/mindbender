@@ -48,9 +48,9 @@ compile from=.css    to=.css  with=:              src=../build/%s     out=../bui
 compile from=.png    to=.png  with=:              src=../build/%s     out=../build/%s **/*.png
 compile from=.gif    to=.gif  with=:              src=../build/%s     out=../build/%s **/*.gif
 compile from=.json   to=.json with=:              src=../build/%s     out=../build/%s **/*.json
-#compile from=.js     to=.js   with=:              src=../build/%s     out=../build/%s **/*.js
-compile from=.js     to=.js   with=:              src=../build/src/%s     out=../build/%s **/*.js
-compile from=.js     to=.js   with=:              src=../build/bower_components/%s     out=../build/%s **/*.js
+compile from=.js     to=.js   with=:              src=../build/%s     out=../build/%s **/*.js
+#compile from=.js     to=.js   with=:              src=../build/src/%s     out=../build/%s **/*.js
+#compile from=.js     to=.js   with=:              src=../build/bower_components/%s     out=../build/%s **/*.js
 cd ..
 
 # Copy annotatorjs files (we are using buildkit since annotatorjs does not

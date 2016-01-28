@@ -60,8 +60,9 @@
     </div>
     <div ng-class="{ 'hidden': search.params.advanced === 'false' }" style="width:100%;">
         <input type="search" class="form-control" style="width:100%"
-            uib-typeahead="suggestion for suggestion in search.getSearchSuggestions($viewValue)" 
-            typeahead-loading="loadingLocations" typeahead-no-results="noResults"
-            ng-model="search.params.s" />    
+            uib-typeahead="suggestion as suggestion.label for suggestion in search.getSearchSuggestions($viewValue)" 
+            typeahead-loading="loadingLocations" typeahead-no-results="noResults" typeahead-focus-first="false"
+            typeahead-template-url="search/typeahead-match.html"
+            ng-model="search.params.s" />
     </div>
 </form>

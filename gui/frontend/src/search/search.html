@@ -1,18 +1,3 @@
-  <script type="text/javascript">
-    
-    function parse_query(query_text) {
-      require(['/ext/qp/lucene-query-parser.js'], function(parser) {
-        var results = parser.parse(query_text);
-        console.log(results)
-        return results
-      });
-    }
-    //parse_query('A AND (B OR hey:bbb)');
-    window.parse_query = parse_query;    
-
-  </script>
-
-
 
 <!-- Search Page -->
 
@@ -404,31 +389,22 @@
                         </span>
                     </script>
                 </div>
-                <!--<br>-->
-                <!--
-                <div ng-if="!search.query._query_string" class="jumbotron" style="padding-top:20px">
-                    <h1>{{search.results.hits.total | number}}</h1>
-                    <p>documents</p>
-                    <h3 style="">Suspicious Entities</h3>
-                    <br>
-                    <scores-table />
-                </div>-->
 
                 <div ng-if="!search.query._query_string" style="padding-top:0px;">
                     <div style="float:right">
                        {{search.results.hits.total | number}} documents
                     </div>
-                    <h3 style="padding-top:0px;margin-top:0px">Suspicious Entities</h3>
+                    <h3 style="padding-top:0px;margin-top:0px">Organized and Suspicious Entities</h3>
                     <br>
-                      Two metrics summarize extracted flags and structure, and surface the most suspicious entities.
+                      Two metrics summarize extracted flags and structure, and surface unusual entities.
                       <ul>
-                      <li><em>bad ass:</em> signals moving of lots of product.
-                      <li><em>dumb ass:</em> signals lots of overt selectors and traceability.
+                      <li><em>Organized:</em> signals moving of lots of product.
+                      <li><em>Suspicious:</em> signals lots of overt selectors and traceability.
                       </ul>
-                      For bad ass the scoring takes into account flags Foreign Providers, Traveling, Massage Parlor, 
-                      URL Embedding, Multiple Girls, Hotel, Agency, Accepts Credit Cards, Porn / Cam Services, LE Cautious, New to Biz, as well as Movement based on normalized locations. For dumb ass the scoring takes into account flags Juvenile, Risky Services, Bad Experience, Derogatory Descriptions, Fake Photo, Poor English, Coercion, Physical Abuse, Theft / Robbery, Incompletion, Drug Use, and Armed &amp; Dangerous.
+                      For Organized, the scoring takes into account flags Foreign Providers, Traveling, Massage Parlor, 
+                      URL Embedding, Multiple Girls, Hotel, Agency, Accepts Credit Cards, Porn / Cam Services, LE Cautious, New to Biz, as well as Movement based on normalized locations. For Suspicious, the scoring takes into account flags Juvenile, Risky Services, Bad Experience, Derogatory Descriptions, Fake Photo, Poor English, Coercion, Physical Abuse, Theft / Robbery, Incompletion, Drug Use, and Armed &amp; Dangerous.
                       <br>
-                      All scores range from 1 (most suspicious) to 0 (least suspicious). Click headers to sort.<br>
+                      All scores range from 1 (most indicative) to 0 (least indicative). Click headers to sort.<br>
                     <scores-table />
                 </div>
 

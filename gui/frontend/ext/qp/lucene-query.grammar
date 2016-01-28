@@ -171,7 +171,7 @@ fieldname
 term
   = op:prefix_operator_exp? term:quoted_term proximity:proximity_modifier? boost:boost_modifier? _*
       {
-        var result = { 'term': term };
+        var result = { 'term': term, 'location':location() };
 
         if('' != proximity)
         {
@@ -190,7 +190,7 @@ term
     }
   / op:prefix_operator_exp? term:unquoted_term similarity:fuzzy_modifier? boost:boost_modifier? _*
     {
-        var result = { 'term': term };
+        var result = { 'term': term, 'location':location() };
         if('' != similarity)
         {
             result['similarity'] = similarity;

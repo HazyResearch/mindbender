@@ -478,6 +478,7 @@ angular.module "mindbender.search", [
             @active_dossier_force_updates = 0
             @query_to_dossiers = null
             @read_only_query = false
+            @suggestions = []
 
             @initialized = $q.all [
                 # load the search schema
@@ -512,30 +513,135 @@ angular.module "mindbender.search", [
             if dossier_name and dossier_name not in @all_dossiers
                 @all_dossiers = [dossier_name].concat @all_dossiers
 
+        fetch_dossier_by_name: (dossier_name) =>
+            $http.get '/api/dossier/by_dossier/', { params: { dossier_name : dossier_name } }
+
         toggleFacetCollpase: (field) =>
             if field of @collapsed_facets
                 delete @collapsed_facets[field]
             else
                 @collapsed_facets[field] = true
 
-        
+        parse_query: (query_text) =>
+            return $q (resolve, reject) =>
+                require ['/ext/qp/lucene-query.js'], (parser) =>
+                    console.log 'parsing : ' + query_text 
+                    try
+                      results = parser.parse(query_text)
+                      console.log results
+                      resolve results
+                    catch error
+                      console.log 'caught exception'
+                      reject error
+
+        normalize_query: (query_text) =>
+            p1 = @parse_query query_text 
+            p2 = p1.then (pq) =>
+                nq = ''
+                visit = (node) =>
+                    deferred = $q.defer()
+                    if 'left' of node and 'operator' of node and 'right' of node
+                        p1 = visit node['left']
+                        p2 = visit node['right']
+                        op = node['operator']
+                        if op == '<implicit>'
+                            op = ''
+                        $q.all([p1, p2]).then (data) =>
+                            deferred.resolve '(' + data[0] + ') ' + op + ' (' + data[1] + ')'
+                    else if 'left' of node
+                        p1 = visit node['left']
+                        p1.then (q) =>
+                            deferred.resolve '(' + q + ')'
+                    else if 'field' of node and node['field'] == 'folder'
+                        deferred = $q.defer()
+                        p3 = @fetch_dossier_by_name node['term']
+                        p3.then (data) =>
+                            union = ''
+                            for item in data.data
+                                if union.length > 0
+                                    union = union + ' OR '
+                                union = union + '(' + item.query_string + ')'
+                            deferred.resolve(union)
+                    else if 'field' of node and node['field'] #and node['field'] != '<implicit>'
+                        # TODO: handle case with quotes/spaces
+                        # escape: + - && || ! ( ) { } [ ] ^ " ~ * ? : \
+                        # see https://lucene.apache.org/core/2_9_4/queryparsersyntax.html
+                        deferred.resolve node['field'] + ':' + node['term']
+                    else if 'term' of node
+                        deferred.resolve node['term']
+                    else
+                        console.log 'unhandled case'
+                        console.log node
+                        deferred.resolve ''
+                    return deferred.promise 
+                p3 = visit pq
+                p3
+            return p2 
+                
 
         getSearchSuggestions: (viewValue) =>
-            console.log viewValue
-            #t = viewValue.split('
-            console.log window.parse_query(viewValue)
-            pq = window.parse_query(viewValue) 
-            if !pq
-                return []
-            while 'right' in pq
-                pq = pq['right']
-            pq = pq['left']
-            field = pq['field']
-            term = pq['term']
-            console.log 'Field: ' + field
-            console.log 'Term: ' + term
+            #console.log window.parse_query(viewValue)
+            #pq = window.parse_query(viewValue) 
 
-            return [ 'Term : ' + term ]
+            deferred = $q.defer()
+
+            p = @normalize_query viewValue
+            p.then (q) => 
+                console.log 'Got result from normalize_query'
+                console.log q
+                deferred.resolve [
+                   {
+                        'label': 'LTerm : ' + viewValue
+                        'type': 'ttt'
+                   },
+                   {
+                        'label': 'LTerm : ' + viewValue
+                        'type': 'xx'
+                   }
+                ]
+            return deferred.promise
+
+            #promise = @parse_query viewValue
+            #promise.then \
+            #     ((pq) => 
+            #        if !pq
+            #            return []
+            #        while 'right' in pq
+            #            pq = pq['right']
+            #        pq = pq['left']
+            #        field = pq['field']
+            #        term = pq['term']
+            #        console.log 'Field: ' + field
+            #        console.log 'Term: ' + term), \
+            #     ((error) =>
+            #        console.log 'ERROR'
+            #        console.log error)
+            
+            
+
+
+            #$q (resolve, reject) =>
+            #    resolve [ 'Term : ' + term ]
+            #return [ 
+            #    {
+            #        'label': 'LTerm : ' + viewValue
+            #        'type': 'ttt'
+            #    },
+            #    {
+            #        'label': 'LTerm : ' + viewValue
+            #        'type': 'xx'
+            #    } 
+            #]
+
+            #pr = $q (resolve, reject) =>
+            #    resolve [
+            #        {
+            #            'label': 'LTerm : ' + viewValue
+            #            'type': 'ttt'
+            #        }
+            #    ]
+            #return pr
+
 
             #return $http.get('//maps.googleapis.com/maps/api/geocode/json', {
             #  params: {
@@ -646,8 +752,16 @@ angular.module "mindbender.search", [
                         fields: _.object ([f,{require_field_match: true}] for f in fieldsSearchable)
             @queryRunning = query
             @querystringRunning = qs
-            elasticsearch.search query
-            .then (data) =>
+            #shouldNormalize = q?
+            shouldNormalize = false
+            normalized_query = @normalize_query if shouldNormalize then q.query_string.query else ''
+            normalized_query.then (nq) =>
+              nquery = jQuery.extend(true, {}, query)
+              if shouldNormalize
+                nquery.body.query.query_string.query = nq 
+              console.log 'normalized query: ' + nq
+              elasticsearch.search nquery
+              .then (data) =>
                 @error = null
                 @queryRunning = null
                 @querystringRunning = null
@@ -909,8 +1023,8 @@ angular.module "mindbender.search", [
           { data:'ads_count', title:'#Ads', readOnly:true, type:'numeric' },
           { data:'reviews_count', title:'#Reviews', readOnly:true, type:'numeric' },
           { data:'overall_score', title:'Overall', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'badass_score', title:'Bad Ass', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'dumbass_score', title:'Dumb Ass', readOnly:true, renderer:$scope.scoreRenderer },
+          { data:'badass_score', title:'Organized', readOnly:true, renderer:$scope.scoreRenderer },
+          { data:'dumbass_score', title:'Suspicious', readOnly:true, renderer:$scope.scoreRenderer },
           { data:'city', title:'City', readOnly:true, renderer:$scope.locRenderer }
           #{ data:'state', title:'State', readOnly:true, renderer:$scope.locRenderer }
           #{ data:'country', title:'Country', readOnly:true, renderer:$scope.locRenderer }
