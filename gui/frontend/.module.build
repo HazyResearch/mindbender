@@ -39,6 +39,20 @@ fi
 patch bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.js tagsinput.patch -o \
       bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.patched.js
 
+# above path makes two changes to tagsinput
+#  gui/frontend/bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.js
+#
+# 1. COMMENT OUT LINE 164
+# // self.$input.typeahead('val', '');
+# Maybe a similar problem:
+# https://github.com/bassjobsen/Bootstrap-3-Typeahead/issues/145
+#
+# 2. CHANGE LINE 331
+# matcher: function (text) {
+#            return (text.toLowerCase().indexOf(this.query.trim().toLowerCase()) == 0); // changed from !== -1 to == 0
+#          },
+# More info: https://github.com/bootstrap-tagsinput/bootstrap-tagsinput/issues/297
+
 # Compile all CoffeeScript files with source map, LESS to CSS, symlink HTMLs
 cd src
 compile from=.coffee to=.js   with=compile-coffee src=../build/src/%s out=../build/%s **/*.coffee
