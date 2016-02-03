@@ -163,7 +163,7 @@ field_exp
     }
 
 fieldname
-  = fieldname:unquoted_term [:]
+  = fieldname:unquoted_term [:] _*
     {
         return fieldname;
     }
