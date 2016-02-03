@@ -335,19 +335,11 @@ exports.configureApp = (app, args) ->
                 type: Sequelize.BIGINT
                 allowNull: false
 
-            organization_score:
+            badass_score:
                 type: Sequelize.DOUBLE
                 allowNull: false
 
-            control_score:
-                type: Sequelize.DOUBLE
-                allowNull: false
-
-            underage_score:
-                type: Sequelize.DOUBLE
-                allowNull: false
-
-            movement_score:
+            dumbass_score:
                 type: Sequelize.DOUBLE
                 allowNull: false
 
@@ -355,10 +347,13 @@ exports.configureApp = (app, args) ->
                 type: Sequelize.DOUBLE
                 allowNull: false
 
+            city:
+                type: Sequelize.TEXT
+
             state:
                 type: Sequelize.TEXT
 
-            city:
+            country:
                 type: Sequelize.TEXT
         }, {
             indexes: [
@@ -370,16 +365,10 @@ exports.configureApp = (app, args) ->
                     fields: ['overall_score']
                 },
                 {
-                    fields: ['movement_score']
+                    fields: ['badass_score']
                 },
                 {
-                    fields: ['underage_score']
-                },
-                {
-                    fields: ['control_score']
-                },
-                {
-                    fields: ['organization_score']
+                    fields: ['dumbass_score']
                 }
             ]
         })

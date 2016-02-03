@@ -1,5 +1,59 @@
+<script type="text/ng-template" id="customPopupTemplate.html">
+  <div class="custom-popup-wrapper"
+     ng-style="{top: position().top+'px', left: position().left+'px'}"
+     style="display: block;position:absolute;right:0px;background-color:white;border:1px solid rgba(0,0,0,.15);box-shadow:0 6px 12px rgba(0,0,0,.175);padding-left:5px"
+     ng-show="isOpen() && !moveInProgress"
+     aria-hidden="{{!isOpen()}}">
+    <h4>Examples of Advanced Queries</h4>
+
+<p>
+<span style="color:#AAA">"Reviews with the Bad Experience flag, which also have either the LE Cautious or the Poor English flag.</span></br>
+<b>flags: "Bad Experience" AND (flags: "LE Cautious" OR flags: "Poor English")</b>
+</p>
+
+<p>
+<span style="color:#AAA">Documents posted on 05/29/2014, but <em>not</em> in the cities of New York or Los Angeles.</span><br>
+<b>+post_date: "2014-05-29" -cities: ("New York City" OR "Los Angeles")</b>
+</p>
+
+    <!--
+    <ul class="dropdown-menu" role="listbox">
+        <li ng-repeat="match in matches track by $index" ng-class="{active: isActive($index) }"
+            ng-mouseenter="selectActive($index)" ng-click="selectMatch($index)" role="option" id="{{::match.id}}">
+            <div uib-typeahead-match index="$index" match="match" query="query" template-url="templateUrl"></div>
+        </li>
+    </ul>-->
+  </div>
+</script>
+
+
+
 <form class="navbar-form navbar-right" role="search" style="width:75%;">
-    <div ng-class="{ 'hidden': search.params.ro === 'true' || search.params.advanced === 'true' }" class="form-group input-group" style="width:100%;">
+    <div class="form-group input-group" style="width:100%;">
+
+        <span class="input-group-btn" style="width: 1%; display: table-cell;"
+            uib-tooltip="Allows advanced queries with AND, OR, and nesting."
+            tooltip-placement="bottom">
+          <input
+            bs-switch
+            ng-model="advancedMode"
+            type="checkbox"
+            switch-size="mini"
+            switch-label="Advanced"
+            ng-true-value="'true'"
+            ng-false-value="'false'" />
+        </span>
+
+        <span class="input-group-btn" style="width: 1%; display: table-cell;">
+          <button type="button" class="btn btn-default" ng-click="search.showBulkSearchDialog()"
+            style="height:22px;padding:5px;padding-top:1px;margin-left:10px;margin-right:10px"
+            uib-tooltip="Match on many values for a field"
+            tooltip-placement="bottom">
+            Bulk
+          </button>
+        </span>
+
+
         <!-- type dropdown -->
         <div class="input-group-btn dropdown hide" style="width:1%;" ng-if="search.types">
             <button type="button" class="btn dropdown-toggle"
@@ -22,7 +76,9 @@
             </ul>
         </div>
 
-        <span class="visual_search"></span>
+        <!--<span ng-class="{ 'hide': search.params.advanced === 'true' }" class="form-group input-group visual_search" style="width:100%""></span>-->
+        <!--<span ng-class="{ 'hidden': search.params.advanced === 'true' }" class="form-group input-group visual_search" style="width:100%""></span>-->
+        <span ng-class="{ 'hide': search.params.advanced === 'true' }" class="form-group input-group visual_search" style="width:100%""></span>
 
         <!-- single search box -->
         <input type="search" class="form-control hide"
@@ -52,16 +108,17 @@
             <button type="submit" class="btn btn-primary" ng-click="search.doSearch()">
                 <i class="fa fa-search"></i><span class="sr-only"> Search</span></button>
         </span>
+
+
+            <!--uib-typeahead="suggestion as suggestion.label for suggestion in search.getSearchSuggestions($viewValue, cursor)"-->
+
+        <input ng-class="{ 'hide': search.params.advanced !== 'true' }" type="search" class="form-control" style="width:100%" search-query-input
+            uib-typeahead="suggestion as suggestion.label for suggestion in suggest.getSearchSuggestions($viewValue, cursor)"
+            typeahead-loading="loadingLocations" typeahead-no-results="noResults" typeahead-focus-first="false" typeahead-min-length="0"
+            typeahead-template-url="search/typeahead-match.html"
+            typeahead-popup-template-url="customPopupTemplate.html" 
+            ng-model="search.params.s" 
+            typeahead-click-open />
+
     </div>
-    
-    <div ng-class="{ 'hidden': search.params.ro === 'false' }" class="VS-search" style="padding-top:10px">
-        <div class="VS-icon VS-icon-cancel" style="display:inline-block;position:inherit" ng-click="search.doClearReadOnly()"></div>
-        <div style="display:inline-block">Showing all documents in the '{{ search.active_dossier }}' folder.</div>
-    </div>
-    <!--
-    <div ng-class="{ 'hidden': search.params.advanced === 'false' }" style="width:100%;">
-        <input type="search" class="form-control" style="width:100%"
-            ng-model="search.params.s" />    
-    </div>
-    -->
 </form>

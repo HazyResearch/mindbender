@@ -1,3 +1,4 @@
+
 <!-- Search Page -->
 
     <script type="text/ng-template" id="labelPopoverTemplate.html">
@@ -39,6 +40,38 @@
          </video>
        </div>
     </script>
+
+    <script type="text/ng-template" id="bulkSearchModal.html">
+      <form>
+      <div class="modal-header">
+        <h4 class="modal-title">Create Bulk Query</h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <p class="help-block">Select a field and paste a set of values that can match that field.</p>
+        </div>
+        <div class="form-group">
+          <label for="">Search Field Name</label>
+          <input ng-model="field" type="search" class="form-control" 
+           uib-typeahead="s for s in all_fields | filter:$viewValue | limitTo:8"
+           typeahead-focus-first="false"
+           typeahead-min-length="0" />
+        </div>
+        <div class="form-group">
+          <label for="">Values (one per line)</label>
+          <textarea ng-model="values" class="form-control" rows="5" id="comment"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <!--
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="submit" class="btn btn-default">Submit</button>-->
+            <button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+      </div>
+    </script>
+
+
 
 <!-- Flag descriptions -->
 
@@ -203,6 +236,13 @@
   </div>
 </script>
 
+<script type="text/ng-template" id="flagHelpBusiness%20Addresses.html">
+  <div ng-click="close($event)">
+    <b>URL Embedding</b><br>
+    From <span class="label label-info">ads</span> &mdash; Likely indications that the ads contain business addresses.
+  </div>
+</script>
+
 <script type="text/ng-template" id="flagHelpURL%20Embedding.html">
   <div ng-click="close($event)">
     <b>URL Embedding</b><br>
@@ -228,6 +268,13 @@
   <div ng-click="close($event)">
     <b>Accepts Credit Cards</b><br>
     From <span class="label label-info">ads</span> &mdash; Likely indications that credit cards are accepted for payment.
+  </div>
+</script>
+
+<script type="text/ng-template" id="flagHelpAccepts%20Walk-ins.html">
+  <div ng-click="close($event)">
+    <b>Accepts Credit Cards</b><br>
+    From <span class="label label-info">ads</span> &mdash; Likely indications that walk-ins are accepted in the ads.
   </div>
 </script>
 
@@ -388,31 +435,22 @@
                         </span>
                     </script>
                 </div>
-                <!--<br>-->
-                <!--
-                <div ng-if="!search.query._query_string" class="jumbotron" style="padding-top:20px">
-                    <h1>{{search.results.hits.total | number}}</h1>
-                    <p>documents</p>
-                    <h3 style="">Suspicious Entities</h3>
-                    <br>
-                    <scores-table />
-                </div>-->
 
                 <div ng-if="!search.query._query_string" style="padding-top:0px;">
                     <div style="float:right">
                        {{search.results.hits.total | number}} documents
                     </div>
-                    <h3 style="padding-top:0px;margin-top:0px">Suspicious Entities</h3>
+                    <h3 style="padding-top:0px;margin-top:0px">Organized and Suspicious Entities</h3>
                     <br>
-                    Five metrics summarize extracted flags and structure, and surface the most suspicious entities.
+                      Two metrics summarize extracted flags and structure, and surface unusual entities.
                       <ul>
-                      <li><em>Organization:</em> based on flags Organized, LE Cautious, Fake Photo, Poor English, New to Biz, and phone number match to Yelp.</li>
-                      <li><em>Control:</em> based on flags Physical Abuse, Drug Use, Coercion, and Bad Experience.</li>
-                      <li><em>Underage:</em> based on Underage flag and age stats in the ads.</li>
-                      <li><em>Movement:</em> based on Traveling flag and geographical statistics summarized from the ads.</li>
-                      <li><em>Overall:</em> an overall score based on all above and number of ads and reviews.
+                      <li><em>Organized:</em> signals moving of lots of product.
+                      <li><em>Suspicious:</em> signals lots of overt selectors and traceability.
                       </ul>
-                      All scores range from 1 (most suspicious) to 0 (least suspicious). Click headers to sort.<br>
+                      For Organized, the scoring takes into account flags Foreign Providers, Traveling, Massage Parlor, 
+                      URL Embedding, Multiple Girls, Hotel, Agency, Accepts Credit Cards, Porn / Cam Services, LE Cautious, New to Biz, as well as Movement based on normalized locations. For Suspicious, the scoring takes into account flags Juvenile, Risky Services, Bad Experience, Derogatory Descriptions, Fake Photo, Poor English, Coercion, Physical Abuse, Theft / Robbery, Incompletion, Drug Use, and Armed &amp; Dangerous.
+                      <br>
+                      All scores range from 1 (most indicative) to 0 (least indicative). Click headers to sort.<br>
                     <scores-table />
                 </div>
 
@@ -491,8 +529,8 @@
             for="search" title="Select Query or Doc...">
         </select>
         <button class="btn btn-default" ng-click="search.doNavigateActiveDossier()"
-         uib-tooltip="Show all documents from all queries in folder '{{search.active_dossier}}'." tooltip-placement="top"
-         ng-disabled="!search.active_dossier">
+         uib-tooltip="Show all documents from all queries in folder '{{search.dossier.active_dossier}}'." tooltip-placement="top"
+         ng-disabled="!search.dossier.active_dossier">
          Show all</button>
     </div>
     <div class="pull-right" ng-if="search.query._query_string" style="margin-right:50px">

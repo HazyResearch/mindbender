@@ -1,391 +1,15 @@
 #
-# NOTE: THERE IS A PROBLEM WITH ONE OF THE IMPORTED LIBRARIES; YOU HAVE TO COMMENT
-# OUT ONE LINE, BEFORE YOU CAN RUN EVIDENTLY.
-# AFTER INSTALLATION, EDIT
-#  gui/frontend/bower_components/bootstrap-tagsinput/dist/bootstrap-tagsinput.js
-# AND MAKE TWO CHANGES
-#
-# 1. COMMENT OUT LINE 164
-# // self.$input.typeahead('val', '');
-# Maybe a similar problem:
-# https://github.com/bassjobsen/Bootstrap-3-Typeahead/issues/145
-#
-# 2. CHANGE LINE 331
-# matcher: function (text) {
-#            return (text.toLowerCase().indexOf(this.query.trim().toLowerCase()) == 0); // changed from !== -1 to == 0
-#          },
-# More info: https://github.com/bootstrap-tagsinput/bootstrap-tagsinput/issues/297
 
-angular.module "mindbender.search", [
+angular.module "mindbender.search.search", [
     'elasticsearch'
     'json-tree'
     'ngSanitize'
     'mindbender.auth'
     'ngHandsontable'
     'ui.bootstrap'
+    'mindbender.search.queryparse'
+    'mindbender.search.util'
 ]
-
-.config ($routeProvider) ->
-    $routeProvider.when "/search/:index*?",
-        brand: "Evidently", brandIcon: "search"
-        title: 'Search {{
-                q ? "for [" + q + "] " : (s ? "for [" + s + "] " : "everything ")}}{{
-                t ? "in " + t + " " : ""}}{{
-                s ? (q ? "from sources matching [" + s + "] " : "") : ""}}{{
-                index ? "(" + index + ") " : ""
-            }}- DeepDive'
-        templateUrl: "search/search.html"
-        controller: "SearchResultCtrl"
-        reloadOnSearch: no
-    $routeProvider.when "/view/:index/:type",
-        brand: "Evidently", brandIcon: "search"
-        title: """{{type}}( {{id}} ) in {{index}} - DeepDive"""
-        templateUrl: "search/view.html"
-        controller: "SearchViewCtrl"
-    $routeProvider.when "/search",
-        redirectTo: "/search/"
-
-## for searching extraction/source data
-.controller "SearchResultCtrl", ($scope, $routeParams, $location, DeepDiveSearch, $modal, tagsService, $http) ->
-    $scope.search = DeepDiveSearch.init $routeParams.index
-    $scope.tags = tagsService
-    $scope.openModal = (options) ->
-        $modal.open _.extend {
-            scope: $scope
-        }, options
-
-    # make sure we show search results at first visit (when no parameters are there yet)
-    if (_.size $location.search()) == 0
-        do $scope.search.doSearch
-
-    $scope.organization = ''
-    $http({
-        method: 'GET'
-        url: "/api/organization"
-    }).success (data) ->
-            $scope.organization = data
-      
-
-
-.directive "deepdiveSearchBar", ->
-    scope:
-        search: "=for"
-    templateUrl: "search/searchbar.html"
-    controller: ($scope, $routeParams, $location, DeepDiveSearch) ->
-        $scope.search ?= DeepDiveSearch.init $routeParams.index
-        if $location.path() is "/search/"
-            # detect changes to URL
-            do doSearchIfNeeded = ->
-                DeepDiveSearch.doSearch yes if DeepDiveSearch.importParams $location.search()
-            $scope.$on "$routeUpdate", doSearchIfNeeded
-            # reflect search parameters to the location on the URL
-            $scope.$watch (-> DeepDiveSearch.query), ->
-                search = $location.search()
-                $location.search k, v for k, v of DeepDiveSearch.params when search.k isnt v
-        else
-            # switch to /search/
-            $scope.$watch (-> DeepDiveSearch.queryRunning), (newQuery, oldQuery) ->
-                return unless oldQuery?  # don't mess $location upon load
-                $location.search DeepDiveSearch.params
-                $location.path "/search/"
-
-
-.directive "myDatePicker", ->
-    restrict: 'A'
-    replace: true
-    link: ($scope, $element) ->
-        $element.bootstrapDP({
-            format: "yyyy-mm-dd",
-            immediateUpdates: true,
-            orientation: "bottom auto"
-        })
-
-
-.directive "myToolTip", ->
-    restrict: 'A'
-    replace: true
-    link: ($scope, $element) ->
-        $element.tooltip()
-
-
-.directive "queryDossierPicker", ->
-    restrict: 'A'
-    replace: true
-    scope:
-        search: "=for"
-        query: "=queryString"
-        docid: "=queryStringDocid"
-        query_title: "=queryTitle"
-    link: ($scope, $element) ->
-        if $scope.docid
-            query = 'doc_id: "' + $scope.docid + '"'
-            query_is_doc = true
-        else
-            query = $scope.query
-            query_is_doc = false
-        query_title = $scope.query_title
-
-        initialized = false
-        old_all_dossiers = null
-
-        handler = () ->
-            options = []
-            selected = {}
-            _.each $scope.search.query_to_dossiers[query], (d) ->
-                options.push
-                    name: d
-                    selected: true
-                selected[d] = true
-            _.each $scope.search.all_dossiers, (d) ->
-                if not selected.hasOwnProperty d
-                    options.push
-                        name: d
-                        selected: false
-
-            old_all_dossiers = _.clone $scope.search.all_dossiers
-            options_names = _.pluck options, 'name'
-
-            window.setupMySelectPicker $element, options, (old_vals, new_vals) ->
-                $.ajax
-                    type: "POST",
-                    url: "/api/dossier/by_query/",
-                    processData: false,
-                    contentType: 'application/json',
-                    data: JSON.stringify
-                        query_string: query
-                        query_title: query_title
-                        query_is_doc: query_is_doc
-                        selected_dossier_names: _.difference(new_vals, old_vals)
-                        unselected_dossier_names: _.difference(old_vals, new_vals)
-                    success: ->
-                        console.log '/dossier/by_query/:', query, old_vals, new_vals
-
-                        _.each new_vals, (val) ->
-                            old_all_dossiers.push val
-                            $scope.search.add_dossier val
-                            if val == $scope.search.active_dossier
-                                # trigger dossierQueryPicker to reload
-                                $scope.search.active_dossier_force_updates += 1
-                        $scope.$apply()
-
-
-        $scope.$watch 'search.query_to_dossiers', ->
-            if not $scope.search.query_to_dossiers
-                return
-            handler()
-            initialized = true
-
-        $scope.$watch 'search.all_dossiers', ->
-            if not initialized or not $scope.search.all_dossiers
-                return
-
-            new_names = _.difference $scope.search.all_dossiers, old_all_dossiers
-
-            if new_names.length
-                _.each new_names, (nm) ->
-                    $element.prepend $('<option/>', {value: nm, text: nm})
-                $element.selectpicker('refresh')
-                old_all_dossiers = _.clone $scope.search.all_dossiers
-
-
-
-.directive "globalDossierPicker", ->
-    restrict: 'A'
-    replace: true
-    scope:
-        search: "=for"
-    link: ($scope, $element) ->
-        $scope.$watch 'search.all_dossiers', ->
-            if not $scope.search.all_dossiers
-                return
-            $element.empty()
-            _.each $scope.search.all_dossiers, (name) ->
-                $option = $('<option/>', {
-                    value: name,
-                    text: name
-                })
-                $element.append($option)
-
-            picker = $element.selectpicker('refresh').data('selectpicker')
-            if $scope.search.active_dossier
-                picker.val $scope.search.active_dossier
-            picker = $element.selectpicker('refresh').data('selectpicker')
-            picker.$searchbox.attr('placeholder', 'Search')
-            picker.$newElement.find('button').attr('title',
-                'Select an existing folder to list its queries and docs.').tooltip()
-            $element.on 'change', ->
-                $scope.search.active_dossier = picker.val()
-                $scope.$apply()
-
-
-.directive "dossierQueryPicker", ->
-    restrict: 'A'
-    replace: true
-    scope:
-        search: "=for"
-    link: ($scope, $element) ->
-        handler = () ->
-            dossier_name = $scope.search.active_dossier
-            if not dossier_name
-                $element.empty()
-                $element.prop('disabled', true)
-                $element.selectpicker('refresh')
-                return
-            $element.data('selectpicker').$newElement.fadeOut()
-            $.getJSON '/api/dossier/by_dossier/', {dossier_name: dossier_name}, (items) ->
-                $element.empty()
-                $element.prop('disabled', false)
-                $scope.search.active_dossier_queries = {}
-                _.each items, (item) ->
-                    $scope.search.active_dossier_queries[item.query_string] = true
-                    ts = new Date(item.ts_created)
-                    date = (ts.getMonth() + 1) + '/' + ts.getDate()
-                    time = ts.getHours() + ':' + ts.getMinutes()
-                    datetime = date + ' ' + time
-                    icon = if item.query_is_doc then 'file-o' else 'search'
-                    item_html = '<i class="fa fa-' + icon + '"></i>&nbsp; '
-                    item_html += item.query_string
-                    if item.query_title
-                        item_html += ' (' + item.query_title + ')'
-                    item_html += ' <em class="small muted">' + item.user_name + ' - ' + datetime +  '</em>'
-                    $element.append($('<option/>', {
-                        value: item.query_string,
-                        text: item.query_string
-                    }).data('content', item_html))
-                picker = $element.selectpicker('refresh').data('selectpicker')
-                $element.data('selectpicker').$newElement.fadeIn()
-                picker.$searchbox.attr('placeholder', 'Search')
-                $element.on 'change', ->
-                    $scope.search.params.s = picker.val()
-                    $scope.search.doSearch()
-                console.log $scope.search.active_dossier_queries
-
-        $scope.$watch 'search.active_dossier', handler
-        $scope.$watch 'search.active_dossier_force_updates', handler
-
-
-## for viewing individual extraction/source data
-.controller "SearchViewCtrl", ($scope, $routeParams, $location, DeepDiveSearch) ->
-    $scope.search = DeepDiveSearch.init $routeParams.indexs
-    _.extend $scope, $routeParams
-    searchParams = $location.search()
-    $scope.id = searchParams.id
-    $scope.routing = searchParams.parent
-    $scope.data =
-        _index: $scope.index
-        _type:  $scope.type
-        _id:    $scope.id
-
-
-.directive "deepdiveVisualizedData", (DeepDiveSearch, $q, $timeout) ->
-    scope:
-        data: "=deepdiveVisualizedData"
-        searchResult: "="
-        routing: "="
-    template: """
-        <span ng-include="'search/template/' + data._type + '.html'" onload="finishLoadingCustomTemplate()"></span>
-        <span class="alert alert-danger" ng-if="error">{{error}}</span>
-        """
-    link: ($scope, $element) ->
-
-        $scope.getMassagePlaces = () ->
-            urls_a = $scope.extraction['massage_places_urls']
-            sites = $scope.extraction['massage_places_sites']
-            titles = $scope.extraction['massage_places'] 
-            values = []
-            for val, i in titles
-                a = { 
-                    'url':urls_a[i],
-                    'title':titles[i],
-                    'site':sites[i]
-                }
-                values.push a
-            return values
-
-        $scope.finishLoadingCustomTemplate = () ->
-            # parse json for images; with better json support in the database we may be able
-            # to avoid this step
-            if $scope.searchResult?
-                if $scope.searchResult._source.images?
-                    images = []
-                    _.each $scope.searchResult._source.images, (item) ->
-                        #images.push(JSON.parse(item))
-                        images.push({ hash: item })
-                    $scope.searchResult._source.images_j = images
-
-            # load tooltips, lazyload and colorbox
-            $timeout () ->
-                $element.find('[data-toggle=tooltip]').tooltip()
-                $element.find('img').lazyload()
-                $element.find('a.img-link').colorbox({rel:'imggroup-' + $scope.searchResult.idx })
-
-            return false
-
-        $scope.search = DeepDiveSearch.init()
-        $scope.isArray = angular.isArray
-        showError = (err) ->
-            msg = err?.message ? err
-            console.error msg
-            # TODO display this in template
-            $scope.error = msg
-        unless $scope.data._type? and ($scope.data._source? or $scope.data._id?)
-            return showError "_type with _id or _type with _source must be given to deepdive-visualized-data"
-        fetchParentIfNeeded = (data) -> $q (resolve, reject) ->
-            if $scope.searchResult?
-                # no need to fetch parents ourselves
-                resolve data
-            else
-                DeepDiveSearch.fetchSourcesAsParents [data]
-                .then ([data]) -> resolve data
-                , reject
-        initScope = (data) ->
-            switch kind = DeepDiveSearch.types?[data._type]?.kind
-                when "extraction"
-                    $scope.extractionDoc = data
-                    $scope.extraction    = data._source
-                    fetchParentIfNeeded data
-                    unwatch = $scope.$watch (-> data.parent), (source) ->
-                        $scope.sourceDoc = source
-                        $scope.source    = source?._source
-                        do unwatch if source?
-                    , showError
-                when "source"
-                    $scope.extractionDoc = null
-                    $scope.extraction    = null
-                    $scope.sourceDoc = data
-                    $scope.source    = data._source
-                else
-                    console.error "#{kind}: Unrecognized kind for type #{data._type}"
-
-        if $scope.data?._source?
-            initScope $scope.data
-        else
-            DeepDiveSearch.fetchWithSource {
-                    index: $scope.data._index
-                    type: $scope.data._type
-                    id: $scope.data._id
-                    routing: $scope.routing
-                }
-            .then (data) ->
-                _.extend $scope.data, data
-                initScope data
-            , showError
-
-
-.directive "showRawData", ->
-    restrict: "A"
-    scope:
-        data: "=showRawData"
-        level: "@"
-    template: ($element, $attrs) ->
-        if +$attrs.level > 0
-            """<json-tree edit-level="readonly" json="data" collapsed-level="{{level}}">"""
-        else
-            """
-            <span ng-hide="showJsonTree"><tt>{<span ng-click="showJsonTree = 1" style="cursor:pointer;">...</span>}</tt></span>
-            <json-tree ng-if="showJsonTree" edit-level="readonly" json="data" collapsed-level="2"></json-tree>
-            """
-
 
 # elasticsearch client as an Angular service
 .service "elasticsearch", (esFactory) ->
@@ -401,8 +25,7 @@ angular.module "mindbender.search", [
     # return the instance
     elasticsearch
 
-
-.service "DeepDiveSearch", (elasticsearch, $http, $q, $timeout, $location) ->
+.service "DeepDiveSearch", (elasticsearch, $http, $q, $timeout, $location, $uibModal, DossierService, QueryParseService) ->
     MULTIKEY_SEPARATOR = "@"
     class DeepDiveSearch
         constructor: (@elasticsearchIndexName = "_all") ->
@@ -413,8 +36,8 @@ angular.module "mindbender.search", [
                 t: 'everything' # type to search
                 n: 10   # number of items in a page
                 p: 1    # page number (starts from 1)
-                ro: 'false'  # is it read-only
-                #advanced: 'false'
+                #ro: 'false'  # is it read-only
+                advanced: 'false'
             @params = _.extend {}, @paramsDefault
             @types = null
             @indexes = null
@@ -444,6 +67,8 @@ angular.module "mindbender.search", [
                 'massage_places_sites': true
                 'homology': true
                 'language': true
+                'business_addresses': true
+                'business_address_streets':true
             }
             @flag_infos = {
                 'Foreign Providers': { 'ads':true }
@@ -470,14 +95,15 @@ angular.module "mindbender.search", [
                 'Hotel': { 'ads': true }
                 'Agency': { 'ads': true }
                 'Accepts Credit Cards': { 'ads': true }
+                'Accepts Walk-ins': { 'ads': true }
+                'Business Addresses': { 'ads': true }
                 'Multiple Girls': { 'ads': true }
             }
 
-            @all_dossiers = null
-            @active_dossier = null
-            @active_dossier_force_updates = 0
-            @query_to_dossiers = null
-            @read_only_query = false
+            @dossier = DossierService
+            @queryparse = QueryParseService
+            #@read_only_query = false
+            @suggestions = []
 
             @initialized = $q.all [
                 # load the search schema
@@ -501,17 +127,6 @@ angular.module "mindbender.search", [
         init: (@elasticsearchIndexName = "_all") =>
             @
 
-        fetch_dossiers: (queries) =>
-            $.getJSON '/api/dossier/by_query/', {queries: JSON.stringify(queries)}
-            .success (data) =>
-                @all_dossiers = data.all_dossiers
-                if queries and queries.length
-                    @query_to_dossiers = data.query_to_dossiers
-
-        add_dossier: (dossier_name) =>
-            if dossier_name and dossier_name not in @all_dossiers
-                @all_dossiers = [dossier_name].concat @all_dossiers
-
         toggleFacetCollpase: (field) =>
             if field of @collapsed_facets
                 delete @collapsed_facets[field]
@@ -533,137 +148,163 @@ angular.module "mindbender.search", [
                 qs = @params.s
 
             qs = qs || ''
-            if window.visualSearch && @params.ro == 'false'
-                window.visualSearch.searchBox.value(qs)
-            q =
-                if qs?.length > 0
-                    # Take care of quotations added by VisualSearch
-                    qs_for_es = qs.replace(/["']\[/g, '[').replace(/\]["']/g, ']')
-                    query_string:
-                        default_field: "content"
-                        default_operator: "AND"
-                        query: qs_for_es
-            # also search source when possible
-            # TODO highlight what's found here?
-            if st? and sq?.length > 0
-                q = bool:
-                    should: [
-                        q
-                      , has_parent:
-                            parent_type: st
-                            query:
-                                query_string:
-                                    default_field: "content"
-                                    default_operator: "AND"
-                                    query: sq
-                    ]
-                    minimum_should_match: 2
-            # forumate aggregations
-            aggs = {}
-            if @indexes?
-                for navigable in @getFieldsFor ["navigable", "searchableXXXXXX"], @params.t
-                    aggs[navigable] =
-                        switch @getFieldType navigable
-                            when "boolean"
-                                terms:
-                                    field: navigable
-                            when "stringXXXXXX"
-                                # significant_terms buckets are empty if query is empty;
-                                # terms buckets are not empty in that case.
-                                # we want to show facets even for initial page with empty query.
-                                if qs?.length > 0
-                                    significant_terms:
-                                        field: navigable
-                                        min_doc_count: 1
-                                else
+
+            p1 = @queryparse.parse_query qs
+            p1.then (pq) =>
+                isSimple = @queryparse.isSimpleQuery(pq)
+                if !isSimple && @params.advanced is 'false'
+                    @params.advanced = 'true'
+                if isSimple && window.visualSearch
+                    window.visualSearch.searchBox.value(qs)
+                    #window.visualSearch.searchBox.renderFacets()
+                    #window.visualSearch.searchBox.setQuery(qs)
+
+                #if window.visualSearch && @params.advanced isnt 'true'
+                #    window.visualSearch.searchBox.value(qs)
+                    
+                q =
+                    if qs?.length > 0
+                        # Take care of quotations added by VisualSearch
+                        qs_for_es = qs.replace(/["']\[/g, '[').replace(/\]["']/g, ']')
+                        query_string:
+                            default_field: "content"
+                            default_operator: "AND"
+                            query: qs_for_es
+                # also search source when possible
+                # TODO highlight what's found here?
+                if st? and sq?.length > 0
+                    q = bool:
+                        should: [
+                            q
+                          , has_parent:
+                                parent_type: st
+                                query:
+                                    query_string:
+                                        default_field: "content"
+                                        default_operator: "AND"
+                                        query: sq
+                        ]
+                        minimum_should_match: 2
+                # forumate aggregations
+                aggs = {}
+                if @indexes?
+                    for navigable in @getFieldsFor ["navigable", "searchableXXXXXX"], @params.t
+                        aggs[navigable] =
+                            switch @getFieldType navigable
+                                when "boolean"
                                     terms:
                                         field: navigable
-                            when "long"
-                                # TODO range? with automatic rnages
-                                # TODO extended_stats?
-                                stats:
-                                    field: navigable
-                            else # TODO any better default for unknown types?
-                                terms:
-                                    field: navigable
-                                    shard_size: 1000
-                                    size: 
-                                        switch navigable
-                                            when "flags" || "annotated_flags"
-                                                100
-                                            when "images"
-                                                10
-                                            else
-                                                50
-                    aggs[navigable + '__count'] =
-                        value_count:
-                            field: navigable
-            query =
-                index: @elasticsearchIndexName
-                type: @params.t
-                body:
-                    # elasticsearch Query DSL (See: https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/quick-start.html#_elasticsearch_query_dsl)
-                    size: @params.n
-                    from: (@params.p - 1) * @params.n
-                    query: q
-                    # TODO support filters
-                    aggs: aggs
-                    highlight:
-                        tags_schema: "styled"
-                        fields: _.object ([f,{require_field_match: true}] for f in fieldsSearchable)
-            @queryRunning = query
-            @querystringRunning = qs
-            elasticsearch.search query
-            .then (data) =>
-                @error = null
-                @queryRunning = null
-                @querystringRunning = null
-                @query = query
-                @query._query_string = qs
-                @query._source_type = st
-                @query._source_query_string = sq
-                @results = data
-                @fetchSourcesAsParents @results.hits.hits
-                facets = []
-                best_facets = ['domain_type', 'flags', 'annotated_flags', 'massage_places', 'massage_places_sites', 'domain', 'phones', 'post_date', 'images', 'locations_raw', 'locations', 'cities', 'states', 'countries', 'metropolitan_areas', 'embedded_websites', 'homology' ]
-                range_facets = ['ages', 'post_date', 'phones', 'ages']
-                date_facets = ['post_date']
-                for f in best_facets
-                    if f of data.aggregations
-                        facet = data.aggregations[f]
-                        facet.field = f
-                        facet.count = data.aggregations[f + '__count'].value
-                        facet.is_range = (f in range_facets)
-                        facet.is_date = (f in date_facets)
-                        if f of @collapsed_facets
-                            facet.collapsed = true
-                        facets.push facet
-                for k, v of data.aggregations
-                    if k not in best_facets and k + '__count' of data.aggregations
-                        facet = data.aggregations[k]
-                        facet.field = k
-                        facet.count = data.aggregations[k + '__count'].value
-                        facet.is_range = (k in range_facets)
-                        facet.is_date = (k in date_facets)
-                        if k of @collapsed_facets
-                            facet.collapsed = true
-                        facets.push facet
-                @results.facets = facets
-
-                dossier_queries = [qs]
-
-                idx = query.body.from + 1
-                for hit in data.hits.hits
-                    hit.idx = idx++
-                    dossier_queries.push('doc_id: "' + hit._id + '"')
-
-                @fetch_dossiers dossier_queries
-
-            , (err) =>
-                @error = err
-                console.error err.message
-                @queryRunning = null
-
+                                when "stringXXXXXX"
+                                    # significant_terms buckets are empty if query is empty;
+                                    # terms buckets are not empty in that case.
+                                    # we want to show facets even for initial page with empty query.
+                                    if qs?.length > 0
+                                        significant_terms:
+                                            field: navigable
+                                            min_doc_count: 1
+                                    else
+                                        terms:
+                                            field: navigable
+                                when "long"
+                                    # TODO range? with automatic rnages
+                                    # TODO extended_stats?
+                                    stats:
+                                        field: navigable
+                                else # TODO any better default for unknown types?
+                                    terms:
+                                        field: navigable
+                                        shard_size: 1000
+                                        size: 
+                                            switch navigable
+                                                when "flags" || "annotated_flags"
+                                                    100
+                                                when "images"
+                                                    10
+                                                else
+                                                    50
+                        aggs[navigable + '__count'] =
+                            value_count:
+                                field: navigable
+                query =
+                    index: @elasticsearchIndexName
+                    type: @params.t
+                    body:
+                        # elasticsearch Query DSL (See: https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/quick-start.html#_elasticsearch_query_dsl)
+                        size: @params.n
+                        from: (@params.p - 1) * @params.n
+                        query: q
+                        # TODO support filters
+                        aggs: aggs
+                        highlight:
+                            tags_schema: "styled"
+                            fields: _.object ([f,{require_field_match: true}] for f in fieldsSearchable)
+                @queryRunning = query
+                @querystringRunning = qs
+                shouldNormalize = q?
+    
+                #shouldNormalize = false
+                normalized_query = @queryparse.normalize_query (if shouldNormalize then q.query_string.query else ''), @dossier.fetch_dossier_by_name
+                normalized_query.then (nq) =>
+                  nquery = jQuery.extend(true, {}, query)
+                  if shouldNormalize
+                    nquery.body.query.query_string.query = nq 
+                  console.log 'normalized query: ' + nq
+                  elasticsearch.search nquery
+                  .then (data) =>
+                    @error = null
+                    @queryRunning = null
+                    @querystringRunning = null
+                    @query = query
+                    @query._query_string = qs
+                    @query._source_type = st
+                    @query._source_query_string = sq
+                    @results = data
+                    @fetchSourcesAsParents @results.hits.hits
+                    facets = []
+                    best_facets = ['domain_type', 'flags', 'annotated_flags', 'massage_places', 'massage_places_sites', 'domain', 'phones', 'post_date', 'images', 'locations_raw', 'locations', 'cities', 'states', 'countries', 'metropolitan_areas', 'business_addresses', 'business_address_streets', 'embedded_websites', 'homology' ]
+                    range_facets = ['ages', 'post_date', 'phones', 'ages']
+                    date_facets = ['post_date']
+                    for f in best_facets
+                        if f of data.aggregations
+                            facet = data.aggregations[f]
+                            facet.field = f
+                            facet.count = data.aggregations[f + '__count'].value
+                            facet.is_range = (f in range_facets)
+                            facet.is_date = (f in date_facets)
+                            if f of @collapsed_facets
+                                facet.collapsed = true
+                            facets.push facet
+                    for k, v of data.aggregations
+                        if k not in best_facets and k + '__count' of data.aggregations
+                            facet = data.aggregations[k]
+                            facet.field = k
+                            facet.count = data.aggregations[k + '__count'].value
+                            facet.is_range = (k in range_facets)
+                            facet.is_date = (k in date_facets)
+                            if k of @collapsed_facets
+                                facet.collapsed = true
+                            facets.push facet
+                    @results.facets = facets
+    
+                    # update DossierService
+                    dossier_queries = [qs]
+    
+                    idx = query.body.from + 1
+                    for hit in data.hits.hits
+                        hit.idx = idx++
+                        dossier_queries.push('doc_id:"' + hit._id + '"')
+    
+                    @dossier.fetch_dossiers dossier_queries
+   
+                  , (err) => #normalize query fails
+                      @error = err
+                      console.error err.message
+                      @queryRunning = null
+                , (err) => # query parse fails
+                    @error = err
+                    console.error err.message
+                    @queryRunning = null
+    
         fetchSourcesAsParents: (docs) => $q (resolve, reject) =>
             # TODO cache sources and invalidate upon ever non-continuing search?
             # find out what source docs we need fetch for current search results
@@ -697,17 +338,17 @@ angular.module "mindbender.search", [
 
         doNavigateMultiple: (event, field_value_pairs, newSearch = false) =>
             # if current query is read only, then always do a new search
-            if @params.ro == 'true'
-                newSearch = true
+            #if @params.ro == 'true'
+            #    newSearch = true
             for field, value of field_value_pairs
                 qsExtra =
                     if field and value
                         # use field-specific search for navigable fields
                         # VisualSearch may have added the quotes already
                         if value.indexOf("'") == 0 or value.indexOf('"') == 0
-                            "#{field}: #{value}"
+                            "#{field}:#{value}"
                         else
-                            "#{field}: \"#{value}\""
+                            "#{field}:\"#{value}\""
                     else if value?
                         "#{value}"
                     else if field?
@@ -738,14 +379,14 @@ angular.module "mindbender.search", [
                     newParams[k] = v
                 # update params
                 newParams[qs] = params_qs
-                if @params.ro == 'true'
-                    delete newParams['ro']
+                #if @params.ro == 'true'
+                #    delete newParams['ro']
                 url = '/#' + $location.path() + '?' + $.param(newParams)
                 window.open(url, '_blank')
                 return true
             else
-                if @params.ro == 'true'
-                    delete @params['ro']
+                #if @params.ro == 'true'
+                #    delete @params['ro']
                 @params[qs] = params_qs
                 @doSearch no, no
 
@@ -755,23 +396,11 @@ angular.module "mindbender.search", [
             @doNavigateMultiple event, params, newSearch
 
         doNavigateActiveDossier: () =>
-            union = ''
-            for q of @active_dossier_queries
-                if union.length > 0
-                    union = union + ' OR ' 
-                union = union + '(' + q + ')'
-
+            adq = 'folder: \"' + @queryparse.escape_query_term(@dossier.active_dossier)    + '\"'
             qs = if (@getSourceFor @params.t)? then "q" else "s"
-            @params[qs] = union
-            @params['ro'] = 'true'
+            @params[qs] = adq #union
+            #@params['ro'] = 'true'
             @doSearch no, true
-
-        doClearReadOnly: () =>
-            @params.ro = 'false'
-            qs = if (@getSourceFor @params.t)? then "q" else "s"
-            @params[qs] = ''
-            $timeout () ->
-                $(window.visualSearch.searchBox.el).find('input').focus()
 
         splitQueryString: (query_string) =>
             # TODO be sensitive to "phrase with spaces"
@@ -827,547 +456,50 @@ angular.module "mindbender.search", [
                 changed = yes
             changed
 
+        bulk_search: (field, values) =>
+            union = ''
+            for v in values.split('\n')
+                if v.trim().length > 0
+                    if union.length
+                        union = union + ' || '
+                    union = union + '"' + @queryparse.escape_query_term(v.trim()) + '"'
+            if union.length
+                union = field + ': (' + union + ')'
+                qs = if (@getSourceFor @params.t)? then "q" else "s"
+                @params[qs] = union
+                @doSearch no, true
+
+        showBulkSearchDialog: () =>
+            m = $uibModal.open {
+                animation: true
+                templateUrl: 'bulkSearchModal.html'
+                controller: 'ModalInstanceCtrl'
+                resolve: {}
+            }
+            m.result.then ((item) =>
+                console.log item
+                # add queries to folder
+                @bulk_search item.field, item.values
+                ),
+             () ->
+                console.log 'dismissed'
+
+
+
     new DeepDiveSearch
 
+.controller "ModalInstanceCtrl", ($scope, $routeParams, $uibModalInstance, DeepDiveSearch) ->
+    $scope.search = DeepDiveSearch
+    $scope.all_fields = DeepDiveSearch.getFieldsFor ['navigable', 'searchable'], DeepDiveSearch.params.t
+    $scope.field = ''
+    $scope.values = ''
 
-# a handy filter for generating safe id strings for HTML
-.filter "safeId", () ->
-    (text) ->
-        text?.replace /[^A-Za-z0-9_-]/g, "_"
-
-
-.directive "scoresTable", ($q, $timeout, $http, hotRegisterer, $compile) ->
-    template: """
-        <hot-table
-          hot-id="myTable"
-          settings="db.settings"
-          datarows="db.items">
-        </hot-table>
-        """
-    controller: ($scope) ->
-
-        $scope.phoneRenderer = (hotInstance, td, row, col, prop, value, cellProperties) =>
-            Handsontable.renderers.TextRenderer.apply(this, arguments)
-            td.innerHTML = "<a style='cursor:pointer; margin-right: 4px;'
-                        data-toggle='tooltip' title='New search with this filter'
-                        ng-click=\"search.doNavigate($event, 'phones', '" +value+"', true)\">" + 
-                        value + "</a>"
-            $compile(angular.element(td))($scope)
-
-        $scope.locRenderer = (hotInstance, td, row, col, prop, value, cellProperties) =>
-            Handsontable.renderers.TextRenderer.apply(this, arguments)
-            if value == 'Unknown'
-                value = ''
-            if value.length > 50
-                value = value.substring(0,50)
-            td.innerHTML = value
-
-        $scope.scoreRenderer = (hotInstance, td, row, col, prop, value, cellProperties) =>
-            Handsontable.renderers.TextRenderer.apply(this, arguments)
-            td.innerHTML = '<div style="height:15px;width:' + Math.round(parseFloat(value) * 50.0) + 'px;background-color:#f0ad4e"></div>'
-
-        $scope.columns = [
-          {
-           data:'phone_number'
-           title:'Phone Number'
-           renderer:$scope.phoneRenderer
-           readOnly:true 
-          },
-          { data:'ads_count', title:'#Ads', readOnly:true, type:'numeric' },
-          { data:'reviews_count', title:'#Reviews', readOnly:true, type:'numeric' },
-          { data:'organization_score', title:'Organization', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'control_score', title:'Control', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'underage_score', title:'Underage', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'movement_score', title:'Movement', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'overall_score', title:'Overall', readOnly:true, renderer:$scope.scoreRenderer },
-          { data:'city', title:'City', readOnly:true, renderer:$scope.locRenderer },
-          { data:'state', title:'State', readOnly:true, renderer:$scope.locRenderer }
-        ]
-
-        $scope.db = {
-           settings : {
-               colHeaders: true
-               rowHeaders: true
-               contextMenu: true
-               columns: $scope.columns
-               afterGetColHeader: (col, TH) => 
-                   if col > 0 && col < 8 
-                      TH.innerHTML = '<span ng-click="sortByColumn(' + col + 
-                          ')" style="cursor:pointer;padding-left:5px;padding-right:5px">' + 
-                          $scope.columns[col].title + '</span>'
-                      $compile(angular.element(TH.firstChild))($scope)
-           }
-           items : []
+    $scope.ok = () =>
+        $uibModalInstance.close {
+            field:$scope.field
+            values:$scope.values
         }
 
-        $scope.sortByColumn = (col) =>
-            field = $scope.columns[col].data
-            if field.endsWith('_score') || field.endsWith('_count')
-                field = field + ' DESC'
-            $scope.fetchScores(field)
-
-    link: ($scope, $element) ->
-
-        $scope.fetchScores = (sort_order) =>
-            $http.get "/api/scores", { params: {sort_order:sort_order} }
-                  .success (data) =>
-                      $scope.db.items = data
-                  .error (err) =>
-                      console.error err.message
-
-        $scope.fetchScores('overall_score DESC')
-
-
-.directive "labelPopover", ($timeout, $document, $uibPosition) ->
-    transclude:true
-    scope:
-        k: "="
-    template: """<span uib-popover-template="'labelPopoverTemplate.html'" 
-           popover-trigger="manual" ng-class="{'highlight':true,
-            'highlight-correct': tag.is_correct == 'correct',
-            'highlight-incorrect': tag.is_correct == 'incorrect',
-            'highlight-unknown': tag.is_correct == 'unknown' }"
-           popover-placement="bottom"
-           popover-is-open="isOpen"
-           ng-click="isOpen = true"
-           ng-transclude></span>"""
-
-    controller: ($scope) ->
-        $scope.isOpen = false
-        # the popover creates it's own scope which protoypically inherits from this scope;
-        # we thus wrap is_correct into an object, so that we don't need to synchronize state
-        $scope.tag = { is_correct : '' }
-        $scope.last_user_name = ''
-
-        $scope.commit = (val) =>
-            # if user clicks on active button, we reset the value
-            cur = $scope.curFeedback()
-            if cur && cur.value == val
-                $scope.tag.is_correct = val = ''
-            $timeout () =>
-                $scope.$parent.writeFeedback $scope.extraction.doc_id, $scope.extraction.mention_id, val 
-
-        $scope.curFeedback = (f) =>
-            if !f
-                f = $scope.$parent.feedback
-            if !f || !$scope.extraction
-                return false
-            cur = f[$scope.extraction.doc_id + ',' + $scope.extraction.mention_id]
-            if !cur
-               return false
-            return cur
-
-        $scope.tagHandler = (f) =>
-            cur = $scope.curFeedback(f)
-            if cur && cur.value != $scope.tag.is_correct
-               $scope.tag.is_correct = cur.value
-            if cur.user_name != $scope.last_user_name
-               if cur.value == ''
-                   $scope.last_user_name = ''
-               else
-                   $scope.last_user_name = cur.user_name
-
-        # we set initial state by listening to broadcast from parent
-        $scope.$on 'update_feedback', (event, feedback) =>
-            $scope.tagHandler feedback
-
-    link: ($scope, $element, attrs) ->
-        k = parseInt(attrs.k)
-        $scope.extraction = JSON.parse($scope.$parent.searchResult._source.extractions[k])
-        $scope.extractor = $scope.extraction.extractor
-
-        # hide popover on click away
-        handler = (e) ->
-            if $scope.isOpen && !$element[0].contains(e.target)
-                $scope.$apply () ->
-                    $scope.isOpen = false
-
-        $document.on 'click', handler
-
-        $scope.$on '$destroy', () =>
-            $document.off('click', handler)
-
-
-.directive "textWithAnnotations", ($q, $timeout, $http, $compile, tagsService) ->
-    scope:
-        searchResult: "="
-    template: """
-        <div ng-click="toggleEditMode()" ng-class="{'sq-btn': true, 'sq-btn-active':editMode}"
-          data-toggle="tooltip" data-placement="left" data-original-title="Switch to annotation mode"
-          ><i class="fa fa-pencil"></i></div>
-        <div></div>
-        """
-    controller: ($scope) ->
-        $scope.editMode = false
-
-        $scope.toggleEditMode = () =>
-            $scope.editMode = !$scope.editMode
-
-
-        # map from doc_id,mention_id -> feedback
-        $scope.feedback = {}
-
-        $scope.fetchFeedback = () =>
-            doc_id = $scope.searchResult._source.doc_id
-            $http.get "/api/feedback/" + doc_id 
-                  .success (data) =>
-                      data.forEach (d) ->
-                          $scope.feedback[d.doc_id + ',' + d.mention_id] = d
-                      $scope.$broadcast('update_feedback', $scope.feedback)
-                  .error (err) =>
-                      console.error err.message
-
-        $scope.writeFeedback = (doc_id, mention_id, value) =>
-            $http.post "/api/feedback", { doc_id:doc_id, mention_id:mention_id, value:value }
-                .success (data) =>
-                    # update model
-                    $scope.feedback[doc_id + ',' + mention_id] = data
-                    $scope.$broadcast('update_feedback', $scope.feedback)
-                .error (err) =>
-                    console.error err.message
-
-        $scope.fetchFeedback()
-
-        $scope.annotations = {}
-
-        $scope.fetchAnnotations = () =>
-            doc_id = $scope.searchResult._source.doc_id
-            $http.get "/api/annotation/" + doc_id
-                .success (data) =>
-                    data.forEach (d) ->
-                        $scope.showAnnotation(d.value, false)
-                .error (err) =>
-                    console.error err.message
-
-        $scope.writeAnnotation = (doc_id, mention_id, value, callback) =>
-            # compute sets of tags used in this document, after new annotation
-            annotated_flags = {}
-            for k,v of $scope.annotations
-              for s,t of v.tags
-                annotated_flags[t] = true
-            for s,t of v.tags
-              annotated_flags[t] = true
-            annotated_flags_arr = [k for k,v of annotated_flags]
-
-            $http.post "/api/annotation", { 
-                doc_id:doc_id
-                mention_id:mention_id
-                value:value,
-                _index:$scope.searchResult._index
-                _type:$scope.searchResult._type
-                annotated_flags:annotated_flags_arr 
-              }
-              .success (data) =>
-                    value.user_name = data.user_name
-                    if callback
-                        callback()
-              .error (err) =>
-                    console.error err.message
-
-        $scope.removeAnnotation = (doc_id, mention_id, callback) =>
-            $http.delete '/api/annotation/' + doc_id + '/' + mention_id, { }
-                .success (data) =>
-                    if callback
-                        callback()
-                .error (err) =>
-                    console.error err.message
-
-        $scope.fetchAnnotations()
-
-        $scope.onSelection = (ranges, event) =>
-            if !$scope.editMode
-                return
-            if ranges.length > 0
-                doc_id = $scope.searchResult._source.doc_id
-                mention_id = Object.keys($scope.annotations).length
-                annotation = $scope.makeAnnotation(ranges)
-                obj = { doc_id:doc_id, mention_id:mention_id, value:annotation, tags:[], comment:'' }
-                $scope.showAnnotation(obj, true)
-                document.getSelection().removeAllRanges()
-
-        $scope.showAnnotation = (ann, openPopup = false) =>
-            highlightSpans = $scope.hl.draw(ann.value)
-            key = ann.doc_id + ',' + ann.mention_id
-            $scope.annotations[key] = ann
-            for i in highlightSpans
-                el = angular.element(i)
-                el.attr('annotation-popover', '')
-                el.attr('doc-id', ann.doc_id)
-                el.attr('mention-id', ann.mention_id)
-                el.attr('annotation-open', openPopup)
-            $compile(el)($scope)
-
-        $scope.hideAnnotation = (doc_id, mention_id) =>
-            key = doc_id + ',' + mention_id
-            ann = $scope.annotations[key]
-            $scope.hl.undraw(ann.value)
-            delete $scope.annotations[key]
-
-        $scope.getAnnotation = (doc_id, mention_id) =>
-            key = doc_id + ',' + mention_id
-            return $scope.annotations[key]
-
-    link: ($scope, $element) ->
-        el = TextWithAnnotations.create($scope.searchResult)
-        second = $element.children().eq(1)
-        second.prepend(el)
-
-        $compile(el)($scope)
-
-        txtEl = second[0]
-
-        # enable annotations
-        $scope.hl = new annotator.ui.highlighter.Highlighter txtEl, {}
-        $scope.ts = new annotator.ui.textselector.TextSelector txtEl, { 
-            onSelection: $scope.onSelection }
-
-        # trims whitespace, usually in native code but not ie8
-        trim = (s) =>
-            if typeof String.prototype.trim == 'function'
-                String.prototype.trim.call s
-            else
-                s.replace(/^[\s\xA0]+|[\s\xA0]+$/g, '')
-
-        # construct annotation from list of ranges
-        annotationFactory = (contextel, ignoreSelector) =>
-            return (ranges) =>
-                text = []
-                serializedRanges = []
-                for i in [0...ranges.length]
-                    r = ranges[i]
-                    text.push trim(r.text())
-                    serializedRanges.push(r.serialize(contextel, ignoreSelector))
-                return {
-                    quote: text.join(' / ')
-                    ranges: serializedRanges
-                }
-
-        $scope.makeAnnotation = annotationFactory(txtEl, '.annotator-hl')
-
-
-.directive "annotationPopover", ($http, $compile, $document, $timeout, tagsService) ->
-    scope: {}
-    controller: ($scope) ->
-        $scope.tags = tagsService
-        $scope.togglePopup = () =>
-            $scope.isOpen = !$scope.isOpen
-
-        $scope.add = (st) =>
-            $scope.annotation.tags.push(st)
-            $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
-                $scope.annotation)
-            tagsService.maybeCreate(st)
-
-        $scope.remove = (st) =>
-            index = $scope.annotation.tags.indexOf(st)
-            if index > -1
-                $scope.annotation.tags.splice index, 1
-                $scope.$parent.writeAnnotation $scope.docId, $scope.mentionId,
-                    $scope.annotation, () ->
-                         tagsService.maybeRemove st
-
-        $scope.onSelect = ($item, $model, $label) ->
-            $scope.commit($item)
-
-        $scope.onCommentBlur = () ->
-            if $scope.commentChanged
-                $scope.$parent.writeAnnotation($scope.docId, $scope.mentionId,
-                    $scope.annotation)
-
-        $scope.commentChanged = false
-
-        $scope.onCommentChange = () ->
-            $scope.commentChanged = true
-
-
-    link: ($scope, $element, attrs) ->
-        $scope.isOpen = attrs['annotationOpen'] == 'true'
-        $scope.docId = attrs['docId']
-        $scope.mentionId = attrs['mentionId']
-
-        $scope.annotation = $scope.$parent.getAnnotation $scope.docId, $scope.mentionId
-
-        # remove self to avoid infinite loop
-        $element.removeAttr('annotation-popover')
-
-        # add popover
-        $element.attr('uib-popover-template', "'annotationPopoverTemplate.html'")
-        $element.attr('popover-trigger', 'manual')
-        $element.attr('popover-placement', 'bottom')
-        $element.attr('popover-is-open', 'isOpen')
-
-        # add tooltip
-        $element.attr('data-toggle', 'tooltip')
-        $element.attr('data-placement', 'top')
-        $element.attr('data-original-title', '{{annotation.tags.join(", ")}}')
-
-        $element.attr('ng-click', 'togglePopup()')
-
-        $compile($element)($scope)
-
-        $timeout () =>
-          $element.tooltip()
-
-        # hide popover on click away
-        handler = (e) ->
-            if $scope.isOpen && !$(e.target).parents('.popover').length && !$element[0].contains(e.target) && 
-                document.body.contains(e.target)
-                    $scope.$apply () ->
-                        $scope.isOpen = false
-                        if $scope.annotation.tags.length == 0
-                            $scope.$parent.removeAnnotation $scope.docId, $scope.mentionId
-                            $scope.$parent.hideAnnotation $scope.docId, $scope.mentionId
-
-        $timeout () =>
-            $document.on 'click', handler
-
-        $scope.$on '$destroy', () =>
-            $document.off('click', handler)
-
-.directive "tagsinputCustomEvents", ($parse, $timeout, tagsService) ->
-    restrict: 'A'
-    scope:
-        add:'=add'
-        remove:'=remove'
-        activeTags:'=tags'
-    link: ($scope, elem, attrs) ->
-        elem.tagsinput({
-            confirmKeys: [13]
-            trimValue: true
-            typeahead: {
-                source: tagsService.tags
-                minLength: 0
-                showHintOnFocus: false
-                #matcher: 'case insensitive'
-                matcher: (a) ->
-                   a.toUpperCase().indexOf(this.query.toUpperCase()) == 0
-                autoSelect: false
-            }
-        })
-
-        # add initial set of items
-        elem.tagsinput('removeAll')
-        for t in $scope.activeTags
-            elem.tagsinput('add', t)
-
-        elem.on 'itemAdded', (evt) ->
-            $scope.add evt.item
-            # fix bug where the input val does not clear
-            $timeout () ->
-              elem.tagsinput('input').val('')
-        elem.on 'itemRemoved', (evt) ->
-            $scope.remove evt.item
-
-        triggerFunc = (evt) ->
-            if !$scope.activeTags || $scope.activeTags.length == 0
-                  # hack to force open drawer
-                  elem.tagsinput('input').typeahead('lookup', '')
-
-        elem.tagsinput('input').bind('focus', triggerFunc)
-
-        $timeout () ->
-            elem.tagsinput('findInputWrapper').css('min-width','200px')
-            elem.tagsinput('input').parent().css('width','100%')
-            elem.tagsinput('focus')
-
-.service "tagsService", ($http) ->
-    cmp = (a,b) ->
-        a.toUpperCase().localeCompare(b.toUpperCase())
-
-    tags = {
-        # array of tags used shown in the annotation typeahead
-        tags: []
-        flags: {} # existing flag extractors
-        maybeCreate: (value) ->
-            # creates tag if it does not exist
-            if $.inArray(value, tags.tags) == -1
-                $http.post "/api/tags", { value:value }
-                    .success (data) =>
-                        tags.tags.push value
-                        tags.tags.sort cmp
-                    .error (err) =>
-                        console.error err.message
-        maybeRemove: (value) ->
-            # checks if tag is used by any annotation and if not, removes tag
-            $http.get "/api/tags/maybeRemove/" + encodeURIComponent(value), {}
-                 .success (data) =>
-                    if parseInt(data) > 0
-                        index = tags.tags.indexOf(value)
-                        if index > -1
-                            tags.tags.splice index, 1
-                 .error (err) =>
-                    console.error err
-        fetchTags: () ->
-            $http.get "/api/tags", {}
-                .success (data) =>
-                    # sorted array for annotation typeahead
-                    tags.tags = $.map data, (t) -> t.value
-                    tags.tags.sort cmp
-                    # set of extractor flags
-                    f = {}
-                    for k,t of data
-                      if t.is_flag
-                        f[t.value] = true
-                    tags.flags = f
-                .error (err) =>
-                    console.error err.message
-    }
-
-    tags.fetchTags()
-
-    return tags
-
-.directive "helpVideo", ($timeout, $templateCache) -> 
-
-    link: ($scope, elem, attrs) ->
-       elem.tooltip({
-           title:'Demo Video'
-           placement:'bottom'
-       })
-       videoHtml = $templateCache.get('helpVideo.html')
-       elem.colorbox({
-           html:videoHtml
-           innerWidth:'800px'
-           onComplete:() ->
-               colorbox = $(document.getElementById('colorbox'))
-               video = colorbox.find('video')
-               video[0].play()
-       })
-
-.directive "flagHelp", ($document, $templateCache, $http) ->
-    template: """<div uib-popover-template="'flagHelp' + key + '.html'"
-           popover-trigger="mouseenter"
-           popover-placement="right"
-           popover-is-open="isOpen"
-           popover-append-to-body="true"
-           ng-click="toggle($event)" class="flag-help-icon">?</div>"""
-    controller: ($scope) ->
-        $scope.close = (evt) ->
-           $scope.isOpen = false
-           evt.stopPropagation()
-           return false
-        $scope.toggle = (evt) ->
-           $scope.isOpen = !$scope.isOpen
-           evt.stopPropagation()
-           return false
-    link: ($scope, $element, attrs) ->        
-        $scope.isOpen = false
-        k = encodeURIComponent(attrs['key'])
-        if $templateCache.get('flagHelp' + k + '.html')?
-            $scope.key = k
-        else
-            $scope.key = 'Missing'        
-
-        # hide popover on click away
-        handler = (e) ->
-            if $scope.isOpen #&& !$element[0].contains(e.target)
-                $scope.$apply () ->
-                    $scope.isOpen = false
-            e.stopPropagation()
-            return false
-
-        $document.on 'click', handler
-
-        $scope.$on '$destroy', () =>
-            $document.off('click', handler)
+    $scope.cancel = () =>
+        $uibModalInstance.dismiss 'cancel'
 
