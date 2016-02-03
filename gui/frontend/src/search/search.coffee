@@ -8,6 +8,7 @@ angular.module "mindbender.search.search", [
     'ngHandsontable'
     'ui.bootstrap'
     'mindbender.search.queryparse'
+    'mindbender.search.util'
 ]
 
 # elasticsearch client as an Angular service
@@ -463,7 +464,7 @@ angular.module "mindbender.search.search", [
                         union = union + ' || '
                     union = union + '"' + @queryparse.escape_query_term(v.trim()) + '"'
             if union.length
-                union = field + ' :(' + union + ')'
+                union = field + ': (' + union + ')'
                 qs = if (@getSourceFor @params.t)? then "q" else "s"
                 @params[qs] = union
                 @doSearch no, true
@@ -501,3 +502,4 @@ angular.module "mindbender.search.search", [
 
     $scope.cancel = () =>
         $uibModalInstance.dismiss 'cancel'
+

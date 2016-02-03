@@ -52,8 +52,10 @@
         </div>
         <div class="form-group">
           <label for="">Search Field Name</label>
-          <input ng-model="field" type="text" class="form-control" placeholder=""
-           uib-typeahead="s for s in all_fields | filter:$viewValue | limitTo:8">
+          <input ng-model="field" type="search" class="form-control" 
+           uib-typeahead="s for s in all_fields | filter:$viewValue | limitTo:8"
+           typeahead-focus-first="false"
+           typeahead-min-length="0" />
         </div>
         <div class="form-group">
           <label for="">Values (one per line)</label>

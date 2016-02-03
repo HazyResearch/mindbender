@@ -114,10 +114,11 @@
 
         <input ng-class="{ 'hide': search.params.advanced !== 'true' }" type="search" class="form-control" style="width:100%" search-query-input
             uib-typeahead="suggestion as suggestion.label for suggestion in suggest.getSearchSuggestions($viewValue, cursor)"
-            typeahead-loading="loadingLocations" typeahead-no-results="noResults" typeahead-focus-first="false"
+            typeahead-loading="loadingLocations" typeahead-no-results="noResults" typeahead-focus-first="false" typeahead-min-length="0"
             typeahead-template-url="search/typeahead-match.html"
             typeahead-popup-template-url="customPopupTemplate.html" 
-            ng-model="search.params.s" />
+            ng-model="search.params.s" 
+            typeahead-click-open />
 
     </div>
 </form>

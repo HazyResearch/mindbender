@@ -14,6 +14,7 @@ angular.module "mindbender.search", [
     'mindbender.search.search'
     'mindbender.search.suggest'
     'mindbender.search.queryparse'
+    'mindbender.search.util'
 ]
 
 .config ($routeProvider) ->
@@ -58,7 +59,7 @@ angular.module "mindbender.search", [
     }).success (data) ->
             $scope.organization = data
 
-.directive "deepdiveSearchBar", (DossierService) ->
+.directive "deepdiveSearchBar", ($timeout, DossierService) ->
     scope:
         search: "=for"
     templateUrl: "search/searchbar.html"
@@ -101,7 +102,6 @@ angular.module "mindbender.search", [
                 return unless oldQuery?  # don't mess $location upon load
                 $location.search DeepDiveSearch.params
                 $location.path "/search/"
-
 
 .directive "myDatePicker", ->
     restrict: 'A'
