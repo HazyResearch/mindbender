@@ -47,3 +47,6 @@ bower_components/visualsearch/build-min/visualsearch.js
 
 bower_components/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js
 bower_components/bootstrap-select/dist/js/bootstrap-select.min.js
+
+bower_components/bootstrap-switch/dist/js/bootstrap-switch.js
+bower_components/angular-bootstrap-switch/dist/angular-bootstrap-switch.js
