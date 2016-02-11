@@ -80,7 +80,7 @@ jqSchema() {
     if ! [[ -f "${DDLOG_SCHEMA_JSON:-}" ]]; then
         DDLOG_SCHEMA_JSON="$tmpdir"/app.ddlog.json
         # TODO keep this schema exporting under deepdive command?
-        ddlog export-schema app.ddlog >"$DDLOG_SCHEMA_JSON"
+        ddlog export-schema --skip-desugar app.ddlog >"$DDLOG_SCHEMA_JSON"
     fi
     export DDLOG_SCHEMA_JSON
     jqDDlog <"$DDLOG_SCHEMA_JSON" "$@"
