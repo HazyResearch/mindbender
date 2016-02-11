@@ -141,6 +141,7 @@ def sourceRelationsFixWIP:
     relationSubgraphForSearchFromRelation |
     { graph: . } | recurse(.graph | .references[]; .graph) |
     select(.graph | .relation | relationByName | isAnnotated(.name == "source"))
+;
 
 # SQL query for unloading a relation from PostgreSQL database with associated relations nested
 def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
