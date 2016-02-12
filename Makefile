@@ -39,4 +39,4 @@ endif
 
 # tests
 TEST_THROUGH = $(PACKAGENAME) hack
-include buildkit/test-with-bats.mk
+-include buildkit/test-with-bats.mk
