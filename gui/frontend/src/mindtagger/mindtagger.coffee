@@ -4,6 +4,7 @@ angular.module 'mindbender.mindtagger', [
     'mindbender.mindtagger.wordArray'
     'mindbender.mindtagger.arrayParsers'
     'mindbender.mindtagger.tags.parametric'
+    'mindbender.mindtagger.custom'
 ]
 
 .config ($routeProvider) ->
@@ -495,9 +496,10 @@ angular.module 'mindbender.mindtagger', [
             """
 
 # a shorthand for inserting a named fragment of the Mindtagger task specific template
-.directive 'mindtaggerInsertTemplate', ($compile, $document) ->
+.directive 'mindtaggerInsertTemplate', ($compile, $document, CustomUtils) ->
     restrict: 'EA'
     link: ($scope, $element, $attrs) ->
+        $scope.CustomUtils = CustomUtils
         # find the template with the name under the closest mindtagger directive element
         templateName = $attrs.mindtaggerInsertTemplate ? $attrs.src
         template = $element.parents("mindtagger")
