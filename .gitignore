@@ -11,12 +11,12 @@
 /mindbender-*.sh
 /mindbender-*.dmg
 
-/.depends/*
-!/.depends/*.depends
-!/.depends/*.commands
-!/.depends/*.paths
-!/.depends/*.test.sh
-!/.depends/*.sh
-!/.depends/*.txt
+/.depends/*/*
+!/.depends/*/depends
+!/.depends/*/commands
+!/.depends/*/paths
+!/.depends/*/test.sh
+!/.depends/*/install.sh
+!/.depends/*/txt
 
 node_modules

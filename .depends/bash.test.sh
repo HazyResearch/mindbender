@@ -1,1 +1,0 @@
-../buildkit/depends/common/bash.test.sh

@@ -5,7 +5,6 @@ set -eu
 self=$0
 name=`basename "$0" .sh`
 
-cp -f ../"$name".json package.json
 rm -rf node_modules
 date >README.md
 npm install
