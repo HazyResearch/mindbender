@@ -125,15 +125,20 @@ def allNestedFieldsFromSpanningTree(selectColumn):
 
 # enumerate relation names this one @references that satisfy given condition along with the access path
 def allNodesInSpanningTree(selectRelation):
-    recurse(.spanningTree | ( .references[]?, .referencedBy[]? )) |
-    select(.spanningTree | [selectRelation] | length > 0)
+    recurse(.spanningTree | ( .references[]?, .referencedBy[]? )) | select(.spanningTree | [selectRelation] | length > 0)
+;
+def nodesReferencedInSpanningTree(selectRelation):
+    recurse(.spanningTree | ( .references[]?                   )) | select(.spanningTree | [selectRelation] | length > 0)
+;
+def nodesReferencingInSpanningTree(selectRelation):
+    recurse(.spanningTree | (                 .referencedBy[]? )) | select(.spanningTree | [selectRelation] | length > 0)
 ;
 def sourceRelations:
     def referencesToSomeSourceRelation:
         .references[]? | select(.relation | relationByName | isAnnotated(.name == "source"))
     ;
     spanningTreeForSearchFromRelation |
-    allNodesInSpanningTree(referencesToSomeSourceRelation) |
+    nodesReferencedInSpanningTree(referencesToSomeSourceRelation) |
     .spanningTree | .pathPrefix as $pathPrefix | referencesToSomeSourceRelation |
     { sourceRelation: .relation
     , sourceReferenceFields: [$pathPrefix + (.byColumn | map([.name]) | sort)[]]
