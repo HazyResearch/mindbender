@@ -136,7 +136,7 @@ def sourceRelations:
     allNodesInSpanningTree(referencesToSomeSourceRelation) |
     .spanningTree | .pathPrefix as $pathPrefix | referencesToSomeSourceRelation |
     { sourceRelation: .relation
-    , sourceReferenceFields: [$pathPrefix + (.byColumn | map([.name]) | sort)[] | join(".")]
+    , sourceReferenceFields: [$pathPrefix + (.byColumn | map([.name]) | sort)[]]
     , sourceReferenceAlias: .alias
     , byColumn: .byColumn
     , pathPrefix: $pathPrefix
@@ -307,15 +307,12 @@ def jqExprForColumns:
 ;
 # jq code for turning json lines unloaded from database into Elasticsearch's _bulk API payload
 def jqForBulkLoadingRelationIntoElasticsearch:
-    (
-        # taking the first group of columns referencing a @source relation
-        [ sourceRelations ][0]
-    ) as $firstSourceRelation |
     "
     # index action/metadata
     {index:{ _id: \(keyColumns | map(.name) | sort | jqExprForColumns)\(
-          if $firstSourceRelation == null then "" else
-      ", _parent: \($firstSourceRelation.sourceReferenceFields | jqExprForColumns
+        # taking the first @source relation referenced by this relation
+        [sourceRelations] | if length == 0 then "" else
+      ", _parent: \(first | .sourceReferenceFields | map(join(".")) | jqExprForColumns
        )" end) }},
     # followed by the actual document to index
     .

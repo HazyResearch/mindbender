@@ -284,6 +284,10 @@ angular.module "mindbender.search", [
                 @queryRunning = null
 
         fetchSourcesAsParents: (docs) => $q (resolve, reject) =>
+            valueAtPath = (obj, fs) ->
+                v = obj
+                v = v?[f] for f in fs
+                v
             # TODO cache sources and invalidate upon ever non-continuing search?
             # find out what source docs we need fetch for current search results
             docRefs = []; docsByMgetOrder = []
@@ -292,7 +296,7 @@ angular.module "mindbender.search", [
                 docRefs.push
                     _index: doc._index
                     _type: parentRef.type
-                    _id: (doc._source[f] for f in parentRef.fields).join MULTIKEY_SEPARATOR
+                    _id: (valueAtPath doc._source, path for path in parentRef.fields).join MULTIKEY_SEPARATOR
             return resolve docs unless docRefs.length > 0
             # fetch sources
             elasticsearch.mget { body: { docs: docRefs } }
