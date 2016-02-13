@@ -83,64 +83,64 @@ def relationsReferencingThisRelation:
     ]
 ;
 
-## schema graph traversal for search document model
+## schema graph traversal to create a spanning tree for search document model
 # build a spanning tree from the current relation
-def relationSubgraphForSearchFromRelation(parentRelation):
-    # TODO detect cycles
-    # TODO limit nestingLevel
-    . as $this |
-    { relation: $this
-    , references: [
-            relationsReferencedByThisRelation[] |
+def spanningTreeForSearchFromRelation(relationNamesSoFar; pathSoFar; remainingNestingLevels):
+    # TODO detect non-trivial cycles
+    . as $this | { spanningTree: { relation: $this, pathPrefix: pathSoFar }
+    | (if remainingNestingLevels == 0 then . else
+        .references = [ $this | relationsReferencedByThisRelation[] | . += (
             # don't nest @source relations
-            if (.relation != parentRelation) and
+            ( if (.relation != (pathSoFar | last)) and
                (.relation | relationByName | isAnnotated(.name == "source") | not)
-            then .graph = (.relation | relationByName |
-                           relationSubgraphForSearchFromRelation($this.name))
-            else .
-            end
-        ]
-    , referencedBy: [
-            relationsReferencingThisRelation[] |
+            then remainingNestingLevels - 1 else 0 end) as $nextNestingLevel |
+            .alias as $alias |
+            .relation | relationByName | spanningTreeForSearchFromRelation(
+                relationNamesSoFar + [$this.name]; pathSoFar + [$alias]; $nextNestingLevel)
+        ) ] |
+        .referencedBy = [ $this | relationsReferencingThisRelation[] | . += (
             # don't nest other @extraction relations that references this
-            if (.byRelation != parentRelation) and
+            ( if (.byRelation != (pathSoFar | last)) and
                (.byRelation | relationByName | isAnnotated(.name == "extraction") | not)
-            then .graph = (.byRelation | relationByName |
-                           relationSubgraphForSearchFromRelation($this.name))
-            else .
-            end
-        ]
+            then remainingNestingLevels - 1 else 0 end) as $nextNestingLevel |
+            "\(.byRelation)_\(.alias)" as $alias |
+            .byRelation | relationByName | spanningTreeForSearchFromRelation(
+                relationNamesSoFar + [$this.name]; pathSoFar + [$alias]; $nextNestingLevel)
+        ) ]
+    end)
     }
 ;
-def relationSubgraphForSearchFromRelation: relationSubgraphForSearchFromRelation(null);
+def spanningTreeForSearchFromRelation: spanningTreeForSearchFromRelation([]; []; -1);
 
-# from the subgraph, enumerate all qualified field names, e.g., R.Q.col1, R.Q.col2, that meet given conditions
-def allNestedFields(selectColumn):
-    # first enumerate all nodes with its path
-    {path:[], graph:.} | recurse(
-        . as $this |
-        .graph | (
-            .references[] | select(.graph) |
-            .path = $this.path + [.alias]
-        ), (
-            .referencedBy[] | select(.graph) |
-            .path = $this.path + ["\(.byRelation)_\(.alias)"]
-        )
-    ) |
+# from the spanning tree, enumerate all qualified field names, e.g., R.Q.col1, R.Q.col2, that meet given conditions
+def allNestedFieldsFromSpanningTree(selectColumn):
+    # first enumerate all nodes in the tree
+    recurse(.spanningTree |
+    ( (.references[]?   | select(.relation   | relationByName | isAnnotated(.name == "source"    ) | not))
+    , (.referencedBy[]? | select(.byRelation | relationByName | isAnnotated(.name == "extraction") | not))
+    )) |
     # turn each node into qualified field names
-    [.path + (.graph.relation | columns | selectColumn | [.name]) | join(".")][]
+    [.spanningTree.pathPrefix + (.spanningTree.relation | columns | selectColumn | [.name]) | join(".")][]
 ;
 
-# enumerate the @source relation names this one @references
-def sourceRelations:
-    # TODO use relationSubgraphForSearchFromRelation instead
-    relationsReferenced[] |
-    select(.relation | relationByName | isAnnotated(.name == "source"))
+# enumerate relation names this one @references that satisfy given condition along with the access path
+def allNodesInSpanningTree(selectRelation):
+    recurse(.spanningTree | ( .references[]?, .referencedBy[]? )) |
+    select(.spanningTree | [selectRelation] | length > 0)
 ;
-def sourceRelationsFixWIP:
-    relationSubgraphForSearchFromRelation |
-    { graph: . } | recurse(.graph | .references[]; .graph) |
-    select(.graph | .relation | relationByName | isAnnotated(.name == "source"))
+def sourceRelations:
+    def referencesToSomeSourceRelation:
+        .references[]? | select(.relation | relationByName | isAnnotated(.name == "source"))
+    ;
+    spanningTreeForSearchFromRelation |
+    allNodesInSpanningTree(referencesToSomeSourceRelation) |
+    .spanningTree | .pathPrefix as $pathPrefix | referencesToSomeSourceRelation |
+    { sourceRelation: .relation
+    , sourceReferenceFields: [$pathPrefix + (.byColumn | map([.name]) | sort)[] | join(".")]
+    , sourceReferenceAlias: .alias
+    , byColumn: .byColumn
+    , pathPrefix: $pathPrefix
+    }
 ;
 
 # SQL query for unloading a relation from PostgreSQL database with associated relations nested
@@ -148,7 +148,7 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
     "\n\(indent)" as $indent |
 
     # collect some info about this relation
-    # TODO use relationSubgraphForSearchFromRelation instead
+    # TODO use spanningTreeForSearchFromRelation instead
     . as $this |
     { this: .
     , references: [
@@ -309,15 +309,13 @@ def jqExprForColumns:
 def jqForBulkLoadingRelationIntoElasticsearch:
     (
         # taking the first group of columns referencing a @source relation
-        [ sourceRelations |
-          .byColumn | map(.name) | sort
-        ][0]
-    ) as $columnsForParent |
+        [ sourceRelations ][0]
+    ) as $firstSourceRelation |
     "
     # index action/metadata
     {index:{ _id: \(keyColumns | map(.name) | sort | jqExprForColumns)\(
-          if $columnsForParent == null then "" else
-      ", _parent: \($columnsForParent | jqExprForColumns
+          if $firstSourceRelation == null then "" else
+      ", _parent: \($firstSourceRelation.sourceReferenceFields | jqExprForColumns
        )" end) }},
     # followed by the actual document to index
     .
@@ -345,10 +343,10 @@ def elasticsearchTypeForDDlogType:
 
 # properties
 def elasticsearchPropertiesForMappings:
-    [(
+    .spanningTree | [(
         [.relation | columns]
         # except the columns referencing others
-        - [.references[] | select(.graph) | .byColumn[]] | .[] |
+        - [.references[] | .byColumn[]] | .[] |
         {
             key: .name,
             value: {
@@ -363,32 +361,32 @@ def elasticsearchPropertiesForMappings:
             }
         }
     ), (
-        .references[] | select(.graph) | {
+        .references[] | {
             key: .alias,
             value: {
-                properties: .graph | elasticsearchPropertiesForMappings
+                properties: elasticsearchPropertiesForMappings
             }
         }
     ), (
-        .referencedBy[] | select(.graph) | {
+        .referencedBy[] | {
             key: "\(.byRelation)_\(.alias)",
             value: {
-                properties: .graph | elasticsearchPropertiesForMappings
+                properties: elasticsearchPropertiesForMappings
             }
         }
-    )] | from_entries
+    )]? | from_entries
 ;
 
 def elasticsearchMappingsForRelations:
     map({
         key: .name,
-        value: relationSubgraphForSearchFromRelation | ({
+        value: spanningTreeForSearchFromRelation | ({
             # generate a full mapping with all properties
             properties: elasticsearchPropertiesForMappings,
         } * (
             # _parent to the first @source relation
-            [.relation | sourceRelations][0].relation |
-            if . then { _parent: { type: . } } else {} end
+            [.spanningTree.relation | sourceRelations][0] |
+            if . then { _parent: { type: .sourceRelation } } else {} end
         ))
     }) |
     from_entries
@@ -396,17 +394,17 @@ def elasticsearchMappingsForRelations:
 
 def searchFrontendSchema:
     [ relations | annotated([.name] | inside(["source", "extraction"])) |
-    { key: .name, value: relationSubgraphForSearchFromRelation | {
-              kind: (if .relation | isAnnotated(.name == "source") then "source" else "extraction" end),
+    { key: .name, value: spanningTreeForSearchFromRelation | {
+              kind: (if .spanningTree.relation | isAnnotated(.name == "source") then "source" else "extraction" end),
         # add paths for nested fields
-        searchable: [allNestedFields(annotated(.name == "searchable"))],
-         navigable: [allNestedFields(annotated(.name == "navigable"))],
+        searchable: [allNestedFieldsFromSpanningTree(annotated(.name == "searchable"))],
+         navigable: [allNestedFieldsFromSpanningTree(annotated(.name == "navigable"))],
         # TODO presentation fields
             source: [
-                .relation | sourceRelations |
-                { type: .relation
-                , fields: (.byColumn | map(.name))
-                , alias: .alias
+                .spanningTree.relation | sourceRelations |
+                { type: .sourceRelation
+                , fields: .sourceReferenceFields
+                , alias: .sourceReferenceAlias
                 }][0]
     } } ] | from_entries
 ;
