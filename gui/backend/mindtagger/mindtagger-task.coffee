@@ -253,9 +253,7 @@ class MindtaggerTask
             values = (JSON.parse v for v of tagSchema.frequency)
             values.push null
             tagSchema.type =
-                if (values.every (v) -> not v? or (typeof v) is 'boolean') or
-                        values.length == 2 and
-                        not values[0] is not not values[1]
+                if values.length <= 10  # XXX an arbitrary number
                     tagSchema.values = values
                     'simple'
                 else
