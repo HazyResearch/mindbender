@@ -15,6 +15,7 @@
       </ul>
 
       <form class="navbar-form navbar-left" role="search"
+          ng-if="MindtaggerTask.groupFilter"
           ng-init="groupFilter = MindtaggerTask.groupFilter"
           ng-submit="MindtaggerTask.updateFilter(groupFilter)">
         <div class="input-group">
