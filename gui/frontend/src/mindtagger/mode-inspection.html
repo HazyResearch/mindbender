@@ -25,12 +25,12 @@
     mindtagger-item="item" ng-class="cursor ? 'mindtagger-cursor-item' : ''">
     <div class="panel panel-default"
       ng-class="cursor ? 'mindtagger-cursor-item panel-primary' : 'panel-default'">
-        <div class="panel-body">
+        <div class="panel-body clearfix">
           <big>
             <div mindtagger-insert-template="each-item"></div>
           </big>
         </div>
-        <div class="panel-footer">
+        <div class="panel-footer clearfix">
           <!-- task-specific tagging UI elements -->
           <span mindtagger-insert-template="tags"></span>
         </div>
