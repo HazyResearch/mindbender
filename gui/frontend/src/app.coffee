@@ -5,6 +5,7 @@ angular.module 'mindbender', [
     'mindbender.dashboard'
     'mindbender.search'
     'mindbender.extensions'
+    'angular-toArrayFilter'
 ]
 .config ($routeProvider) ->
     $routeProvider.when '/',

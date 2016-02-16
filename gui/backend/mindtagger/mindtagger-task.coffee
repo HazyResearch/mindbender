@@ -234,20 +234,25 @@ class MindtaggerTask
                     ((schema[name] ?= {}).frequency ?= {})[v] ?= 0
                     schema[name].frequency[v] += 1
             # sum the individual frequencies for total count
-            for name,s of schema
-                s.count = 0 unless oldTags?
-                s.count += f for v,f of s.frequency
+            updateCounts = (schema, tags) ->
+                # collect mentioned tag names
+                tagNames = {}; tagNames[name] = 1 for name of tag for tag in tags when tag?
+                # update their frequencies
+                for name of tagNames
+                    s = (schema[name] ?= {})
+                    s.count = 0
+                    s.count += f for v,f of s.frequency
+            updateCounts schema, tags
             if oldTags?
                 # perform incremental maintenance of value frequencies if previous
-                # values of the same tags were given as well
+                # values of the same tags were given as well by canceling their double counts
                 for tag in oldTags when tag?
                     for name,value of tag when value? and schema[name]?
+                        s = schema[name]
                         v = JSON.stringify value
-                        unless (schema[name].frequency?[v] -= 1) > 0
-                            delete schema[name].frequency[v]
-                for name,s of schema
-                    s.count -= f for v,f of s.frequency
-                    delete s.count unless s.count >= 0
+                        unless (s.frequency?[v] -= 1) > 0
+                            delete s.frequency[v]
+                updateCounts schema, oldTags
         # infer type by induction on observed values
         for tagName,tagSchema of schema when not tagSchema.type?
             values = (JSON.parse v for v of tagSchema.frequency)

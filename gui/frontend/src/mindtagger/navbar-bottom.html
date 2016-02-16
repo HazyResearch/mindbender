@@ -1,20 +1,20 @@
 <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation"
   ng-if="MindtaggerTask.items.length > 0">
-  <div class="container">
-    <div class="col-md-6 text-left" style="padding-top:20px; padding-bottom:20px;">
+  <div class="container-fluid">
+    <div class="col-md-7 text-left" style="padding-top:20px; padding-bottom:20px;">
       <div ng-transclude></div>
     </div>
 
-    <div class="col-md-6">
-      <div class="col-md-10 text-right">
+    <div class="col-md-5">
+      <div class="col-md-9 text-right">
         <pagination class="pagination-sm fa"
           total-items="MindtaggerTask.itemsCount" items-per-page="MindtaggerTask.itemsPerPage"
           ng-model="MindtaggerTask.currentPage"
           ng-model-options="{ debounce: 200 }"
           previous-text="&#xf04a;" next-text="&#xf04e;" first-text="&#xf049;" last-text="&#xf050;"
-          max-size="3" boundary-links="true" rotate="false"></pagination>
+          max-size="5" boundary-links="true"></pagination>
       </div>
-      <div class="col-md-2 text-right">
+      <div class="col-md-3 text-right">
         <!-- TODO separate this in a menu dropup -->
         <span class="input-group" style="margin-top:20px;">
           <input type="number" min="1" max="50" size="2" value="10"

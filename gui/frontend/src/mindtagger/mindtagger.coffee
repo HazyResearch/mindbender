@@ -343,20 +343,26 @@ angular.module 'mindbender.mindtagger', [
 
 .service 'MindtaggerUtils', (parsedArrayFilter) ->
     class MindtaggerUtils
-        @progressBarClassForValue: (json, index) ->
+        @progressBarClassForValue: (json, index, tagSchema) ->
             value = (try JSON.parse json) ? json
-            switch value
-                when true, "true"
-                    "progress-bar-success"
-                when false, "false"
-                    "progress-bar-danger"
-                when null, "null"
-                    "progress-bar-warning"
-                else
-                    "progress-bar-info#{
-                        if index % 2 == 0 then ""
-                        else " progress-bar-striped"
-                    }"
+            if (_.size tagSchema.frequency) == 1
+                "progress-bar-info#{
+                    if index % 2 == 0 then ""
+                    else " progress-bar-striped"
+                }"
+            else
+                switch value
+                    when true, "true"
+                        "progress-bar-success"
+                    when false, "false"
+                        "progress-bar-danger"
+                    when null, "null", "UNKNOWN"
+                        "progress-bar-warning"
+                    else
+                        "progress-bar-info#{
+                            if index % 2 == 0 then ""
+                            else " progress-bar-striped"
+                        }"
 
 
 .service "localStorageState", ->
