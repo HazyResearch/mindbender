@@ -176,6 +176,10 @@ angular.module 'mindbender.mindtagger', [
                         @moveCursorTo @cursorInitIndex
                         @cursorInitIndex = null
             )
+            ( $http.get "api/mindtagger/"
+                .success (tasks) =>
+                    @config = _.first (_.where tasks, name:@name)
+            )
         ]
 
     loadGroupNames: (q) =>
@@ -475,18 +479,18 @@ angular.module 'mindbender.mindtagger', [
 ) ->
     restrict: 'EA', transclude: true
     link: ($scope, $element, $attrs, controller, $transclude) ->
-        url = $scope.$eval ($attrs.mindtaggerInclude ? $attrs.src)
-        # load template for the mode
-        $templateRequest url
-            .then (template) ->
-                parsedTemplate = $($.parseHTML template, $document[0])
-                $element.prepend parsedTemplate  # XXX this first prepend is to make sure parents are accessible during the following template's compilation
-                $element.prepend (($compile parsedTemplate) $scope)
-            .catch ->
-                # display an error
-                $element.prepend $("""
-                    <div class="alert alert-danger"></div>
-                    """).append $transclude()
+        $scope.$watch ($attrs.mindtaggerInclude ? $attrs.src), (url) ->
+            # load template for the mode
+            $templateRequest url
+                .then (template) ->
+                    parsedTemplate = $($.parseHTML template, $document[0])
+                    $element.prepend parsedTemplate  # XXX this first prepend is to make sure parents are accessible during the following template's compilation
+                    $element.prepend (($compile parsedTemplate) $scope)
+                .catch ->
+                    # display an error
+                    $element.prepend $("""
+                        <div class="alert alert-danger"></div>
+                        """).append $transclude()
 
 # top-level element in task templates (which can be nested as well)
 .directive 'mindtagger', () ->

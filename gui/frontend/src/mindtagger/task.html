@@ -1,7 +1,7 @@
 <div class="container-fluid">
-<div mindtagger-include="'mindtagger/tasks/'+ MindtaggerTask.name +'/template.html'">
+<div mindtagger-include="'mindtagger/tasks/'+ MindtaggerTask.name +'/'+ MindtaggerTask.config.template" ng-if="MindtaggerTask.config.template">
     <strong>
-        template.html missing in task {{MindtaggerTask.name}}
+        {{MindtaggerTask.config.template || 'template.html'}} missing in task {{MindtaggerTask.name}}
     </strong>
 </div>
 
