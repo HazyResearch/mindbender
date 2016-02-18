@@ -27,7 +27,12 @@ angular.module 'mindbender', [
     $rootScope.$on "$routeChangeStart", updateRootScopeFromCurrentRoute
     $rootScope.$on "$routeUpdate",      updateRootScopeFromCurrentRoute
 
-.controller 'LandingPageCtrl', ($rootScope, $http, $location) ->
+.controller 'LandingPageCtrl', ($rootScope, $http, $location, localStorageState) ->
+    # remember lastly used path and restore
+    savedState = localStorageState "MindbenderLandingPageCtrl", $rootScope, [ "lastPath" ]
+    $rootScope.$on "$routeUpdate", (event, current, previous) ->
+        $rootScope.lastPath = $location.path()
+    return $location.path savedState.lastPath if savedState.lastPath?
     # redirect to mindtagger or dashboard at first visit
     unless $rootScope.mindtaggerTasks?
         $http.get "api/mindtagger/"
@@ -36,7 +41,12 @@ angular.module 'mindbender', [
                 if tasks.length > 0
                     $location.path "/mindtagger"
                 else
-                    $location.path "/dashboard"
+                    $http.get "api/snapshot"
+                        .success (snapshots) ->
+                            if snapshots?.length > 0
+                                $location.path "/dashboard"
+                            else
+                                $location.path "/search"
 
 ## Workaround to get source mapping for uncaught exceptions
 ## See: http://stackoverflow.com/a/25642699
