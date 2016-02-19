@@ -6,6 +6,7 @@
   "repository": "https://github.com/HazyResearch/mindbender.git",
   "license": "MIT",
   "devDependencies": {
+    "coffee-script": "1.8.0",
     "ng-annotate": "0.15.4",
     "grunt-concat-sourcemap": "0.4.3",
     "source-map-support": "0.2.8",
