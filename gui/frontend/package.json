@@ -8,6 +8,7 @@
   "devDependencies": {
     "coffee-script": "1.8.0",
     "ng-annotate": "0.15.4",
+    "grunt": "^0.4.0a",
     "grunt-concat-sourcemap": "0.4.3",
     "source-map-support": "0.2.8",
     "karma": "~0.10",
