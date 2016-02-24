@@ -10,4 +10,5 @@ tmp
 /build
 
 # ace custom modes
-/src/ace/**/*.js
+/src/ace/*.js
+/src/ace/*/*.js
