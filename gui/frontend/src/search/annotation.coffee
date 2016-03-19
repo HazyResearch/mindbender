@@ -453,8 +453,9 @@ angular.module "mindbender.search.annotation", [
             if $scope.isOpen #&& !$element[0].contains(e.target)
                 $scope.$apply () ->
                     $scope.isOpen = false
-            e.stopPropagation()
-            return false
+                e.stopPropagation()
+                return false
+            return true
 
         $document.on 'click', handler
 
