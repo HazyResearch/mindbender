@@ -124,9 +124,21 @@ angular.module "mindbender.search.queryparse", [
                               deferred.reject {
                                 'message':'Folder "' + node['term'] + '" not found.'
                               }
-                                
+
+                    # a condition on a field
                     else if 'field' of node and node['field'] and node['field'] != '<implicit>'
-                        deferred.resolve node['field'] + ':"' + @escape_query_term(node['term']) + '"'
+                        # term query
+                        if 'term' of node and node['term']
+                            deferred.resolve node['field'] + ':"' + @escape_query_term(node['term']) + '"'
+                        # range query
+                        else if 'term_min' of node
+                            if node['inclusive']
+                                deferred.resolve node['field'] + ':' + '[' + node['term_min'] + ' TO ' + node['term_max'] + ']'
+                            else
+                                deferred.resolve node['field'] + ':' + '{' + node['term_min'] + ' TO ' + node['term_max'] + '}'
+                        else
+                            console.log 'unknown query type'
+                    # implicit field
                     else if 'field' of node and node['field'] == '<implicit>'
                         prefix = if 'prefix' of node then node['prefix'] else ''
                         deferred.resolve prefix + '"' + @escape_query_term(node['term']) + '"'
