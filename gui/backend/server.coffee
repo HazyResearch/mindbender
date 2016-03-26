@@ -67,6 +67,10 @@ components = [
     require "./search/search-api"
 ]
 
+# we must add authentication middleware here, because the ES proxy in the search
+# api doesn't use it if it is added later
+app.use '*', authApi.ensureAuthenticated
+
 # set up component-specific middlewares
 for component in components
     component.configureApp? app, cmdlnArgs
@@ -81,8 +85,6 @@ app.use (bodyParser.urlencoded extended: true)
 for component in components
     component.configureRoutes? app, cmdlnArgs
 
-
-app.get '/', authApi.ensureAuthenticated
 
 ###############################################################################
 
