@@ -33,6 +33,7 @@ exports.configureApp = (app, args) ->
     morgan = require('morgan')
     proxy = httpProxy.createProxyServer {}
     app.enable('trust proxy')
+    basicAuth = require "basic-auth"
 
     morgan.token 'json', getJson = (req, res) ->
         esq = null
@@ -67,6 +68,7 @@ exports.configureApp = (app, args) ->
             accept_languages: req.headers['accept-language'],
             es: esq,
             user: user
+            user_basic_auth: (basicAuth req)?.name
         }
         return JSON.stringify(fields)
 
@@ -158,9 +160,7 @@ exports.configureApp = (app, args) ->
         ]
 
         get_http_user = (req) ->
-            auth_header = req.headers.authorization
-            b64 = auth_header.substring('Basic '.length)
-            new Buffer(b64, 'base64').toString("ascii").split(':')[0]; 
+            (basicAuth req)?.name
 
         app.get '/api/organization', (req, res, next) ->
             http_user = get_http_user req
