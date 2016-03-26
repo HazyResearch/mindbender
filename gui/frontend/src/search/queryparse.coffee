@@ -132,10 +132,23 @@ angular.module "mindbender.search.queryparse", [
                             deferred.resolve node['field'] + ':"' + @escape_query_term(node['term']) + '"'
                         # range query
                         else if 'term_min' of node
+                            # special case: range queries on ages
+                            term_min = node['term_min']
+                            term_max = node['term_max']
+                            if node['field'] == 'ages'
+                                if term_min.length == 1
+                                    term_min = '0' + term_min
+                                if term_min.length > 2
+                                    term_min = '99'
+                                if term_max.length == 1
+                                    term_max = '0' + term_max
+                                if term_max.length > 2
+                                    term_max = '99'
+
                             if node['inclusive']
-                                deferred.resolve node['field'] + ':' + '[' + node['term_min'] + ' TO ' + node['term_max'] + ']'
+                                deferred.resolve node['field'] + ':' + '[' + term_min + ' TO ' + term_max + ']'
                             else
-                                deferred.resolve node['field'] + ':' + '{' + node['term_min'] + ' TO ' + node['term_max'] + '}'
+                                deferred.resolve node['field'] + ':' + '{' + term_min + ' TO ' + term_max + '}'
                         else
                             console.log 'unknown query type'
                     # implicit field
