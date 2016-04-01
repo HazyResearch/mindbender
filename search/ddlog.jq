@@ -334,9 +334,10 @@ def jqForBulkLoadingRelationIntoElasticsearch:
     # float
     # double
     text: "string",
-    bool: "boolean"
+    bool: "boolean",
     # TODO date
     # TODO binary
+    json: "object"
 } as $toElasticsearchTypes |
 def elasticsearchTypeForDDlogType:
     rtrimstr("[]") | # TODO handle nested arrays
