@@ -337,11 +337,17 @@ def jqForBulkLoadingRelationIntoElasticsearch:
     bool: "boolean",
     # TODO date
     # TODO binary
-    json: "string"  # XXX "object" or "nested" requires more specific type declaration
+    json: "object"
 } as $toElasticsearchTypes |
 def elasticsearchTypeForDDlogType:
-    rtrimstr("[]") | # TODO handle nested arrays
-    if in($toElasticsearchTypes) then $toElasticsearchTypes[.] else . end
+    # use @search_type annotation if available
+    ([annotations(.name == "search_type")] | first | first) // (
+        # otherwise infer type from DDlog type
+        (.type | rtrimstr("[]")) as $type | # TODO handle nested arrays
+        if $type | in($toElasticsearchTypes)
+        then $toElasticsearchTypes[$type]
+        else . end
+    )
 ;
 
 # properties
@@ -353,7 +359,7 @@ def elasticsearchPropertiesForMappings:
         {
             key: .name,
             value: {
-                type: .type | elasticsearchTypeForDDlogType,
+                type: elasticsearchTypeForDDlogType,
                 index: (
                     # only have @searchable columns broken into tokens
                     if isAnnotated(.name == "searchable")
