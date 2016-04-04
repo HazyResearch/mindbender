@@ -337,11 +337,11 @@ def jqForBulkLoadingRelationIntoElasticsearch:
     bool: "boolean",
     # TODO date
     # TODO binary
-    json: "object"
+    json: "string"  # XXX "object" or "nested" requires more specific type declaration
 } as $toElasticsearchTypes |
 def elasticsearchTypeForDDlogType:
     rtrimstr("[]") | # TODO handle nested arrays
-    $toElasticsearchTypes[.] // .
+    if in($toElasticsearchTypes) then $toElasticsearchTypes[.] else . end
 ;
 
 # properties
