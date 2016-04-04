@@ -178,10 +178,10 @@ case $Action in
                 # send them to elasticsearch
                 curl -sS -XPUT "$indexURL/_bulk" --data-binary @- |
                 # discard all result but the error field
-                jq ".errors"
+                jq "if .errors then .items[] | values[] | select(.error) else empty end"
                 ' -- "$jqToFormat" "$ELASTICSEARCH_BASEURL/$ELASTICSEARCH_INDEX_NAME/$relation")" |
             # make sure there wasn't any error
-            jq -e -s "any | not" >/dev/null ||
+            jq 'error(@json)' >/dev/null ||
                 error "Error loading relation $relation"
         }
         eval "$(jqSchema '
