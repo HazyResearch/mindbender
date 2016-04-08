@@ -43,12 +43,12 @@
 
 <div mindtagger-navbar-bottom>
     <div class="row primary-tag-distribution primary-tag-distribution" ng-repeat="tagSchema in MindtaggerTask.schema.tags | toArray | orderBy:'count':true | limitTo:1">
-        <div class="col-sm-2 text-right" style="white-space: nowrap;">
+        <div class="col-xs-2 text-right" style="white-space: nowrap;">
             <i class="glyphicon glyphicon-tag"></i> {{tagSchema.$key}}
         </div>
-        <div class="col-sm-8" ng-include="'mindtagger/tag-distribution.html'"></div>
+        <div class="col-xs-8" ng-include="'mindtagger/tag-distribution.html'"></div>
 
-        <div class="col-sm-2" style="white-space: nowrap;">
+        <div class="col-xs-2" style="white-space: nowrap;">
             <a class="btn btn-sm btn-default" data-toggle="modal" data-target="#tags-stats-modal">
                 <i class="glyphicon glyphicon-tasks"></i> #Tags <sup><i class="glyphicon glyphicon-new-window"></i></sup>
             </a>
