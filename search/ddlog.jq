@@ -220,24 +220,7 @@ def sqlForRelationNestingAssociated(indent; nestingLevel; parentRelation):
         [(if .this.variable_type then
             # variable relations should join DeepDive's inference result
             { alias: .this.name
-            , expr:  "(SELECT \(
-                [ "v.*"
-                , "i.expectation"
-                ] |
-                join(
-    "\($indent)             , ")
-    )\($indent)          FROM \(
-                [ "\(.this.name) v"
-                , "\(.this.name)_label_inference i"
-                ] |
-                join(
-    "\($indent)             , ")
-    )\($indent)         WHERE \(
-                [ "v.id = i.id"
-                ] |
-                join(
-    "\($indent)           AND ")
-    )\($indent)       )"
+            , expr: "\(.this.name)_inference"
             }
           else
             # normal relation
