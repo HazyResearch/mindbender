@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# hocon2json -- Converts HOCON into JSON
+#
+# The later HOCON_FILE provides default values to be overridden by earlier ones.
+# $ hocon2json HOCON_FILE... >a.json
+##
+set -euo pipefail
+
+[[ $# -gt 0 ]] || usage "$0" "Missing HOCON_FILE"
+
+# need to reverse the order of arguments to have the effect of earlier
+# HOCONs overriding later ones
+if [[ $# -gt 1 ]]; then
+    i=$# hocons=()
+    while [[ $# -gt 0 ]]; do
+        let i--
+        hocons+=([$i]="$1")
+        shift
+    done
+    set -- "${hocons[@]}"
+fi
+
+# delegate to pyhocon to actually parse HOCON and convert it into JSON
+cat "$@" |
+pyhocon -f json

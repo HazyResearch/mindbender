@@ -18,7 +18,7 @@ MODULES += depends/nodejs
 MODULES += gui/backend
 MODULES += gui/frontend
 MODULES += shell
-MODULES += util/hocon2json
+MODULES += util
 
 # keeping runtime dependencies
 RUNTIMEDEPENDSDIR = depends
