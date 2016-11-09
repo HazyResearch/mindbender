@@ -26,12 +26,7 @@ export NODE_PATH="$PWD/node_modules${NODE_PATH:+:$NODE_PATH}"
 s=bower_components/coffee-script/extras/coffee-script.js
 if grep -q '//# sourceMappingURL=' $s; then
     echo >&2 "Patching sourceMappingURL string in $s"
-    {
-        echo H
-        # amend some bad lines
-        echo 'g@//# sourceMappingURL=@ s@//# sourceMappingURL=@//# source"+"MappingURL=@'
-        echo wq
-    } | ed $s >/dev/null
+    sed -e '\@//# sourceMappingURL=@ s@//# sourceMappingURL=@//# source"+"MappingURL=@' -i~ $s
 fi
 
 # Compile all CoffeeScript files with source map, LESS to CSS, symlink HTMLs
