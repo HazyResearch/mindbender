@@ -41,6 +41,9 @@ cd "$DEEPDIVE_APP"
 : ${ELASTICSEARCH_INDEX_NAME:=$(basename "$DEEPDIVE_APP")}
 : ${ELASTICSEARCH_BULK_BATCHSIZE:=1000}
 
+# Convert any uppercase characters to lowercase - Elasticsearch does not allow uppercase letters
+ELASTICSEARCH_INDEX_NAME=`eval echo "$ELASTICSEARCH_INDEX_NAME" | tr '[:upper:]' '[:lower:]'`
+
 # parse command-line args
 case ${1:-} in
     gui|update|status|drop)
