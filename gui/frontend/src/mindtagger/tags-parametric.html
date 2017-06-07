@@ -21,7 +21,7 @@
           ng-class="equals(MindtaggerParametricTags.withValue, paramValue) ? 'disabled' : ''"
           title="{{paramTag.hasParamNames ? param : ''}}">{{renderValue(paramValue)}}</button>
       <button class="btn btn-xs btn-default"
-        ng-click="paramTag.toggle(tag, paramValues)"
+        ng-click="paramTag.toggle(tag, paramValues); commit(item,tag)"
         ><i class="fa fa-remove text-danger"></i></button>
     </span>
   </span>
