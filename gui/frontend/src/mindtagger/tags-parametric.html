@@ -21,7 +21,7 @@
           ng-class="equals(MindtaggerParametricTags.withValue, paramValue) ? 'disabled' : ''"
           title="{{paramTag.hasParamNames ? param : ''}}">{{renderValue(paramValue)}}</button>
       <button class="btn btn-xs btn-default"
-        ng-click="paramTag.toggle(tag, paramValues)"
+        ng-click="paramTag.toggle(tag, paramValues); commit(item,tag)"
         ><i class="fa fa-remove text-danger"></i></button>
     </span>
   </span>
@@ -48,7 +48,7 @@
           <i class="fa fa-tag"></i> {{tagName}}
           <span class="badge" ng-if="tag[tagName].length > 0">{{tag[tagName].length}}</span>
       </a></li>
-      <li class="divider"></li>
+      <li ng-if="MindtaggerParametricTags.current.enumerateValues(tag).length > 0" class="divider"></li>
       <li ng-if="MindtaggerParametricTags.current.enumerateValues(tag).length > 0"><a ng-click="tag[MindtaggerParametricTags.name] = null; commit(item,tag)">
           <span class="text-danger">
             <i class="fa fa-trash"></i> Remove all <span class="badge">{{MindtaggerParametricTags.values.length}}</span> values
